@@ -113,17 +113,22 @@ nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
 .story .row .it{font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--soft)}
 .story .row .it b{display:block; font-family:'Cormorant Garamond'; font-weight:500; font-size:26px; color:var(--ink); text-transform:none; letter-spacing:0; margin-bottom:3px}
 
-footer{border-top:1px solid var(--hair); margin-top:6px; padding:54px 0 30px}
-.ftop{display:grid; grid-template-columns:1.7fr 1fr 1fr 1fr; gap:34px; padding-bottom:34px; border-bottom:1px solid var(--hair)}
-.fbrand .logo{font-size:clamp(42px,5vw,56px); line-height:.78; margin-bottom:14px}
-.fbrand p{font-size:13px; color:var(--soft); max-width:250px; line-height:1.7; font-weight:300}
-.fcol h4{font-family:'Jost'; font-weight:400; font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--ink); margin-bottom:15px}
-.fcol a{display:block; font-size:13px; color:var(--soft); text-decoration:none; margin-bottom:10px; transition:.25s; font-weight:300}
+footer{border-top:1px solid var(--hair); margin-top:6px; padding:60px 0 26px}
+.ftop{display:grid; grid-template-columns:1.6fr 1fr 1fr 1fr; gap:40px; align-items:start; padding-bottom:42px; border-bottom:1px solid var(--hair)}
+.fbrand{max-width:300px}
+.fbrand .logo{font-size:clamp(40px,4.4vw,50px); line-height:.95; margin:0 0 16px}
+.fbrand p{font-size:13px; color:var(--soft); line-height:1.7; font-weight:300}
+.fcol{padding-top:18px}
+.fcol h4{font-family:'Jost'; font-weight:500; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink); margin:0 0 17px}
+.fcol a{display:block; font-size:13px; color:var(--soft); text-decoration:none; margin-bottom:11px; transition:.25s; font-weight:300}
 .fcol a:hover{color:var(--ink)}
-.fbot{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding-top:22px;
+.fbot{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:14px; padding-top:22px;
   font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--soft)}
+.fbot>:nth-child(1){text-align:left}.fbot>:nth-child(2){text-align:center}.fbot>:nth-child(3){text-align:right}
 .fbot a{color:var(--gold); text-decoration:none}
-@media(max-width:680px){.ftop{grid-template-columns:1fr 1fr; gap:24px 26px} .fbrand{grid-column:1/-1} .fbot{justify-content:center; text-align:center}}
+@media(max-width:680px){
+  .ftop{grid-template-columns:1fr 1fr; gap:28px 26px} .fbrand{grid-column:1/-1} .fcol{padding-top:0}
+  .fbot{grid-template-columns:1fr; gap:6px} .fbot>*{text-align:center!important}}
 
 @keyframes rise{to{opacity:1; transform:none}}
 .fadein{opacity:0; animation:rise 1s forwards}
@@ -233,7 +238,7 @@ function card(d,i){
       <div class="nm">${d.color_en}</div>
       <div class="sub"><span class="d" style="background:${d.swatch}"></span>Beaded bracelet</div>
       <div class="pr">£${PRICE.toFixed(2)} <s>£${WAS.toFixed(2)}</s></div>
-      <a class="add" href="${d.pay||'#'}" target="_blank" rel="noopener">Add to bag</a>
+      <a class="add" href="${d.pay||'#'}">Add to bag</a>
     </div>`;
   return el;
 }
