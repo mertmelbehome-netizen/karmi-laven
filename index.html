@@ -99,7 +99,8 @@ nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
 .cbody .sub .d{width:8px; height:8px; border-radius:50%}
 .cbody .pr{font-size:13px; letter-spacing:.04em; color:var(--ink)}
 .cbody .pr s{color:#bdb3a3; margin-left:4px; font-size:12px}
-.cbody .add{display:block; text-align:center; text-decoration:none; margin-top:13px; font-family:'Jost'; font-weight:400; font-size:10.5px; letter-spacing:.2em;
+.cbody .ship24{font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-top:7px}
+.cbody .add{display:block; text-align:center; text-decoration:none; margin-top:11px; font-family:'Jost'; font-weight:400; font-size:10.5px; letter-spacing:.2em;
   text-transform:uppercase; color:var(--ink); background:none; border:1px solid var(--hair); padding:10px 0;
   width:100%; cursor:pointer; transition:.3s}
 .cbody .add:hover{background:var(--ink); color:var(--bg); border-color:var(--ink)}
@@ -177,7 +178,8 @@ footer .logo{font-size:clamp(48px,5.5vw,66px); line-height:1; margin-bottom:12px
 .cart-foot{border-top:1px solid var(--hair); padding:20px 24px 24px}
 .cart-sub{display:flex; justify-content:space-between; font-size:15px; margin-bottom:6px}
 .cart-sub span:last-child{font-family:'Cormorant Garamond'; font-size:20px}
-.cart-ship{font-size:11px; letter-spacing:.04em; color:var(--accent); margin-bottom:16px}
+.cart-ship{font-size:11px; letter-spacing:.04em; color:var(--accent); margin-bottom:6px}
+.cart-pre{font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--soft); margin-bottom:16px}
 .cart-checkout{width:100%; font-family:'Jost'; font-weight:400; font-size:12px; letter-spacing:.18em; text-transform:uppercase;
   color:var(--bg); background:var(--ink); border:none; padding:16px 0; cursor:pointer; transition:.3s}
 .cart-checkout:hover{opacity:.88} .cart-checkout:disabled{opacity:.4; cursor:default}
@@ -198,7 +200,7 @@ footer .logo{font-size:clamp(48px,5.5vw,66px); line-height:1; margin-bottom:12px
 </style>
 </head>
 <body>
-<div class="announce">Now launching · introductory prices · complimentary UK shipping over £30</div>
+<div class="announce">Launch pre-order · dispatched within 24 hours · complimentary UK shipping over £30</div>
 
 <nav>
   <div class="logo">Karmi Laven</div>
@@ -268,7 +270,7 @@ footer .logo{font-size:clamp(48px,5.5vw,66px); line-height:1; margin-bottom:12px
     <div class="mprice" id="mPrice"></div>
     <div class="mstock" id="mStock"></div>
     <div class="mdesc">A single thread of 4mm crystal beads, hand-strung on gold with a delicate charm. Wear it alone, or stack it into the gradient.</div>
-    <button class="madd" id="mAdd">Add to bag</button>
+    <button class="madd" id="mAdd">Pre-order</button>
   </div>
 </div>
 
@@ -278,6 +280,7 @@ footer .logo{font-size:clamp(48px,5.5vw,66px); line-height:1; margin-bottom:12px
   <div class="cart-foot">
     <div class="cart-sub"><span>Subtotal</span><span id="cartSub">£0.00</span></div>
     <div class="cart-ship" id="cartShip">Complimentary UK shipping over £30</div>
+    <div class="cart-pre">Pre-order · dispatched within 24 hours</div>
     <button class="cart-checkout" id="checkoutBtn" onclick="checkout()">Checkout</button>
   </div>
 </aside>
@@ -319,7 +322,8 @@ function card(d,i){
       <div class="nm">${d.color_en}</div>
       <div class="sub"><span class="d" style="background:${d.swatch}"></span>Beaded bracelet</div>
       <div class="pr">£${PRICE.toFixed(2)} <s>£${WAS.toFixed(2)}</s></div>
-      <button class="add" onclick="addToCart('${d.barcode}')">Add to bag</button>
+      <div class="ship24">Pre-order · ships in 24h</div>
+      <button class="add" onclick="addToCart('${d.barcode}')">Pre-order</button>
     </div>`;
   return el;
 }
@@ -340,7 +344,7 @@ function openModal(bc){
   document.getElementById('mName').textContent=d.color_en;
   document.getElementById('mDot').style.background=d.swatch;
   document.getElementById('mPrice').innerHTML=`£${PRICE.toFixed(2)} <s>£${WAS.toFixed(2)}</s> <em>launch</em>`;
-  document.getElementById('mStock').textContent=stockTxt(d)||'';
+  document.getElementById('mStock').textContent='Pre-order · dispatched within 24 hours';
   const add=document.getElementById('mAdd'); add.onclick=()=>{addToCart(bc);};
   document.getElementById('modal').classList.add('open');
   document.getElementById('ovl').classList.add('open');
