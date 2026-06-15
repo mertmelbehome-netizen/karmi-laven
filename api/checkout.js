@@ -12,9 +12,9 @@ export default async function handler(req, res) {
     }));
     const subtotal = line_items.reduce((a, l) => a + l.price_data.unit_amount * l.quantity, 0);
     const origin = req.headers.origin || 'https://karmilaven.com';
-    const shipping_options = [ subtotal >= 3000
+    const shipping_options = [ subtotal >= 2500
       ? { shipping_rate_data: { display_name: 'Complimentary UK shipping', type: 'fixed_amount', fixed_amount: { amount: 0, currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } }
-      : { shipping_rate_data: { display_name: 'UK standard shipping', type: 'fixed_amount', fixed_amount: { amount: 295, currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } } ];
+      : { shipping_rate_data: { display_name: 'UK standard shipping', type: 'fixed_amount', fixed_amount: { amount: 345, currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } } ];
     const session = await stripe.checkout.sessions.create({
       mode: 'payment', line_items, shipping_options,
       shipping_address_collection: { allowed_countries: ['GB'] },

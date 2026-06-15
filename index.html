@@ -201,7 +201,7 @@ footer .logo{font-family:'Cormorant Garamond',serif; font-weight:500; font-size:
 </style>
 </head>
 <body>
-<div class="announce">Launch pre-order · dispatched from 24 June · complimentary UK shipping over £30</div>
+<div class="announce">Launch pre-order · dispatched from 24 June · complimentary UK shipping over £25</div>
 
 <nav>
   <div class="logo">Karmi Laven</div>
@@ -257,7 +257,7 @@ footer .logo{font-family:'Cormorant Garamond',serif; font-weight:500; font-size:
     <a href="mailto:hello@karmilaven.com">Contact</a>
     <a href="https://www.instagram.com/karmilaven/" target="_blank" rel="noopener">Instagram</a>
   </div>
-  <div class="fbot">© 2026 Karmi Laven · Complimentary UK shipping over £30 · <a href="#">karmilaven.com</a></div>
+  <div class="fbot">© 2026 Karmi Laven · Complimentary UK shipping over £25 · <a href="#">karmilaven.com</a></div>
 </footer>
 
 <div class="ovl" id="ovl"></div>
@@ -280,7 +280,7 @@ footer .logo{font-family:'Cormorant Garamond',serif; font-weight:500; font-size:
   <div class="cart-items" id="cartItems"></div>
   <div class="cart-foot">
     <div class="cart-sub"><span>Subtotal</span><span id="cartSub">£0.00</span></div>
-    <div class="cart-ship" id="cartShip">Complimentary UK shipping over £30</div>
+    <div class="cart-ship" id="cartShip">Complimentary UK shipping over £25</div>
     <div class="cart-pre">Pre-order · dispatched from 24 June</div>
     <button class="cart-checkout" id="checkoutBtn" onclick="checkout()">Checkout</button>
   </div>
@@ -404,7 +404,7 @@ function renderCart(){
     <button class="ci-x" onclick="removeItem('${c.bc}')">Remove</button></div></div></div>`;}).join('');
   const s=subtotal();
   document.getElementById('cartSub').textContent='£'+s.toFixed(2);
-  document.getElementById('cartShip').textContent = s>=30?'✓ You’ve unlocked free UK shipping':`Add £${(30-s).toFixed(2)} more for free UK shipping`;
+  document.getElementById('cartShip').textContent = s>=25?'✓ You’ve unlocked free UK shipping':`Add £${(25-s).toFixed(2)} more for free UK shipping`;
   document.getElementById('checkoutBtn').disabled=!cart.length;
 }
 function openCart(){renderCart();document.getElementById('cart').classList.add('open');document.getElementById('ovl').classList.add('open');}
