@@ -200,7 +200,7 @@ footer .logo{font-size:clamp(48px,5.5vw,66px); line-height:1; margin-bottom:12px
 </style>
 </head>
 <body>
-<div class="announce">Launch pre-order · dispatched within 24 hours · complimentary UK shipping over £30</div>
+<div class="announce">Launch pre-order · dispatched from 24 June · complimentary UK shipping over £30</div>
 
 <nav>
   <div class="logo">Karmi Laven</div>
@@ -280,7 +280,7 @@ footer .logo{font-size:clamp(48px,5.5vw,66px); line-height:1; margin-bottom:12px
   <div class="cart-foot">
     <div class="cart-sub"><span>Subtotal</span><span id="cartSub">£0.00</span></div>
     <div class="cart-ship" id="cartShip">Complimentary UK shipping over £30</div>
-    <div class="cart-pre">Pre-order · dispatched within 24 hours</div>
+    <div class="cart-pre">Pre-order · dispatched from 24 June</div>
     <button class="cart-checkout" id="checkoutBtn" onclick="checkout()">Checkout</button>
   </div>
 </aside>
@@ -351,7 +351,7 @@ function card(d,i){
       <div class="nm">${d.color_en}</div>
       <div class="sub"><span class="d" style="background:${d.swatch}"></span>Beaded bracelet</div>
       <div class="pr">£${PRICE.toFixed(2)} <s>£${WAS.toFixed(2)}</s></div>
-      <div class="ship24">Pre-order · ships in 24h</div>
+      <div class="ship24">Pre-order · ships 24 June</div>
       <button class="add" onclick="addToCart('${d.barcode}')">Pre-order</button>
     </div>`;
   return el;
@@ -373,7 +373,7 @@ function openModal(bc){
   document.getElementById('mName').textContent=d.color_en;
   document.getElementById('mDot').style.background=d.swatch;
   document.getElementById('mPrice').innerHTML=`£${PRICE.toFixed(2)} <s>£${WAS.toFixed(2)}</s> <em>launch</em>`;
-  document.getElementById('mStock').textContent='Pre-order · dispatched within 24 hours';
+  document.getElementById('mStock').textContent='Pre-order · dispatched from 24 June';
   const add=document.getElementById('mAdd'); add.onclick=()=>{addToCart(bc);};
   document.getElementById('modal').classList.add('open');
   document.getElementById('ovl').classList.add('open');
