@@ -1,0 +1,1 @@
+{ "name": "karmi-laven", "private": true, "dependencies": { "stripe": "^16.12.0" } }

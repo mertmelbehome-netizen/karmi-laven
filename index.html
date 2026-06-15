@@ -409,14 +409,18 @@ function renderCart(){
 function openCart(){renderCart();document.getElementById('cart').classList.add('open');document.getElementById('ovl').classList.add('open');}
 function closeCart(){document.getElementById('cart').classList.remove('open');syncOvl();}
 function syncOvl(){const any=document.getElementById('cart').classList.contains('open')||document.getElementById('modal').classList.contains('open');document.getElementById('ovl').classList.toggle('open',any);}
-function checkout(){
+async function checkout(){
   if(!cart.length)return;
   const val=subtotal(), n=cart.reduce((a,c)=>a+c.qty,0);
   localStorage.setItem('klpending',JSON.stringify({value:val,num_items:n,contents:cart.map(c=>({id:c.bc,quantity:c.qty}))}));
   track('InitiateCheckout','begin_checkout',{value:val,currency:'GBP',num_items:n,content_ids:cart.map(c=>c.bc)});
-  const distinct=[...new Set(cart.map(c=>c.bc))];
-  if(distinct.length===1){ location.href=BY[distinct[0]].pay; return; }
-  // multiple colours need combined checkout (backend) — interim: take them one at a time
+  // Preferred: combined Stripe Checkout via serverless (active when hosted on Vercel)
+  try{
+    const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({items:cart.map(c=>({name:BY[c.bc].color_en,qty:c.qty}))})});
+    if(r.ok){const j=await r.json(); if(j.url){location.href=j.url;return;}}
+  }catch(e){}
+  // Fallback (static hosting): single-colour payment link
   toast('Taking you through checkout…');
   location.href=BY[cart[0].bc].pay;
 }
