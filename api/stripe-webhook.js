@@ -17,7 +17,7 @@ export default async function handler(req, res) {
       await fetch(`https://graph.facebook.com/v19.0/${process.env.META_PIXEL_ID}/events?access_token=${process.env.META_CAPI_TOKEN}`, {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ data:[{ event_name:'Purchase', event_time:Math.floor(Date.now()/1000), action_source:'website',
-          event_source_url:'https://karmilaven.com/', event_id:s.id,
+          event_source_url:'https://karmilaven.com/', event_id:(s.metadata&&s.metadata.event_id)||s.client_reference_id||s.id,
           user_data:{ em:sha(d.email), ph:sha((d.phone||'').replace(/\D/g,'')) },
           custom_data:{ value, currency } }] })
       }).catch(()=>{});
