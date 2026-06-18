@@ -432,7 +432,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <div class="shipbar"><i id="shipFill"></i></div>
     <div class="cart-ship" id="cartShip">Add £15.00 more for free UK shipping</div>
     <div class="cart-sub"><span>Subtotal</span><span id="cartSub">£0.00</span></div>
-    <div class="cart-pre">Pre-order · dispatched from 24 June</div>
+    <div class="cart-pre" id="cartPre">Pre-order · dispatched from 24 June</div>
     <button class="cart-checkout" id="checkoutBtn" onclick="checkout()">Checkout</button>
     <div class="cart-wallet">Apple Pay &amp; Google Pay at checkout</div>
   </div>
@@ -594,53 +594,53 @@ function updateBundleTotal(){
 function addBundle(){
   const cols=[...document.querySelectorAll('.slotsel')].map(s=>s.value);
   const t=TIERS.find(x=>x.n===bTier);
-  const img=(colours.find(c=>c.name===cols[0])||colours[0]).img;
-  cart.push({type:'bundle',n:bTier,price:t.price,cols,img});
+  cols.forEach(name=>{const c=colours.find(x=>x.name===name); if(c) addToCartSilent(c.bc);});
   save();updateBag();renderCart();closeBundle();
-  track('AddToCart','add_to_cart',{value:t.price,currency:'GBP',content_name:`${bTier}-bracelet bundle`,content_type:'product',num_items:bTier});
-  openCart();toast('Bundle added to bag');
+  track('AddToCart','add_to_cart',{value:t.price,currency:'GBP',content_name:`${bTier}-bracelet stack`,content_type:'product',num_items:bTier});
+  openCart();toast('Added to bag');
 }
 
-/* ---- CART ---- */
+/* ---- CART (unified multi-buy: best price auto-applied by TOTAL bracelet count) ---- */
 let cart=[]; try{cart=JSON.parse(localStorage.getItem('klcart')||'[]');}catch(e){cart=[];}
-cart=cart.filter(c=>c&&(c.type==='bundle'?Array.isArray(c.cols):BY[c.bc]));  // sanitise legacy/invalid
+(function migrateCart(){const out=[];const push=(bc,q)=>{if(!BY[bc])return;const f=out.find(o=>o.bc===bc);if(f)f.qty+=q;else out.push({bc,qty:q});};
+  cart.forEach(c=>{ if(!c)return;
+    if(c.type==='bundle'&&Array.isArray(c.cols)){c.cols.forEach(nm=>{const col=colours.find(x=>x.name===nm); if(col)push(col.bc,1);});}
+    else if(c.bc)push(c.bc,c.qty||1); });
+  cart=out;})();
 const save=()=>localStorage.setItem('klcart',JSON.stringify(cart));
-function itemCount(){return cart.reduce((a,c)=>a+(c.type==='bundle'?c.n:c.qty),0);}
-function updateBag(){document.getElementById('bagN').textContent=itemCount();}
+const DENOMS=[[5,12.00],[3,7.50],[2,5.50],[1,2.99]];   // multi-buy ladder; cheapest combo auto-applied
+function bestPrice(q){ if(q<=0)return 0; const dp=[0]; for(let i=1;i<=q;i++){dp[i]=Infinity; for(const d of DENOMS){ if(d[0]<=i) dp[i]=Math.min(dp[i],dp[i-d[0]]+d[1]); } } return Math.round(dp[q]*100)/100; }
+function totalQty(){return cart.reduce((a,c)=>a+c.qty,0);}
+function updateBag(){document.getElementById('bagN').textContent=totalQty();}
+function addToCartSilent(bc){const f=cart.find(c=>c.bc===bc); if(f)f.qty++; else cart.push({bc,qty:1});}
 function addToCart(bc){
-  const f=cart.find(c=>c.type!=='bundle'&&c.bc===bc); if(f)f.qty++; else cart.push({type:'single',bc,qty:1});
-  save();updateBag();renderCart();toast('Added to bag');
+  addToCartSilent(bc); save();updateBag();renderCart();toast('Added to bag');
   track('AddToCart','add_to_cart',{value:PRICE,currency:'GBP',content_name:BY[bc].color_en,content_ids:[bc],content_type:'product'});
 }
-function setQty(i,v){const q=Math.max(1,Math.min(99,parseInt(v)||1)); if(cart[i]&&cart[i].type!=='bundle'){cart[i].qty=q;} save();updateBag();renderCart();}
-function changeQty(i,delta){const c=cart[i]; if(!c||c.type==='bundle')return; c.qty+=delta; if(c.qty<=0)cart.splice(i,1); save();updateBag();renderCart();}
+function setQty(i,v){const q=Math.max(1,Math.min(99,parseInt(v)||1)); if(cart[i])cart[i].qty=q; save();updateBag();renderCart();}
+function changeQty(i,delta){const c=cart[i]; if(!c)return; c.qty+=delta; if(c.qty<=0)cart.splice(i,1); save();updateBag();renderCart();}
 function removeItem(i){cart.splice(i,1);save();updateBag();renderCart();}
-function subtotal(){return cart.reduce((a,c)=>a+(c.type==='bundle'?c.price:c.qty*PRICE),0);}
-function hasFreeShip(){return subtotal()>=FREE_SHIP || cart.some(c=>c.type==='bundle'&&c.n>=5);}
+function subtotal(){return bestPrice(totalQty());}
+function hasFreeShip(){return subtotal()>=FREE_SHIP || totalQty()>=5;}
 function renderCart(){
   const box=document.getElementById('cartItems');
   if(!cart.length){box.innerHTML='<div class="cart-empty">Your bag is empty.</div>';}
   else box.innerHTML=cart.map((c,i)=>{
-    if(c.type==='bundle'){
-      return `<div class="ci"><img src="${c.img}">
-        <div class="ci-m"><div class="ci-n">${c.n}-Bracelet bundle</div>
-        <div class="ci-p">${c.cols.join(' · ')}<br>£${c.price.toFixed(2)}${c.n>=5?' · free shipping':''}</div>
-        <div class="ci-q"><button class="ci-x" onclick="removeItem(${i})">Remove</button></div></div></div>`;
-    }
     const d=BY[c.bc];
     return `<div class="ci"><img src="${d.img}">
       <div class="ci-m"><div class="ci-n">${d.color_en}</div>
-      <div class="ci-p">£${PRICE.toFixed(2)}</div>
+      <div class="ci-p">Crystal bracelet</div>
       <div class="ci-q"><button onclick="changeQty(${i},-1)">−</button>
       <input type="number" inputmode="numeric" min="1" value="${c.qty}" onchange="setQty(${i},this.value)" aria-label="Quantity">
       <button onclick="changeQty(${i},1)">+</button>
       <button class="ci-x" onclick="removeItem(${i})">Remove</button></div></div></div>`;
   }).join('');
-  const s=subtotal(), free=hasFreeShip();
+  const q=totalQty(), s=subtotal(), full=q*PRICE, saved=Math.max(0,full-s), free=hasFreeShip();
   document.getElementById('cartSub').textContent='£'+s.toFixed(2);
   const remain=Math.max(0,FREE_SHIP-s);
   document.getElementById('cartShip').textContent = free ? '✓ Free UK shipping unlocked' : `You're £${remain.toFixed(2)} away from free UK shipping`;
   document.getElementById('shipFill').style.width = (free?100:Math.min(100,s/FREE_SHIP*100))+'%';
+  document.getElementById('cartPre').textContent = `${q} bracelet${q!==1?'s':''}${saved>=0.01?` · multi-buy saves £${saved.toFixed(2)}`:''} · pre-order, ships 24 June`;
   document.getElementById('checkoutBtn').disabled=!cart.length;
 }
 function openCart(){renderCart();document.getElementById('cart').classList.add('open');document.getElementById('ovl').classList.add('open');}
@@ -648,25 +648,19 @@ function closeCart(){document.getElementById('cart').classList.remove('open');sy
 function syncOvl(){const any=['cart','modal','bundle'].some(id=>document.getElementById(id).classList.contains('open'));document.getElementById('ovl').classList.toggle('open',any);}
 async function checkout(){
   if(!cart.length)return;
-  const val=subtotal(), n=itemCount(), eventId=uuid();
-  const contents=[]; const items=[];
-  cart.forEach(c=>{
-    if(c.type==='bundle'){ items.push({bundle:true,n:c.n,price:c.price,cols:c.cols});
-      contents.push({id:'bundle-'+c.n,quantity:1}); }
-    else { items.push({name:BY[c.bc].color_en,qty:c.qty});
-      contents.push({id:c.bc,quantity:c.qty}); }
-  });
-  localStorage.setItem('klpending',JSON.stringify({value:val,num_items:n,contents,eventId}));
-  track('InitiateCheckout','begin_checkout',{value:val,currency:'GBP',num_items:n},{eventID:eventId});
+  const q=totalQty(), val=subtotal(), eventId=uuid();
+  const items=cart.map(c=>({name:BY[c.bc].color_en,qty:c.qty}));   // server re-prices by total qty (multi-buy)
+  const contents=cart.map(c=>({id:c.bc,quantity:c.qty}));
+  localStorage.setItem('klpending',JSON.stringify({value:val,num_items:q,contents,eventId}));
+  track('InitiateCheckout','begin_checkout',{value:val,currency:'GBP',num_items:q},{eventID:eventId});
   try{
     const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({items,event_id:eventId})});
     if(r.ok){const j=await r.json(); if(j.url){location.href=j.url;return;}}
   }catch(e){}
   // Fallback (static hosting only): single-colour payment link
-  const firstSingle=cart.find(c=>c.type!=='bundle');
   toast('Taking you through checkout…');
-  location.href=(firstSingle?BY[firstSingle.bc].pay:BY[cart[0].cols&&cart[0].cols[0]?Object.keys(BY).find(k=>BY[k].color_en===cart[0].cols[0]):DATA[0].barcode].pay);
+  location.href=BY[cart[0].bc].pay;
 }
 let toastT;
 function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1800);}
