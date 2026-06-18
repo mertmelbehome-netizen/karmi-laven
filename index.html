@@ -306,7 +306,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 </style>
 </head>
 <body>
-<div class="announce">Launch pre-order · dispatched from 24 June · free UK shipping over £15</div>
+<div class="announce">Now in stock · ships in 2–5 business days · free UK shipping over £15</div>
 
 <nav>
   <div class="logo">Karmi Laven</div>
@@ -324,7 +324,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
       <button class="btn" onclick="openBundle()">Build your bundle</button>
       <button class="btn ghost" onclick="document.getElementById('palette').scrollIntoView({behavior:'smooth'})">Shop by colour</button>
     </div>
-    <div class="launch fadein d3"><span class="instore">In store <s>£12.00</s></span> · <span>Online launch</span><span class="p">£2.99</span><span class="lbl">Pre-order</span></div>
+    <div class="launch fadein d3"><span class="instore">In store <s>£12.00</s></span> · <span>Online launch</span><span class="p">£2.99</span><span class="lbl">In stock</span></div>
     <div class="spectrum fadein d4" id="spectrum"></div>
   </div>
   <div class="hero-img fadein d2">
@@ -368,7 +368,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 
 <section class="faq wrap">
   <h3>Good to <em>know</em></h3>
-  <details class="faqitem"><summary>Why pre-order?</summary><p>This is our launch batch. Order now to lock the £2.99 launch price — pieces are dispatched from 24 June. You're charged at checkout and we ship as soon as the batch lands.</p></details>
+  <details class="faqitem"><summary>When will my order arrive?</summary><p>In stock and ready now — orders ship within 1–2 business days and arrive in 2–5 business days via Royal Mail. You're charged securely at checkout.</p></details>
   <details class="faqitem"><summary>What size are they?</summary><p>One adjustable size. Each bracelet is hand-strung on a fine gold-tone chain with a slide adjuster, comfortable from roughly 14–19cm.</p></details>
   <details class="faqitem"><summary>What are they made of?</summary><p>4mm faceted crystal beads hand-strung on a gold-tone chain with a single delicate charm.</p></details>
   <details class="faqitem"><summary>Shipping &amp; delivery?</summary><p>UK shipping £3.45, free over £15 (and free with the 5-bracelet stack). Delivery 2–5 business days after dispatch.</p></details>
@@ -403,7 +403,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <div class="mprice" id="mPrice"></div>
     <div class="mstock" id="mStock"></div>
     <div class="mdesc">A single thread of 4mm crystal beads, hand-strung on gold with a delicate charm. Wear it alone, or stack it into the gradient.</div>
-    <button class="madd" id="mAdd">Pre-order — £2.99</button>
+    <button class="madd" id="mAdd">Add to bag — £2.99</button>
     <button class="mbundle" onclick="closeModal();openBundle(window._mbc)">Save more — build a bundle</button>
   </div>
 </div>
@@ -432,7 +432,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <div class="shipbar"><i id="shipFill"></i></div>
     <div class="cart-ship" id="cartShip">Add £15.00 more for free UK shipping</div>
     <div class="cart-sub"><span>Subtotal</span><span id="cartSub">£0.00</span></div>
-    <div class="cart-pre" id="cartPre">Pre-order · dispatched from 24 June</div>
+    <div class="cart-pre" id="cartPre">In stock · ships in 2–5 days</div>
     <button class="cart-checkout" id="checkoutBtn" onclick="checkout()">Checkout</button>
     <div class="cart-wallet">Apple Pay &amp; Google Pay at checkout</div>
   </div>
@@ -485,7 +485,7 @@ function firePurchaseIfSuccess(){
     p.eventId?{eventID:p.eventId}:undefined);   // eventID dedups with server CAPI (same id)
   localStorage.removeItem('klpending'); cart=[]; save(); updateBag();
   history.replaceState({},'',location.pathname);
-  toast('Thank you — your pre-order is confirmed');
+  toast('Thank you — your order is confirmed');
 }
 const grid=document.getElementById('grid'), swatchbar=document.getElementById('swatchbar'), countEl=document.getElementById('count');
 document.getElementById('spectrum').style.background='linear-gradient(90deg,'+DATA.map(d=>d.swatch).join(',')+')';
@@ -519,8 +519,8 @@ function card(d,i){
       <div class="nm">${d.color_en}</div>
       <div class="sub"><span class="d" style="background:${d.swatch}"></span>Beaded bracelet</div>
       <div class="pr"><span style="color:var(--soft)">In store <s>£${WAS.toFixed(2)}</s></span> · £${PRICE.toFixed(2)}</div>
-      <div class="ship24">Pre-order · ships 24 June</div>
-      <button class="add" onclick="addToCart('${d.barcode}')">Pre-order — £${PRICE.toFixed(2)}</button>
+      <div class="ship24">In stock · ships in 2–5 days</div>
+      <button class="add" onclick="addToCart('${d.barcode}')">Add to bag — £${PRICE.toFixed(2)}</button>
     </div>`;
   return el;
 }
@@ -541,7 +541,7 @@ function openModal(bc){
   document.getElementById('mName').textContent=d.color_en;
   document.getElementById('mDot').style.background=d.swatch;
   document.getElementById('mPrice').innerHTML=`<span class="instore">In store <s>£${WAS.toFixed(2)}</s></span> · Online launch <span class="p">£${PRICE.toFixed(2)}</span>`;
-  document.getElementById('mStock').textContent='Pre-order · dispatched from 24 June';
+  document.getElementById('mStock').textContent='In stock · ships in 2–5 business days';
   document.getElementById('mAdd').onclick=()=>{addToCart(bc);closeModal();};
   document.getElementById('modal').classList.add('open');
   document.getElementById('ovl').classList.add('open');
@@ -640,7 +640,7 @@ function renderCart(){
   const remain=Math.max(0,FREE_SHIP-s);
   document.getElementById('cartShip').textContent = free ? '✓ Free UK shipping unlocked' : `You're £${remain.toFixed(2)} away from free UK shipping`;
   document.getElementById('shipFill').style.width = (free?100:Math.min(100,s/FREE_SHIP*100))+'%';
-  document.getElementById('cartPre').textContent = `${q} bracelet${q!==1?'s':''}${saved>=0.01?` · multi-buy saves £${saved.toFixed(2)}`:''} · pre-order, ships 24 June`;
+  document.getElementById('cartPre').textContent = `${q} bracelet${q!==1?'s':''}${saved>=0.01?` · multi-buy saves £${saved.toFixed(2)}`:''} · in stock, ships in 2–5 days`;
   document.getElementById('checkoutBtn').disabled=!cart.length;
 }
 function openCart(){renderCart();document.getElementById('cart').classList.add('open');document.getElementById('ovl').classList.add('open');}
