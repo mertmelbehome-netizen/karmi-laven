@@ -10,21 +10,65 @@ function bestPriceP(q) {
   for (let i = 1; i <= q; i++) { dp[i] = Infinity; for (const [d, c] of DENOMS) if (d <= i) dp[i] = Math.min(dp[i], dp[i - d] + c); }
   return dp[q];
 }
+const clampN = n => Math.max(1, Math.min(99, parseInt(n) || 1));
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
   try {
     const { items, event_id } = req.body || {};
     if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: 'empty cart' });
-    // total bracelet count across the cart (supports legacy {bundle,n} and {name,qty})
-    let totalQty = 0; const names = [];
+
+    // Expand cart to one entry per bracelet, preserving barcode for ops-v2 mapping.
+    // Supports legacy {bundle,n,cols} and {name,qty}; new shape adds {bc,name,qty}.
+    const units = [];
     items.forEach(it => {
-      if (it && it.bundle) { const n = Math.max(1, Math.min(99, parseInt(it.n) || 1)); totalQty += n; if (Array.isArray(it.cols)) names.push(...it.cols); }
-      else { const qn = Math.max(1, Math.min(99, parseInt(it.qty) || 1)); totalQty += qn; if (it && it.name) names.push(`${it.name}${qn > 1 ? ` ×${qn}` : ''}`); }
+      if (!it) return;
+      if (it.bundle) {
+        const n = clampN(it.n);
+        const cols = Array.isArray(it.cols) ? it.cols : [];
+        for (let i = 0; i < n; i++) units.push({ bc: '', name: cols[i] || 'Crystal bracelet' });
+      } else {
+        const qn = clampN(it.qty);
+        const bc = it.bc != null ? String(it.bc).trim() : '';
+        const name = (it.name || 'Crystal bracelet').toString().slice(0, 60);
+        for (let i = 0; i < qn; i++) units.push({ bc, name });
+      }
     });
-    totalQty = Math.max(1, Math.min(99, totalQty));
-    const amount = Math.max(UNIT, bestPriceP(totalQty));
-    const label = `Karmi Laven — ${totalQty} crystal bracelet${totalQty > 1 ? 's' : ''}${names.length ? ` (${names.join(', ')})` : ''}`.slice(0, 240);
-    const line_items = [{ price_data: { currency: 'gbp', unit_amount: amount, product_data: { name: label } }, quantity: 1 }];
+    if (!units.length) return res.status(400).json({ error: 'empty cart' });
+    if (units.length > 99) units.length = 99; // hard cap
+
+    const totalQty = units.length;
+    const amount = Math.max(UNIT, bestPriceP(totalQty)); // total charge in pence (multi-buy ladder)
+
+    // Distribute the bundle total across bracelets so line items sum EXACTLY to `amount`.
+    // base price each, then spread the leftover pennies one-per-bracelet onto the first `rem`.
+    const base = Math.floor(amount / totalQty);
+    const rem = amount - base * totalQty; // 0 .. totalQty-1
+    units.forEach((u, i) => { u.price = base + (i < rem ? 1 : 0); });
+
+    // Group into Stripe line items by (barcode, name, price) — at most 2 lines per barcode
+    // (base and base+1), so each colour/barcode is its own visible line.
+    const groups = new Map();
+    units.forEach(u => {
+      const key = `${u.bc}|${u.name}|${u.price}`;
+      const g = groups.get(key) || { bc: u.bc, name: u.name, price: u.price, qty: 0 };
+      g.qty++; groups.set(key, g);
+    });
+    const line_items = [...groups.values()].map(g => ({
+      price_data: { currency: 'gbp', unit_amount: g.price, product_data: { name: g.bc ? `${g.bc} · ${g.name}` : g.name } },
+      quantity: g.qty,
+    }));
+
+    // Barcode breakdown for ops — authoritative, parse-free mapping (also survives in webhook).
+    const bcMap = new Map();
+    units.forEach(u => {
+      const k = u.bc || u.name;
+      const e = bcMap.get(k) || { bc: u.bc, name: u.name, qty: 0 };
+      e.qty++; bcMap.set(k, e);
+    });
+    const bcList = [...bcMap.values()];
+    const itemsCsv = bcList.map(e => `${e.bc || '?'}x${e.qty}`).join(',').slice(0, 480);
+    const itemsNamed = bcList.map(e => `${e.bc || '?'} ${e.name} x${e.qty}`).join(' | ').slice(0, 480);
+
     const freeShip = amount >= FREE_SHIP_P || totalQty >= 5;
     const shipping_options = [ freeShip
       ? { shipping_rate_data: { display_name: 'Free UK shipping', type: 'fixed_amount', fixed_amount: { amount: 0, currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } }
@@ -38,7 +82,7 @@ export default async function handler(req, res) {
       phone_number_collection: { enabled: true },
       allow_promotion_codes: true,
       client_reference_id: event_id || undefined,
-      metadata: { event_id: event_id || '', qty: String(totalQty) },
+      metadata: { event_id: event_id || '', qty: String(totalQty), items: itemsCsv, items_named: itemsNamed },
       success_url: `${origin}/?checkout=success`,
       cancel_url: `${origin}/?checkout=cancel`,
     });

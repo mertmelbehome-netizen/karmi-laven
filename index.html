@@ -649,7 +649,7 @@ function syncOvl(){const any=['cart','modal','bundle'].some(id=>document.getElem
 async function checkout(){
   if(!cart.length)return;
   const q=totalQty(), val=subtotal(), eventId=uuid();
-  const items=cart.map(c=>({name:BY[c.bc].color_en,qty:c.qty}));   // server re-prices by total qty (multi-buy)
+  const items=cart.map(c=>({bc:c.bc,name:BY[c.bc].color_en,qty:c.qty}));   // bc carried to Stripe for ops-v2 mapping; server re-prices by total qty (multi-buy)
   const contents=cart.map(c=>({id:c.bc,quantity:c.qty}));
   localStorage.setItem('klpending',JSON.stringify({value:val,num_items:q,contents,eventId}));
   track('InitiateCheckout','begin_checkout',{value:val,currency:'GBP',num_items:q},{eventID:eventId});
