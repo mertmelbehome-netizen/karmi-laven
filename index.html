@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -303,6 +303,27 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
   .cbody .nm{font-size:18px} .sbi{gap:16px}
   .bundlecta{flex-direction:column; align-items:stretch; text-align:center}
 }
+
+/* ===== EMAIL CAPTURE POPUP ===== */
+.klpop-ovl{position:fixed;inset:0;z-index:110;background:rgba(28,25,22,.55);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:.35s}
+.klpop-ovl.open{opacity:1;pointer-events:auto}
+.klpop{position:fixed;z-index:111;left:50%;bottom:0;transform:translateX(-50%) translateY(30px);width:min(480px,100vw);
+  background:var(--paper);border-radius:18px 18px 0 0;padding:36px 32px 40px;box-shadow:0 -20px 60px rgba(28,25,22,.18);
+  opacity:0;pointer-events:none;transition:transform .4s cubic-bezier(.32,.7,.44,1), opacity .35s;text-align:center}
+.klpop.open{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+.klpop-close{position:absolute;top:14px;right:18px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--soft);line-height:1}
+.klpop-gem{font-size:36px;margin-bottom:10px;line-height:1}
+.klpop-title{font-family:'Cormorant Garamond';font-size:28px;font-weight:500;line-height:1.15;margin-bottom:8px;color:var(--ink)}
+.klpop-sub{font-size:13px;color:var(--soft);line-height:1.6;margin-bottom:22px}
+.klpop-form{display:flex;flex-direction:column;gap:10px}
+.klpop-input{width:100%;padding:14px 18px;border:1px solid var(--hair);background:var(--bg);font-family:'Jost';font-size:13px;letter-spacing:.04em;outline:none;box-sizing:border-box;border-radius:2px}
+.klpop-input:focus{border-color:var(--accent)}
+.klpop-submit{width:100%;padding:15px;font-family:'Jost';font-weight:400;font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--bg);background:var(--ink);border:none;cursor:pointer;transition:opacity .2s;border-radius:2px}
+.klpop-submit:hover{opacity:.85}
+.klpop-skip{font-size:11px;color:var(--soft);letter-spacing:.1em;text-transform:uppercase;margin-top:14px;cursor:pointer;text-decoration:underline;background:none;border:none;display:inline-block}
+.klpop-thanks{display:none;font-family:'Cormorant Garamond';font-size:22px;color:var(--accent);margin-top:8px}
+@media(max-width:480px){.klpop{padding:28px 20px 32px} .klpop-title{font-size:24px}}
 </style>
 </head>
 <body>
@@ -439,8 +460,9 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 </aside>
 
 <div class="stickybar" id="stickybar">
-  <div class="sp">Launch price<br><b>£2.99</b></div>
-  <button class="sbtn" onclick="openBundle()">Build your bundle</button>
+  <div class="sp" id="stickyInfo">Launch price<br><b>£2.99</b></div>
+  <button class="sbtn" id="stickyBtn" onclick="openBundle()">Build your bundle</button>
+  <button class="sbtn" id="stickyCart" onclick="openCart()" style="display:none;background:var(--accent);color:#fff;max-width:160px">View bag &middot; <span id="stickyN">0</span></button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -621,10 +643,21 @@ const save=()=>localStorage.setItem('klcart',JSON.stringify(cart));
 const DENOMS=[[5,12.00],[3,7.50],[2,5.50],[1,2.99]];   // multi-buy ladder; cheapest combo auto-applied
 function bestPrice(q){ if(q<=0)return 0; const dp=[0]; for(let i=1;i<=q;i++){dp[i]=Infinity; for(const d of DENOMS){ if(d[0]<=i) dp[i]=Math.min(dp[i],dp[i-d[0]]+d[1]); } } return Math.round(dp[q]*100)/100; }
 function totalQty(){return cart.reduce((a,c)=>a+c.qty,0);}
-function updateBag(){document.getElementById('bagN').textContent=totalQty();}
+function updateBag(){
+  const q=totalQty();
+  document.getElementById('bagN').textContent=q;
+  const sn=document.getElementById('stickyN'); if(sn) sn.textContent=q;
+  const hasItems=q>0;
+  const btn=document.getElementById('stickyBtn');
+  const cBtn=document.getElementById('stickyCart');
+  const inf=document.getElementById('stickyInfo');
+  if(btn){ btn.style.display=hasItems?'none':''; }
+  if(cBtn){ cBtn.style.display=hasItems?'':'none'; }
+  if(inf){ inf.innerHTML=hasItems?q+' bracelet'+(q!==1?'s':'')+' &middot; <b>£'+subtotal().toFixed(2)+'</b>':'Launch price<br><b>£2.99</b>'; }
+}
 function addToCartSilent(bc){const f=cart.find(c=>c.bc===bc); if(f)f.qty++; else cart.push({bc,qty:1});}
 function addToCart(bc){
-  addToCartSilent(bc); save();updateBag();renderCart();toast('Added to bag');
+  addToCartSilent(bc); save();updateBag();renderCart();openCart();
   track('AddToCart','add_to_cart',{value:PRICE,currency:'GBP',content_name:BY[bc].color_en,content_ids:[bc],content_type:'product'});
   kl('Added to Cart',{$value:bestPrice(totalQty()),AddedItemProductName:BY[bc].color_en,AddedItemSKU:bc,ItemNames:cart.map(c=>BY[c.bc].color_en),CheckoutURL:'https://karmilaven.com/'});
 }
@@ -691,5 +724,55 @@ function renderSpectrum(){
 }
 render(DATA); renderSpectrum(); updateBag(); renderCart(); firePurchaseIfSuccess();
 </script>
+
+<!-- EMAIL CAPTURE POPUP -->
+<div class="klpop-ovl" id="klpopOvl" onclick="closeEmailPopup()"></div>
+<div class="klpop" id="klpop" role="dialog" aria-modal="true" aria-label="Get early access">
+  <button class="klpop-close" onclick="closeEmailPopup()" aria-label="Close">&#x2715;</button>
+  <div class="klpop-gem">&#x1F48E;</div>
+  <div class="klpop-title">Get early access &amp;<br>new-drop alerts</div>
+  <div class="klpop-sub">Join the Karmi Laven list for first access to new crystals,<br>limited editions, and exclusive multi-buy offers.</div>
+  <div class="klpop-form">
+    <input class="klpop-input" id="klpopEmail" type="email" placeholder="Your email address" autocomplete="email">
+    <button class="klpop-submit" id="klpopBtn" onclick="submitEmailPopup()">Notify Me</button>
+  </div>
+  <button class="klpop-skip" onclick="closeEmailPopup()">No thanks</button>
+  <div class="klpop-thanks" id="klpopThanks">Thank you &#x2014; you are on the list!</div>
+</div>
+<script>
+/* EMAIL POPUP: exit-intent + 20s delay, 7-day freq cap, Klaviyo-gated */
+(function(){
+  var KEY='klpop_shown', INTERVAL=7*24*3600*1000;
+  function canShow(){ try{ var t=parseInt(localStorage.getItem(KEY)||'0'); return Date.now()-t>INTERVAL; }catch(e){return true;} }
+  function markShown(){ try{ localStorage.setItem(KEY,Date.now()); }catch(e){} }
+  window.openEmailPopup=function(){
+    if(!canShow()) return;
+    markShown();
+    document.getElementById('klpopOvl').classList.add('open');
+    document.getElementById('klpop').classList.add('open');
+  };
+  window.closeEmailPopup=function(){
+    document.getElementById('klpopOvl').classList.remove('open');
+    document.getElementById('klpop').classList.remove('open');
+  };
+  window.submitEmailPopup=function(){
+    var email=(document.getElementById('klpopEmail').value||'').trim();
+    if(!email || email.indexOf('@')<1){ document.getElementById('klpopEmail').focus(); return; }
+    klId(email);
+    kl('Subscribed Popup',{'$email':email, Source:'exit_intent_popup'});
+    document.getElementById('klpopBtn').disabled=true;
+    document.getElementById('klpopThanks').style.display='block';
+    document.getElementById('klpopBtn').style.display='none';
+    document.getElementById('klpopEmail').style.display='none';
+    setTimeout(closeEmailPopup, 2500);
+  };
+  var fired=false;
+  function fire(){ if(fired) return; fired=true; setTimeout(openEmailPopup, 500); }
+  document.addEventListener('mouseleave',function(e){ if(e.clientY<=0) fire(); });
+  setTimeout(fire, 20000);
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden') fire(); });
+})();
+</script>
+
 </body>
 </html>
