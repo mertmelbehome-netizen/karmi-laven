@@ -457,7 +457,7 @@ const TIERS=[                             // multi-buy bundle tiers (volume valu
 const STORENAMES={WAT:'Watford',GUI:'Guildford',BRA:'Bracknell',GLO:'Gloucester',SB:'Southampton',LCB:'Watford'};
 
 /* ===== ANALYTICS (Meta Pixel + GA4) ===== */
-const ANALYTICS={ pixel:'1791961201982687', ga4:'' };
+const ANALYTICS={ pixel:'1791961201982687', ga4:'', klaviyo:'' };  // klaviyo = Klaviyo Public API Key (Account → Settings → API keys; 6-char site/company id)
 (function initAnalytics(){
   if(ANALYTICS.pixel){
     !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -470,11 +470,19 @@ const ANALYTICS={ pixel:'1791961201982687', ga4:'' };
     window.dataLayer=window.dataLayer||[]; window.gtag=function(){dataLayer.push(arguments)};
     gtag('js',new Date()); gtag('config',ANALYTICS.ga4);
   }
+  if(ANALYTICS.klaviyo){
+    const k=document.createElement('script'); k.async=1; k.type='text/javascript';
+    k.src='https://static.klaviyo.com/onsite/js/klaviyo.js?company_id='+ANALYTICS.klaviyo;
+    document.head.appendChild(k); window.klaviyo=window.klaviyo||[];
+  }
 })();
 function track(fb, ga, params, opts){
   try{ if(window.fbq && fb) fbq('track', fb, params, opts||{}); }catch(e){}
   try{ if(window.gtag && ga) gtag('event', ga, params); }catch(e){}
 }
+// Klaviyo onsite events (power abandoned-cart + personalisation). No-op until ANALYTICS.klaviyo set.
+function kl(metric, props){ try{ if(ANALYTICS.klaviyo){ (window.klaviyo=window.klaviyo||[]).push(['track', metric, props||{}]); } }catch(e){} }
+function klId(email){ try{ if(ANALYTICS.klaviyo && email){ (window.klaviyo=window.klaviyo||[]).push(['identify', {'$email':email}]); } }catch(e){} }
 function uuid(){return 'kl-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);}
 function firePurchaseIfSuccess(){
   const u=new URLSearchParams(location.search);
@@ -546,6 +554,7 @@ function openModal(bc){
   document.getElementById('modal').classList.add('open');
   document.getElementById('ovl').classList.add('open');
   track('ViewContent','view_item',{value:PRICE,currency:'GBP',content_name:d.color_en,content_ids:[bc],content_type:'product'});
+  kl('Viewed Product',{ProductName:d.color_en,SKU:bc,Price:PRICE,URL:'https://karmilaven.com/',ImageURL:d.img});
 }
 function closeModal(){document.getElementById('modal').classList.remove('open');syncOvl();}
 
@@ -597,6 +606,7 @@ function addBundle(){
   cols.forEach(name=>{const c=colours.find(x=>x.name===name); if(c) addToCartSilent(c.bc);});
   save();updateBag();renderCart();closeBundle();
   track('AddToCart','add_to_cart',{value:t.price,currency:'GBP',content_name:`${bTier}-bracelet stack`,content_type:'product',num_items:bTier});
+  kl('Added to Cart',{$value:bestPrice(totalQty()),AddedItemProductName:`${bTier}-bracelet stack`,ItemNames:cart.map(c=>BY[c.bc].color_en),CheckoutURL:'https://karmilaven.com/'});
   openCart();toast('Added to bag');
 }
 
@@ -616,6 +626,7 @@ function addToCartSilent(bc){const f=cart.find(c=>c.bc===bc); if(f)f.qty++; else
 function addToCart(bc){
   addToCartSilent(bc); save();updateBag();renderCart();toast('Added to bag');
   track('AddToCart','add_to_cart',{value:PRICE,currency:'GBP',content_name:BY[bc].color_en,content_ids:[bc],content_type:'product'});
+  kl('Added to Cart',{$value:bestPrice(totalQty()),AddedItemProductName:BY[bc].color_en,AddedItemSKU:bc,ItemNames:cart.map(c=>BY[c.bc].color_en),CheckoutURL:'https://karmilaven.com/'});
 }
 function setQty(i,v){const q=Math.max(1,Math.min(99,parseInt(v)||1)); if(cart[i])cart[i].qty=q; save();updateBag();renderCart();}
 function changeQty(i,delta){const c=cart[i]; if(!c)return; c.qty+=delta; if(c.qty<=0)cart.splice(i,1); save();updateBag();renderCart();}
@@ -653,6 +664,7 @@ async function checkout(){
   const contents=cart.map(c=>({id:c.bc,quantity:c.qty}));
   localStorage.setItem('klpending',JSON.stringify({value:val,num_items:q,contents,eventId}));
   track('InitiateCheckout','begin_checkout',{value:val,currency:'GBP',num_items:q},{eventID:eventId});
+  kl('Started Checkout',{$value:val,ItemNames:cart.map(c=>BY[c.bc].color_en),items:cart.map(c=>({ProductID:c.bc,SKU:c.bc,ProductName:BY[c.bc].color_en,Quantity:c.qty,ItemPrice:PRICE})),CheckoutURL:'https://karmilaven.com/'});
   try{
     const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({items,event_id:eventId})});

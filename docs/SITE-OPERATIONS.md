@@ -75,8 +75,10 @@ per-order barcode breakdown, customer email/phone/address (on paid orders).
 ## 6. Action plan (prioritised)
 
 **P1 — quick wins**
-1. **Abandoned cart recovery** — enable Stripe Checkout `after_expiration.recovery` +
-   handle `checkout.session.expired` webhook → recovery email with one-click resume link.
+1. **Abandoned cart + email capture + personalisation** — ✅ DECIDED: via **Klaviyo**
+   (custom site, no Shopify migration). On-site events wired (Viewed Product / Added to
+   Cart / Started Checkout). Remaining = paste Public API Key into `ANALYTICS.klaviyo`
+   + build popup form & abandoned-cart flow in Klaviyo. See `KLAVIYO-SETUP.md`.
 2. **GA4 on-site** — set `ANALYTICS.ga4` + confirm server `GA4_*` env → full funnel in GA4.
 
 **P2 — revenue/ops**
