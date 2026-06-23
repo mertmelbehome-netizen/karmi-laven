@@ -78,6 +78,72 @@ async function recordOrder(s){
   return row;
 }
 
+// Reverse a Stripe refund into ops v2: stock return + order status='refunded'/'partial_refund'.
+// charge object: https://stripe.com/docs/api/charges/object
+async function handleRefund(charge) {
+  const appUrl = process.env.OPS_APP_URL;
+  const secret = process.env.WEBHOOK_SECRET;
+  if (!appUrl || !secret) return;
+
+  // Resolve the checkout session from the charge's payment_intent.
+  // Charges on a checkout session have metadata.stripe_session_id or we look it
+  // up via the payment_intent.
+  let sessionId = charge.metadata && charge.metadata.stripe_session_id;
+  if (!sessionId && charge.payment_intent) {
+    try {
+      const pi = await stripe.paymentIntents.retrieve(charge.payment_intent, { expand: ['latest_charge'] });
+      // Checkout sessions store the session id in the payment_intent metadata (added by checkout.js)
+      sessionId = (pi.metadata && pi.metadata.stripe_session_id) || null;
+      if (!sessionId) {
+        // Last resort: search recent checkout sessions for this payment_intent
+        const sessions = await stripe.checkout.sessions.list({ payment_intent: charge.payment_intent, limit: 1 });
+        sessionId = sessions.data[0] && sessions.data[0].id;
+      }
+    } catch(e) { /* non-fatal */ }
+  }
+  if (!sessionId) return; // can't tie back to order — skip
+
+  // Reconstruct line items from the original session so we know per-barcode qty.
+  let lineItems = [];
+  try {
+    const li = await stripe.checkout.sessions.listLineItems(sessionId, { limit: 100 });
+    lineItems = li.data || [];
+  } catch(e) { /* fall through — ops will use stored order.items */ }
+
+  const byBc = new Map();
+  for (const li of lineItems) {
+    const desc = li.description || '';
+    const sep = desc.indexOf(' · ');
+    const bc = sep > 0 ? desc.slice(0, sep).trim() : '';
+    const name = sep > 0 ? desc.slice(sep + 3).trim() : desc;
+    const qty = li.quantity || 1;
+    const revenue = (li.amount_total || 0) / 100;
+    const k = bc || name;
+    const e = byBc.get(k) || { bc, name, qty: 0, revenue: 0 };
+    e.qty += qty; e.revenue = Math.round((e.revenue + revenue) * 100) / 100;
+    byBc.set(k, e);
+  }
+  const items = [...byBc.values()];
+
+  const refundAmount = (charge.amount_refunded || 0) / 100;
+
+  try {
+    await fetch(`${appUrl}/api/orders/refund`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${secret}`,
+      },
+      body: JSON.stringify({
+        stripe_session_id: sessionId,
+        charge_id: charge.id,
+        items: items.length ? items : undefined, // undefined → ops uses order.items
+        refund_amount: refundAmount,
+      }),
+    });
+  } catch(e) { /* swallow — Stripe will retry the webhook */ }
+}
+
 export default async function handler(req, res) {
   let event;
   try { const buf=await buffer(req); event=stripe.webhooks.constructEvent(buf, req.headers['stripe-signature'], process.env.STRIPE_WEBHOOK_SECRET); }
@@ -107,5 +173,16 @@ export default async function handler(req, res) {
       }).catch(()=>{});
     }
   }
+
+  // ── charge.refunded → reverse stock + mark order refunded in ops v2 ──────────
+  // Fires on every Stripe refund (full or partial). We forward the charge's
+  // payment_intent → resolve session_id from the charge object, pass line items
+  // (reconstructed from the original session) to the ops refund endpoint.
+  // The ops RPC fn_online_refund_event is idempotent — same charge_id+barcode
+  // can be sent multiple times safely.
+  if (event.type === 'charge.refunded') {
+    await handleRefund(event.data.object);
+  }
+
   res.status(200).json({ received: true });
 }
