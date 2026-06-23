@@ -367,6 +367,13 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
   #cookie-banner{ flex-direction:column; align-items:flex-start; padding:18px 20px; }
   .cb-btn{ padding:10px 16px; }
 }
+/* LIVE STOCK — sold-out state */
+.card.sold-out{opacity:.45; pointer-events:none; position:relative}
+.card.sold-out .add{display:none}
+.card.sold-out .ship24{color:var(--soft)}
+.sold-out-badge{position:absolute;top:13px;left:13px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;
+  color:#fff;background:rgba(0,0,0,.55);padding:5px 10px;backdrop-filter:blur(4px);pointer-events:none;z-index:2}
+.sw.sold-out{opacity:.35; text-decoration:line-through}
 </style>
 <meta name="description" content="Karmi Laven crystal bracelets — 15 gradient shades from £2.99. Hand-strung faceted beads, shipped in 2–5 days. Free UK delivery over £15.">
 <link rel="canonical" href="https://www.karmilaven.com/">
@@ -857,6 +864,7 @@ render(DATA); renderSpectrum(); updateBag(); renderCart(); firePurchaseIfSuccess
 })();
 </script>
 
+<<<<<<< HEAD
 <!-- CUSTOMER REVIEWS (approved only, via /api/reviews-public) -->
 <script>
 (function(){
@@ -935,6 +943,69 @@ function cookieChoice(accepted){
   localStorage.setItem('kl_cookie_consent', accepted ? 'accepted' : 'rejected');
   if(accepted) initPixel();
 }
+</script>
+
+<script>
+/* ---- LIVE STOCK — ops endpoint integration ---- */
+(function(){
+  var ENDPOINT='https://melbehome-ops-v2.vercel.app/api/karmi-stock';
+  var soldOut=new Set();
+
+  function applySoldOut(){
+    document.querySelectorAll('.card').forEach(function(card){
+      var nm=card.querySelector('.nm');
+      if(!nm) return;
+      var col=nm.textContent.trim();
+      if(soldOut.has(col)){
+        card.classList.add('sold-out');
+        var iw=card.querySelector('.imgwrap');
+        if(iw && !iw.querySelector('.sold-out-badge')){
+          var b=document.createElement('span');
+          b.className='sold-out-badge';b.textContent='Sold out';iw.appendChild(b);
+        }
+        var s24=card.querySelector('.ship24');
+        if(s24) s24.textContent='Currently unavailable online';
+        var stk=card.querySelector('.stk');
+        if(stk) stk.textContent='';
+      }
+    });
+    document.querySelectorAll('#swatchbar .sw').forEach(function(btn){
+      var last=btn.childNodes[btn.childNodes.length-1];
+      var col=(last?last.textContent||last.nodeValue||'':btn.textContent).trim();
+      if(soldOut.has(col)){btn.classList.add('sold-out');btn.title=col+' — sold out online';}
+    });
+  }
+
+  function hookRender(){
+    if(typeof window.render!=='function') return;
+    var orig=window.render;
+    window.render=function(list){orig(list);if(soldOut.size>0) applySoldOut();};
+  }
+
+  async function fetchLiveStock(){
+    try{
+      var ctrl=new AbortController();
+      var tid=setTimeout(function(){ctrl.abort();},5000);
+      var res=await fetch(ENDPOINT,{signal:ctrl.signal});
+      clearTimeout(tid);
+      if(!res.ok) return;
+      var data=await res.json();
+      if(!data.ok||!data.colours) return;
+      Object.entries(data.colours).forEach(function(e){
+        if(e[1]&&e[1].available===false) soldOut.add(e[0]);
+      });
+      if(soldOut.size>0){hookRender();applySoldOut();}
+    }catch(e){
+      console.warn('[karmi-stock] Could not fetch live stock, showing all colours',e&&e.message);
+    }
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',fetchLiveStock);
+  } else {
+    fetchLiveStock();
+  }
+})();
 </script>
 </body>
 </html>
