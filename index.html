@@ -142,6 +142,25 @@ nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
 .faqitem[open] summary::after{content:"–"}
 .faqitem p{padding:0 4px 18px; font-size:13.5px; color:var(--soft); line-height:1.7}
 
+/* CUSTOMER REVIEWS */
+.reviews{padding:54px 0; border-top:1px solid var(--hair)}
+.reviews .rh{text-align:center; margin-bottom:30px}
+.reviews h2{font-family:'Cormorant Garamond'; font-weight:300; font-size:clamp(28px,4vw,44px); letter-spacing:-.01em}
+.reviews h2 em{font-style:italic; color:var(--gold)}
+.reviews .rsum{margin-top:12px; display:inline-flex; align-items:center; gap:11px; font-size:13px; color:var(--soft); letter-spacing:.03em}
+.reviews .rsum .rstars{color:var(--gold); font-size:17px; letter-spacing:.12em}
+.reviews .rsum .rnum{color:var(--ink); font-weight:400}
+.rgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; max-width:1100px; margin:0 auto}
+.rcard{background:var(--paper); border:1px solid var(--hair); padding:22px 20px; display:flex; flex-direction:column}
+.rcard .rc-stars{color:var(--gold); font-size:14px; letter-spacing:.1em; margin-bottom:11px}
+.rcard .rc-stars i{color:#d9cfbd; font-style:normal}
+.rcard .rc-title{font-family:'Cormorant Garamond'; font-weight:500; font-size:18px; line-height:1.2; margin-bottom:7px}
+.rcard .rc-body{font-size:13.5px; color:var(--ink); line-height:1.65; flex:1}
+.rcard .rc-meta{margin-top:15px; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--soft)}
+.rcard .rc-meta .vfd{color:var(--gold)}
+.reviews .rempty{text-align:center; color:var(--soft); font-size:13.5px; max-width:420px; margin:0 auto; line-height:1.7}
+@media(max-width:860px){ .rgrid{grid-template-columns:1fr; max-width:520px} }
+
 /* FULL SPECTRUM proof */
 .spectrum-sec{padding:54px 0; border-top:1px solid var(--hair); text-align:center}
 .spectrum-sec h2{font-family:'Cormorant Garamond'; font-weight:300; font-size:clamp(28px,4vw,44px); letter-spacing:-.01em}
@@ -440,6 +459,18 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
   <details class="faqitem"><summary>What size are they?</summary><p>One adjustable size. Each bracelet is hand-strung on a fine gold-tone chain with a slide adjuster, comfortable from roughly 14–19cm.</p></details>
   <details class="faqitem"><summary>What are they made of?</summary><p>4mm faceted crystal beads hand-strung on a gold-tone chain with a single delicate charm.</p></details>
   <details class="faqitem"><summary>Shipping &amp; delivery?</summary><p>UK shipping £3.45, free over £15 (and free with the 5-bracelet stack). Delivery 2–5 business days after dispatch.</p></details>
+</section>
+
+<section class="reviews wrap" id="reviews">
+  <div class="rh">
+    <h2>What our <em>customers</em> say</h2>
+    <div class="rsum hide" id="rsum">
+      <span class="rstars" id="rsumStars">★★★★★</span>
+      <span class="rnum"><b id="rsumAvg">5.0</b> · <span id="rsumCount">0 reviews</span></span>
+    </div>
+  </div>
+  <div class="rgrid hide" id="rgrid"></div>
+  <div class="rempty hide" id="rempty">Be among the first to share your Karmi Laven moment — every order comes with an invitation to leave a review.</div>
 </section>
 
 <footer class="wrap">
@@ -823,6 +854,38 @@ render(DATA); renderSpectrum(); updateBag(); renderCart(); firePurchaseIfSuccess
   document.addEventListener('mouseleave',function(e){ if(e.clientY<=0) fire(); });
   setTimeout(fire, 20000);
   document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden') fire(); });
+})();
+</script>
+
+<!-- CUSTOMER REVIEWS (approved only, via /api/reviews-public) -->
+<script>
+(function(){
+  var grid=document.getElementById('rgrid'), empty=document.getElementById('rempty'),
+      sum=document.getElementById('rsum');
+  function starStr(n){ n=Math.max(0,Math.min(5,Math.round(n))); var s=''; for(var i=1;i<=5;i++) s+= i<=n?'★':'<i>★</i>'; return s; }
+  function esc(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function when(iso){ try{ var d=new Date(iso); return d.toLocaleDateString('en-GB',{month:'short',year:'numeric'}); }catch(e){ return ''; } }
+  fetch('/api/reviews-public').then(function(r){ return r.json(); }).then(function(d){
+    var list=(d&&d.reviews)||[];
+    if(!list.length){ empty.classList.remove('hide'); return; }
+    if(d.avg && d.count){
+      document.getElementById('rsumStars').innerHTML=starStr(d.avg);
+      document.getElementById('rsumAvg').textContent=d.avg.toFixed(1);
+      document.getElementById('rsumCount').textContent=d.count+' review'+(d.count===1?'':'s');
+      sum.classList.remove('hide');
+    }
+    grid.innerHTML=list.map(function(rv){
+      var name=rv.customer_name?esc(rv.customer_name):'Verified buyer';
+      var meta='<span class="vfd">✦ Verified</span> · '+name+(rv.created_at?' · '+when(rv.created_at):'');
+      return '<article class="rcard">'+
+        '<div class="rc-stars">'+starStr(rv.rating)+'</div>'+
+        (rv.title?'<div class="rc-title">'+esc(rv.title)+'</div>':'')+
+        '<div class="rc-body">'+esc(rv.body)+'</div>'+
+        '<div class="rc-meta">'+meta+'</div>'+
+      '</article>';
+    }).join('');
+    grid.classList.remove('hide');
+  }).catch(function(){ empty.classList.remove('hide'); });
 })();
 </script>
 
