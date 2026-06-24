@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Leave a review · Karmi Laven</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500&family=Herr+Von+Muellerhoff&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#faf7f1; --paper:#fffefb; --ink:#34302a; --soft:#928979; --hair:rgba(52,48,42,.13);
+  --gold:#b08d4e; --accent:#c08a82;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{overflow-x:hidden}
+body{background:var(--bg); color:var(--ink); font-family:'Jost',sans-serif; font-weight:300;
+  -webkit-font-smoothing:antialiased; line-height:1.6; letter-spacing:.01em; min-height:100vh}
+body::before{content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.55;
+  background:
+   radial-gradient(40% 30% at 12% 8%, rgba(231,175,192,.18), transparent 70%),
+   radial-gradient(38% 30% at 88% 14%, rgba(187,216,239,.16), transparent 70%),
+   radial-gradient(44% 34% at 78% 88%, rgba(196,225,185,.15), transparent 70%),
+   radial-gradient(40% 30% at 18% 92%, rgba(241,205,211,.16), transparent 70%);}
+.wrap{position:relative; z-index:1; max-width:540px; margin:0 auto; padding:0 22px}
+nav{text-align:center; padding:30px 0 10px}
+.logo{font-family:'Herr Von Muellerhoff',cursive; font-size:62px; line-height:.8; color:var(--ink)}
+.submark{font-family:'Jost'; font-weight:300; font-size:10px; letter-spacing:.42em; text-transform:uppercase;
+  color:var(--soft); margin-top:6px}
+.card{background:var(--paper); border:1px solid var(--hair); padding:30px 24px 34px; margin:22px 0 40px;
+  box-shadow:0 30px 70px -50px rgba(52,48,42,.55)}
+.k{font-size:11px; letter-spacing:.3em; text-transform:uppercase; color:var(--accent); margin-bottom:12px; text-align:center}
+h1{font-family:'Cormorant Garamond',serif; font-weight:300; font-size:34px; line-height:1.05; text-align:center; margin-bottom:8px}
+h1 em{font-style:italic; color:var(--gold)}
+.sub{color:var(--soft); font-size:14px; text-align:center; margin-bottom:24px}
+label{display:block; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--soft); margin:18px 0 8px}
+input,textarea{width:100%; font-family:'Jost'; font-weight:300; font-size:15px; color:var(--ink);
+  background:var(--bg); border:1px solid var(--hair); padding:13px 14px; border-radius:0; outline:none; transition:.25s}
+input:focus,textarea:focus{border-color:var(--ink)}
+textarea{resize:vertical; min-height:110px; line-height:1.5}
+.stars{display:flex; gap:6px; justify-content:center; margin:6px 0 4px}
+.star{font-size:38px; line-height:1; cursor:pointer; color:#d9cfbd; transition:transform .12s, color .15s; user-select:none}
+.star:hover{transform:scale(1.12)}
+.star.on{color:var(--gold)}
+.starhint{text-align:center; font-size:12px; color:var(--soft); min-height:16px; letter-spacing:.04em}
+.hp{position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden}
+.btn{width:100%; font-family:'Jost'; font-weight:400; font-size:12px; letter-spacing:.18em; text-transform:uppercase;
+  padding:16px 30px; margin-top:26px; cursor:pointer; border:1px solid var(--ink); background:var(--ink);
+  color:var(--bg); transition:.35s}
+.btn:hover{background:transparent; color:var(--ink)}
+.btn:disabled{opacity:.5; cursor:wait}
+.err{color:#b4534b; font-size:13px; text-align:center; margin-top:14px; min-height:18px}
+.foot{text-align:center; font-size:11px; color:var(--soft); letter-spacing:.02em; padding:0 0 40px}
+.foot a{color:var(--soft)}
+/* thank-you */
+.thanks{text-align:center; padding:14px 0 6px}
+.thanks .big{font-family:'Cormorant Garamond'; font-weight:300; font-size:40px; color:var(--gold); margin-bottom:6px}
+.thanks h2{font-family:'Cormorant Garamond'; font-weight:300; font-size:30px; margin-bottom:10px}
+.thanks p{color:var(--soft); font-size:14px; max-width:360px; margin:0 auto 22px}
+.thanks .gostore{display:inline-block; font-size:12px; letter-spacing:.18em; text-transform:uppercase;
+  padding:14px 30px; border:1px solid var(--ink); color:var(--ink); text-decoration:none; transition:.35s}
+.thanks .gostore:hover{background:var(--ink); color:var(--bg)}
+.hide{display:none}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">Karmi Laven</div>
+  <div class="submark">Hand-strung crystal</div>
+</nav>
+
+<div class="wrap">
+  <div class="card">
+    <!-- FORM -->
+    <form id="form" autocomplete="off">
+      <div class="k">Your experience</div>
+      <h1>How did we <em>do</em>?</h1>
+      <p class="sub">Thank you for choosing Karmi Laven. Tell us about your bracelets — it takes a moment and helps others discover us.</p>
+
+      <label style="text-align:center">Your rating</label>
+      <div class="stars" id="stars" role="radiogroup" aria-label="Star rating">
+        <span class="star" data-v="1" role="radio" aria-label="1 star">★</span>
+        <span class="star" data-v="2" role="radio" aria-label="2 stars">★</span>
+        <span class="star" data-v="3" role="radio" aria-label="3 stars">★</span>
+        <span class="star" data-v="4" role="radio" aria-label="4 stars">★</span>
+        <span class="star" data-v="5" role="radio" aria-label="5 stars">★</span>
+      </div>
+      <div class="starhint" id="starhint">Tap a star</div>
+
+      <label for="title">Headline <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+      <input id="title" maxlength="120" placeholder="e.g. So pretty, so delicate">
+
+      <label for="body">Your review</label>
+      <textarea id="body" maxlength="2000" placeholder="What did you love? How do they wear?"></textarea>
+
+      <label for="name">Your name <span style="text-transform:none;letter-spacing:0">(optional — shown with your review)</span></label>
+      <input id="name" maxlength="80" placeholder="First name or initials">
+
+      <!-- honeypot -->
+      <div class="hp" aria-hidden="true"><label>Leave blank</label><input id="hp" tabindex="-1" autocomplete="off"></div>
+
+      <button class="btn" id="submit" type="submit">Submit review</button>
+      <div class="err" id="err"></div>
+    </form>
+
+    <!-- THANK YOU -->
+    <div class="thanks hide" id="thanks">
+      <div class="big">★</div>
+      <h2>Thank <em style="font-style:italic">you</em></h2>
+      <p>Your review has been received and will appear on our site after a quick check. We're so glad you're part of the gradient.</p>
+      <a class="gostore" href="/">Back to the shop</a>
+    </div>
+  </div>
+
+  <div class="foot">Karmi Laven · a brand of Melbe Home UK Ltd · <a href="/">karmilaven.com</a></div>
+</div>
+
+<script>
+(function(){
+  var qs = new URLSearchParams(location.search);
+  var orderId = qs.get('o') || qs.get('order') || '';
+  var bc = qs.get('bc') || '';
+  var rating = 0;
+  var HINTS = ['','Poor','Fair','Good','Great','Loved it ✦'];
+  var stars = [].slice.call(document.querySelectorAll('.star'));
+  var hint = document.getElementById('starhint');
+
+  function paint(n){ stars.forEach(function(s){ s.classList.toggle('on', +s.dataset.v <= n); });
+    hint.textContent = HINTS[n] || 'Tap a star'; }
+  stars.forEach(function(s){
+    s.addEventListener('mouseenter', function(){ paint(+s.dataset.v); });
+    s.addEventListener('mouseleave', function(){ paint(rating); });
+    s.addEventListener('click', function(){ rating = +s.dataset.v; s.setAttribute('aria-checked','true'); paint(rating); });
+  });
+
+  var form = document.getElementById('form');
+  var err = document.getElementById('err');
+  var btn = document.getElementById('submit');
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    err.textContent = '';
+    var body = document.getElementById('body').value.trim();
+    if(!rating){ err.textContent = 'Please pick a star rating.'; return; }
+    if(body.length < 2){ err.textContent = 'Please add a few words about your bracelets.'; return; }
+
+    btn.disabled = true; btn.textContent = 'Sending…';
+    fetch('/api/review', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        order_id: orderId || null,
+        product_bc: bc || null,
+        rating: rating,
+        title: document.getElementById('title').value.trim() || null,
+        body: body,
+        customer_name: document.getElementById('name').value.trim() || null,
+        hp: document.getElementById('hp').value || null
+      })
+    }).then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ return {ok:r.ok, j:j}; }); })
+    .then(function(res){
+      if(!res.ok){ throw new Error((res.j && res.j.error) || 'Something went wrong'); }
+      document.getElementById('form').classList.add('hide');
+      document.getElementById('thanks').classList.remove('hide');
+      window.scrollTo({top:0, behavior:'smooth'});
+    })
+    .catch(function(ex){
+      err.textContent = ex.message || 'Could not send — please try again.';
+      btn.disabled = false; btn.textContent = 'Submit review';
+    });
+  });
+})();
+</script>
+</body>
+</html>
