@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/stripe-webhook.js": {
+      "memory": 256
+    }
+  },
   "rewrites": [
     { "source": "/review", "destination": "/review.html" }
   ]

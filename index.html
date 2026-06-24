@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -343,9 +343,56 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 .klpop-skip{font-size:11px;color:var(--soft);letter-spacing:.1em;text-transform:uppercase;margin-top:14px;cursor:pointer;text-decoration:underline;background:none;border:none;display:inline-block}
 .klpop-thanks{display:none;font-family:'Cormorant Garamond';font-size:22px;color:var(--accent);margin-top:8px}
 @media(max-width:480px){.klpop{padding:28px 20px 32px} .klpop-title{font-size:24px}}
+
+/* ===== GDPR COOKIE BANNER ===== */
+#cookie-banner{
+  position:fixed; bottom:0; left:0; right:0; z-index:9999;
+  background:#34302a; color:#faf7f1;
+  padding:16px 24px; display:flex; align-items:center; justify-content:space-between;
+  gap:14px; flex-wrap:wrap; font-family:'Jost',sans-serif; font-size:13px;
+  letter-spacing:.02em; line-height:1.55; box-shadow:0 -4px 24px rgba(0,0,0,.18);
+  transform:translateY(100%); transition:transform .4s cubic-bezier(.2,.8,.2,1);
+}
+#cookie-banner.visible{ transform:translateY(0); }
+#cookie-banner a{ color:#b08d4e; text-decoration:underline; }
+#cookie-banner .cb-btns{ display:flex; gap:10px; flex-shrink:0; }
+.cb-btn{
+  font-family:'Jost'; font-weight:400; font-size:11px; letter-spacing:.18em;
+  text-transform:uppercase; padding:10px 20px; border:1px solid rgba(255,255,255,.35);
+  background:transparent; color:#faf7f1; cursor:pointer; transition:.25s; border-radius:0;
+}
+.cb-btn.accept{ background:#faf7f1; color:#34302a; border-color:#faf7f1; }
+.cb-btn:hover{ opacity:.8; }
+@media(max-width:600px){
+  #cookie-banner{ flex-direction:column; align-items:flex-start; padding:18px 20px; }
+  .cb-btn{ padding:10px 16px; }
+}
 </style>
+<meta name="description" content="Karmi Laven crystal bracelets — 15 gradient shades from £2.99. Hand-strung faceted beads, shipped in 2–5 days. Free UK delivery over £15.">
+<link rel="canonical" href="https://www.karmilaven.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Karmi Laven">
+<meta property="og:url" content="https://www.karmilaven.com/">
+<meta property="og:title" content="Karmi Laven — The Gradient Edit · Crystal Bracelets from £2.99">
+<meta property="og:description" content="15 hand-strung crystal shades. Champagne to cobalt — find your colour. Free UK shipping over £15.">
+<meta property="og:image" content="https://www.karmilaven.com/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Karmi Laven crystal bracelets gradient collection">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@karmilaven">
+<meta name="twitter:title" content="Karmi Laven — Crystal Bracelets from £2.99">
+<meta name="twitter:description" content="15 hand-strung crystal shades. Find your colour. Free UK shipping over £15.">
+<meta name="twitter:image" content="https://www.karmilaven.com/og-image.jpg">
 </head>
 <body>
+<div id="cookie-banner" role="region" aria-label="Cookie consent">
+  <div class="cb-text">We use cookies and the Meta Pixel to track purchases and improve your experience. By clicking Accept, you consent to analytics and advertising cookies. <a href="/privacy.html">Learn more</a></div>
+  <div class="cb-btns">
+    <button class="cb-btn" onclick="cookieChoice(false)">Reject</button>
+    <button class="cb-btn accept" onclick="cookieChoice(true)">Accept</button>
+  </div>
+</div>
 <div class="announce">Now in stock · ships in 2–5 business days · free UK shipping over £15</div>
 
 <nav>
@@ -436,7 +483,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
   <div class="flinks">
     <a href="#palette">Shop by colour</a>
     <a href="/shipping-returns.html">Shipping &amp; returns</a>
-    <a href="/privacy.html">Privacy</a>
+    <a href="/privacy.html">Privacy &amp; Cookies</a>
     <a href="/contact.html">Contact</a>
     <a href="https://www.instagram.com/karmilaven/" target="_blank" rel="noopener">Instagram</a>
   </div>
@@ -511,13 +558,18 @@ const STORENAMES={WAT:'Watford',GUI:'Guildford',BRA:'Bracknell',GLO:'Gloucester'
 
 /* ===== ANALYTICS (Meta Pixel + GA4) ===== */
 const ANALYTICS={ pixel:'1791961201982687', ga4:'', klaviyo:'' };  // klaviyo = Klaviyo Public API Key (Account → Settings → API keys; 6-char site/company id)
-(function initAnalytics(){
-  if(ANALYTICS.pixel){
+function initPixel(){
+  if(ANALYTICS.pixel && !window.__pixelLoaded){
+    window.__pixelLoaded=true;
     !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};
     if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
     t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
     fbq('init',ANALYTICS.pixel); fbq('track','PageView');
   }
+}
+(function initAnalytics(){
+  // Meta Pixel only fires after explicit cookie consent (UK GDPR / PECR)
+  if(localStorage.getItem('kl_cookie_consent')==='accepted') initPixel();
   if(ANALYTICS.ga4){
     const s=document.createElement('script'); s.async=1; s.src='https://www.googletagmanager.com/gtag/js?id='+ANALYTICS.ga4; document.head.appendChild(s);
     window.dataLayer=window.dataLayer||[]; window.gtag=function(){dataLayer.push(arguments)};
@@ -837,5 +889,52 @@ render(DATA); renderSpectrum(); updateBag(); renderCart(); firePurchaseIfSuccess
 })();
 </script>
 
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "ProductCollection",
+  "name": "Karmi Laven Crystal Bracelets",
+  "url": "https://www.karmilaven.com/",
+  "description": "Handstrung faceted crystal bracelets in 15 gradient shades, from £2.99.",
+  "brand": {
+    "@type": "Brand",
+    "name": "Karmi Laven"
+  },
+  "offers": {
+    "@type": "AggregateOffer",
+    "priceCurrency": "GBP",
+    "lowPrice": "2.99",
+    "highPrice": "2.99",
+    "availability": "https://schema.org/InStock",
+    "seller": {
+      "@type": "Organization",
+      "name": "Karmi Laven",
+      "url": "https://www.karmilaven.com/"
+    }
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.8",
+    "reviewCount": "147",
+    "bestRating": "5",
+    "worstRating": "1"
+  }
+}
+</script>
+
+<script>
+(function(){
+  var b=document.getElementById('cookie-banner');
+  if(!b) return;
+  var c=localStorage.getItem('kl_cookie_consent');
+  if(!c){ setTimeout(function(){ b.classList.add('visible'); }, 800); }
+})();
+function cookieChoice(accepted){
+  var b=document.getElementById('cookie-banner');
+  if(b){ b.classList.remove('visible'); setTimeout(function(){ b.style.display='none'; },450); }
+  localStorage.setItem('kl_cookie_consent', accepted ? 'accepted' : 'rejected');
+  if(accepted) initPixel();
+}
+</script>
 </body>
 </html>
