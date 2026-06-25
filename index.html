@@ -607,6 +607,7 @@ function firePurchaseIfSuccess(){
   history.replaceState({},'',location.pathname);
   toast('Thank you — your order is confirmed');
 }
+window.DATA=DATA;   // expose for the live-stock skin (barcode matching)
 const grid=document.getElementById('grid'), swatchbar=document.getElementById('swatchbar'), countEl=document.getElementById('count');
 document.getElementById('spectrum').style.background='linear-gradient(90deg,'+DATA.map(d=>d.swatch).join(',')+')';
 const hero=DATA[0]; document.getElementById('heroImg').src=hero.img; document.getElementById('heroName').textContent=hero.color_en;
@@ -782,6 +783,13 @@ function closeCart(){document.getElementById('cart').classList.remove('open');sy
 function syncOvl(){const any=['cart','modal','bundle'].some(id=>document.getElementById(id).classList.contains('open'));document.getElementById('ovl').classList.toggle('open',any);}
 async function checkout(){
   if(!cart.length)return;
+  // Last-line guard: drop any line that went sold-out online (e.g. a stale saved cart).
+  if(typeof window.klIsSold==='function'){
+    const before=cart.length;
+    cart=cart.filter(c=>!window.klIsSold(c.bc));
+    if(cart.length<before){ save(); updateBag(); renderCart();
+      toast('Some shades sold out and were removed from your bag'); if(!cart.length) return; }
+  }
   const q=totalQty(), val=subtotal(), eventId=uuid();
   const items=cart.map(c=>({bc:c.bc,name:BY[c.bc].color_en,qty:c.qty}));   // bc carried to Stripe for ops-v2 mapping; server re-prices by total qty (multi-buy)
   const contents=cart.map(c=>({id:c.bc,quantity:c.qty}));
@@ -864,7 +872,6 @@ render(DATA); renderSpectrum(); updateBag(); renderCart(); firePurchaseIfSuccess
 })();
 </script>
 
-<<<<<<< HEAD
 <!-- CUSTOMER REVIEWS (approved only, via /api/reviews-public) -->
 <script>
 (function(){
@@ -946,65 +953,104 @@ function cookieChoice(accepted){
 </script>
 
 <script>
-/* ---- LIVE STOCK — ops endpoint integration ---- */
+/* ---- LIVE STOCK — same-origin /api/stock (WAT, holds-aware), matched by BARCODE ---- */
 (function(){
-  var ENDPOINT='https://melbehome-ops-v2.vercel.app/api/karmi-stock';
-  var soldOut=new Set();
+  var ENDPOINT='/api/stock';
+  var LIVEQTY={};            // barcode -> available qty (live)
+  var SOLD=new Set();        // barcodes with available<=0
+  var loaded=false;
+  var LOWMAX=6;              // "Only N left" threshold
 
-  function applySoldOut(){
+  function isSold(bc){ return SOLD.has(String(bc)); }
+  window.klStockReady=function(){ return loaded; };
+  window.klIsSold=isSold;
+
+  /* Re-skin the grid + swatch bar after stock loads (or after every render()). */
+  function applyAll(){
+    if(!loaded) return;
     document.querySelectorAll('.card').forEach(function(card){
-      var nm=card.querySelector('.nm');
-      if(!nm) return;
-      var col=nm.textContent.trim();
-      if(soldOut.has(col)){
+      var addBtn=card.querySelector('.add');
+      // barcode lives in the add/img onclick: addToCart('1074') / openModal('1074')
+      var bc=null;
+      if(addBtn){ var m=(addBtn.getAttribute('onclick')||'').match(/'([^']+)'/); if(m) bc=m[1]; }
+      if(!bc){ var iw0=card.querySelector('.imgwrap'); if(iw0){ var m2=(iw0.getAttribute('onclick')||'').match(/'([^']+)'/); if(m2) bc=m2[1]; } }
+      if(bc==null) return;
+      var iw=card.querySelector('.imgwrap');
+      var s24=card.querySelector('.ship24');
+      var stk=card.querySelector('.stk');
+      if(isSold(bc)){
         card.classList.add('sold-out');
-        var iw=card.querySelector('.imgwrap');
         if(iw && !iw.querySelector('.sold-out-badge')){
-          var b=document.createElement('span');
-          b.className='sold-out-badge';b.textContent='Sold out';iw.appendChild(b);
+          var b=document.createElement('span'); b.className='sold-out-badge'; b.textContent='Sold out'; iw.appendChild(b);
         }
-        var s24=card.querySelector('.ship24');
         if(s24) s24.textContent='Currently unavailable online';
-        var stk=card.querySelector('.stk');
         if(stk) stk.textContent='';
+        if(addBtn){ addBtn.setAttribute('disabled','disabled'); addBtn.style.display='none'; }
+      } else {
+        // in stock — refresh the low-stock hint from LIVE qty if we have it
+        card.classList.remove('sold-out');
+        var iwb=iw&&iw.querySelector('.sold-out-badge'); if(iwb) iwb.remove();
+        var q=LIVEQTY[bc];
+        if(stk && typeof q==='number'){ stk.textContent = q<=LOWMAX ? ('Only '+q+' left') : (stk.textContent||''); }
       }
     });
+    // swatch bar: strike sold-out colours ONLY if every barcode of that colour is sold
     document.querySelectorAll('#swatchbar .sw').forEach(function(btn){
       var last=btn.childNodes[btn.childNodes.length-1];
-      var col=(last?last.textContent||last.nodeValue||'':btn.textContent).trim();
-      if(soldOut.has(col)){btn.classList.add('sold-out');btn.title=col+' — sold out online';}
+      var col=(last?(last.textContent||last.nodeValue||''):btn.textContent).trim();
+      var bcs=(window.DATA||[]).filter(function(d){return d.color_en===col;}).map(function(d){return String(d.barcode);});
+      var allSold=bcs.length>0 && bcs.every(isSold);
+      if(allSold){ btn.classList.add('sold-out'); btn.title=col+' — sold out online'; }
+      else{ btn.classList.remove('sold-out'); btn.removeAttribute('title'); }
     });
   }
 
-  function hookRender(){
-    if(typeof window.render!=='function') return;
-    var orig=window.render;
-    window.render=function(list){orig(list);if(soldOut.size>0) applySoldOut();};
+  /* Wrap render() + cart fns so sold-out never re-appears and can't be added. */
+  function hook(){
+    if(typeof window.render==='function' && !window.render.__klStock){
+      var origR=window.render;
+      window.render=function(list){ origR(list); applyAll(); };
+      window.render.__klStock=true;
+    }
+    if(typeof window.addToCartSilent==='function' && !window.addToCartSilent.__klStock){
+      var origS=window.addToCartSilent;
+      window.addToCartSilent=function(bc){ if(isSold(bc)) return; return origS(bc); };
+      window.addToCartSilent.__klStock=true;
+    }
+    if(typeof window.addToCart==='function' && !window.addToCart.__klStock){
+      var origA=window.addToCart;
+      window.addToCart=function(bc){
+        if(isSold(bc)){ try{ alert('Sorry — that shade just sold out online.'); }catch(e){} return; }
+        return origA(bc);
+      };
+      window.addToCart.__klStock=true;
+    }
   }
 
   async function fetchLiveStock(){
     try{
+      var bcs=(window.DATA||[]).map(function(d){return d.barcode;}).filter(Boolean);
+      var url=ENDPOINT+(bcs.length?('?bc='+encodeURIComponent(bcs.join(','))):'');
       var ctrl=new AbortController();
       var tid=setTimeout(function(){ctrl.abort();},5000);
-      var res=await fetch(ENDPOINT,{signal:ctrl.signal});
+      var res=await fetch(url,{signal:ctrl.signal});
       clearTimeout(tid);
       if(!res.ok) return;
       var data=await res.json();
-      if(!data.ok||!data.colours) return;
-      Object.entries(data.colours).forEach(function(e){
-        if(e[1]&&e[1].available===false) soldOut.add(e[0]);
+      if(!data || !data.ok || !data.stock) return;   // fail open: leave all shown
+      Object.keys(data.stock).forEach(function(bc){
+        var q=Number(data.stock[bc]); LIVEQTY[bc]=q;
+        if(!(q>0)) SOLD.add(String(bc));
       });
-      if(soldOut.size>0){hookRender();applySoldOut();}
+      loaded=true;
+      hook(); applyAll();
     }catch(e){
-      console.warn('[karmi-stock] Could not fetch live stock, showing all colours',e&&e.message);
+      console.warn('[karmi-stock] live stock unavailable, showing all shades',e&&e.message);
     }
   }
 
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',fetchLiveStock);
-  } else {
-    fetchLiveStock();
-  }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded',fetchLiveStock); }
+  else { fetchLiveStock(); }
 })();
 </script>
 </body>
