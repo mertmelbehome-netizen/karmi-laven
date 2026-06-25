@@ -118,19 +118,19 @@ async function recordOrder(s) {
     throw e;
   }
 
-  // Best-effort owner push notification (deep-links to /orders).
+  // Best-effort push notification to owner + currently-clocked-in WAT staff.
+  // Uses /api/orders/notify which fans out to owner subscriptions AND any WAT
+  // staff whose clock_records row has clock_in set and clock_out null today.
   const appUrl = process.env.OPS_APP_URL;
   if (appUrl) {
     const n = items.reduce((a, i) => a + (i.qty || 0), 0);
     try {
-      await fetch(`${appUrl}/api/push/send`, {
+      await fetch(`${appUrl}/api/orders/notify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: 'Yeni online sipariş — Karmi Laven',
-          detail: `${n} bileklik · £${row.amount_total.toFixed(2)}${row.customer_name ? ` · ${row.customer_name}` : ''}`,
-          severity: 'info',
-          store_id: 'WAT',
+          detail: `${n} bileklik${row.customer_name ? ` · ${row.customer_name}` : ''}`,
           url: '/orders',
         }),
       });
