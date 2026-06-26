@@ -1,14 +1,18 @@
 // /api/stock.js — LIVE WAT stock for the Karmi Laven storefront.
 //
 // Returns, per Karmi barcode, the qty AVAILABLE to sell online:
-//   available = stockroom_count + display_count  (WAT)  −  holds
+//   available = stockroom_count  (WAT STOCKROOM ONLY)  −  holds
 //   holds     = qty on paid-but-not-yet-fulfilled online_orders (reserved, unpaid-risk
 //               removed: only status='paid' counts, 'fulfilled'/'cancelled' don't)
+//
+// NOTE: display_count is intentionally excluded — online orders ship from the WAT
+// stockroom only. Display stock is on the shop floor and must not be counted as
+// available to sell online.
 //
 // Source of truth (shared ops v2 Supabase):
 //   product_barcodes.barcode  →  product_id        (karmi barcodes are MULTI-barcode,
 //                                                    they do NOT live on products.barcode)
-//   stock_levels(product_id, store_id='WAT')       →  stockroom_count + display_count
+//   stock_levels(product_id, store_id='WAT')       →  stockroom_count  (display_count excluded)
 //   online_orders(status='paid', store_id='WAT')   →  items[].{bc,qty}  = holds
 //
 // Service-role key stays server-side (Vercel env). Never shipped to the browser.
@@ -36,31 +40,68 @@ export default async function handler(req, res) {
 
   try {
     // 1) Which barcodes to report? The caller may pass ?bc=a,b,c (the storefront does);
-    //    otherwise we resolve everything that has a product_barcodes row (bounded fetch).
+    //    otherwise we resolve everything that has WAT stockroom stock (via join, avoids
+    //    building an oversized URL with 1500+ product_id UUIDs).
     const want = (req.query?.bc || '')
       .split(',').map((s) => s.trim()).filter(Boolean).slice(0, 200);
 
-    // 2) barcode → product_id
-    const pbFilter = want.length ? `&barcode=in.(${want.map(encodeURIComponent).join(',')})` : '';
-    const pbRes = await q(`product_barcodes?select=barcode,product_id${pbFilter}&limit=2000`);
-    if (!pbRes.ok) throw new Error(`product_barcodes ${pbRes.status}`);
-    const pb = await pbRes.json();
-    const bcToPid = {};
-    const pids = new Set();
-    for (const r of pb) { bcToPid[r.barcode] = r.product_id; pids.add(r.product_id); }
+    // 2) barcode → product_id  AND  product_id → stockroom_count
+    //
+    // Two strategies depending on whether caller supplied ?bc= filters:
+    //
+    //   A) ?bc= supplied (normal storefront call): fetch product_barcodes for those
+    //      barcodes only (small list), then fetch stock_levels for those product_ids.
+    //      We must keep the bc filter small enough that the product_id in() list is
+    //      well under HTTP query-string limits.
+    //
+    //   B) No ?bc= filter (admin/debug): use a PostgREST join to pull WAT stock_levels
+    //      with embedded products→product_barcodes in a single request, avoiding the
+    //      giant in() URL that causes a 400 error at ~1500 products.
 
-    // 3) WAT stock_levels for those products
-    const slMap = {};
-    if (pids.size) {
-      const pidList = [...pids].join(',');
-      const slRes = await q(`stock_levels?product_id=in.(${pidList})&store_id=eq.${STORE}&select=product_id,stockroom_count,display_count`);
-      if (!slRes.ok) throw new Error(`stock_levels ${slRes.status}`);
+    const bcToPid = {};
+    const slMap   = {};
+
+    if (want.length) {
+      // --- Strategy A: filtered by barcode ---
+      const pbRes = await q(
+        `product_barcodes?select=barcode,product_id&barcode=in.(${want.map(encodeURIComponent).join(',')})&limit=500`
+      );
+      if (!pbRes.ok) throw new Error(`product_barcodes ${pbRes.status}`);
+      const pb = await pbRes.json();
+      const pids = new Set();
+      for (const r of pb) { bcToPid[r.barcode] = r.product_id; pids.add(r.product_id); }
+
+      if (pids.size) {
+        // Fetch stockroom_count only — display_count is excluded by design.
+        // Online orders ship from the WAT stockroom; display stock is on the shop floor.
+        const pidList = [...pids].join(',');
+        const slRes = await q(
+          `stock_levels?product_id=in.(${pidList})&store_id=eq.${STORE}&select=product_id,stockroom_count`
+        );
+        if (!slRes.ok) throw new Error(`stock_levels ${slRes.status}`);
+        for (const r of await slRes.json()) {
+          slMap[r.product_id] = r.stockroom_count || 0;
+        }
+      }
+    } else {
+      // --- Strategy B: no bc filter — use join to avoid oversized URL ---
+      // stock_levels → products (FK) → product_barcodes (FK)
+      // Returns { product_id, stockroom_count, products: { product_barcodes: [{barcode}] } }
+      // Limit 2000 covers all WAT rows; stock_levels is bounded per-store.
+      const slRes = await q(
+        `stock_levels?store_id=eq.${STORE}&select=product_id,stockroom_count,products(product_barcodes(barcode))&limit=2000`
+      );
+      if (!slRes.ok) throw new Error(`stock_levels(join) ${slRes.status}`);
       for (const r of await slRes.json()) {
-        slMap[r.product_id] = (r.stockroom_count || 0) + (r.display_count || 0);
+        slMap[r.product_id] = r.stockroom_count || 0;
+        const barcodes = r.products?.product_barcodes ?? [];
+        for (const b of barcodes) {
+          if (b.barcode) bcToPid[b.barcode] = r.product_id;
+        }
       }
     }
 
-    // 4) holds — sum qty on paid (un-fulfilled) online orders for this store, per barcode
+    // 3) holds — sum qty on paid (un-fulfilled) online orders for this store, per barcode
     const holds = {};
     const ooRes = await q(`online_orders?status=eq.paid&store_id=eq.${STORE}&select=items&limit=5000`);
     if (ooRes.ok) {
@@ -74,7 +115,7 @@ export default async function handler(req, res) {
       }
     } // holds failure is non-fatal — better to slightly over-show than hide everything
 
-    // 5) available = on-hand − holds, floored at 0
+    // 4) available = WAT stockroom_count − holds, floored at 0
     const stock = {};
     const keys = want.length ? want : Object.keys(bcToPid);
     for (const bc of keys) {
