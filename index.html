@@ -838,7 +838,7 @@ render(DATA); renderSpectrum(); updateBag(); renderCart(); firePurchaseIfSuccess
   <div class="klpop-thanks" id="klpopThanks">Thank you &#x2014; you are on the list!</div>
 </div>
 <script>
-/* EMAIL POPUP: exit-intent + 20s delay, 7-day freq cap, Klaviyo-gated */
+/* EMAIL POPUP: exit-intent + 20s delay, 7-day freq cap → /api/subscribe (in-house Supabase capture) */
 (function(){
   var KEY='klpop_shown', INTERVAL=7*24*3600*1000;
   function canShow(){ try{ var t=parseInt(localStorage.getItem(KEY)||'0'); return Date.now()-t>INTERVAL; }catch(e){return true;} }
@@ -856,13 +856,26 @@ render(DATA); renderSpectrum(); updateBag(); renderCart(); firePurchaseIfSuccess
   window.submitEmailPopup=function(){
     var email=(document.getElementById('klpopEmail').value||'').trim();
     if(!email || email.indexOf('@')<1){ document.getElementById('klpopEmail').focus(); return; }
-    klId(email);
-    kl('Subscribed Popup',{'$email':email, Source:'exit_intent_popup'});
-    document.getElementById('klpopBtn').disabled=true;
-    document.getElementById('klpopThanks').style.display='block';
-    document.getElementById('klpopBtn').style.display='none';
-    document.getElementById('klpopEmail').style.display='none';
-    setTimeout(closeEmailPopup, 2500);
+    var btn=document.getElementById('klpopBtn');
+    btn.disabled=true;
+    fetch('/api/subscribe',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:email})
+    }).then(function(r){ return r.json(); }).then(function(d){
+      // Success (ok:true) or duplicate (still ok) — show thanks either way
+      document.getElementById('klpopThanks').style.display='block';
+      btn.style.display='none';
+      document.getElementById('klpopEmail').style.display='none';
+      setTimeout(closeEmailPopup, 2500);
+    }).catch(function(){
+      // Network failure — still show thanks so user isn't stuck; log to console
+      console.warn('[klpop] subscribe request failed');
+      document.getElementById('klpopThanks').style.display='block';
+      btn.style.display='none';
+      document.getElementById('klpopEmail').style.display='none';
+      setTimeout(closeEmailPopup, 2500);
+    });
   };
   var fired=false;
   function fire(){ if(fired) return; fired=true; setTimeout(openEmailPopup, 500); }
