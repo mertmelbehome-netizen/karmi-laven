@@ -807,7 +807,7 @@ function updateBag(){
   if(cBtn){ cBtn.style.display=hasItems?'':'none'; }
   if(inf){ inf.innerHTML=hasItems?q+' bracelet'+(q!==1?'s':'')+' &middot; <b>£'+subtotal().toFixed(2)+'</b>':'Launch price<br><b>£2.99</b>'; }
 }
-function addToCartSilent(bc){const f=cart.find(c=>c.bc===bc); if(f)f.qty++; else cart.push({bc,qty:1});}
+function addToCartSilent(bc){const a=(typeof window.klAvail==='function'?window.klAvail(bc):Infinity); const f=cart.find(c=>c.bc===bc); if(f){ if(f.qty<a) f.qty++; } else if(a>0){ cart.push({bc,qty:1}); }}
 function addToCart(bc){
   addToCartSilent(bc); save();updateBag();renderCart();openCart();
   track('AddToCart','add_to_cart',{value:PRICE,currency:'GBP',content_name:BY[bc].color_en,content_ids:[bc],content_type:'product'});
@@ -850,7 +850,7 @@ async function checkout(){
     cart=cart.filter(c=>!window.klIsSold(c.bc));
     if(cart.length<before){ save(); updateBag(); renderCart();
       toast('Some shades sold out and were removed from your bag'); if(!cart.length) return; }
-  }
+  } if(typeof window.klAvail==='function'){ var _cap=false; cart.forEach(function(c){ var a=window.klAvail(c.bc); if(a!==Infinity && c.qty>a){ c.qty=Math.max(0,a); _cap=true; } }); cart=cart.filter(function(c){return c.qty>0;}); if(_cap){ save(); updateBag(); renderCart(); toast('Adjusted quantities to available stock'); if(!cart.length) return; } }
   const q=totalQty(), val=subtotal(), eventId=uuid();
   const items=cart.map(c=>({bc:c.bc,name:BY[c.bc].color_en,qty:c.qty}));   // bc carried to Stripe for ops-v2 mapping; server re-prices by total qty (multi-buy)
   const contents=cart.map(c=>({id:c.bc,quantity:c.qty}));
@@ -1037,7 +1037,7 @@ function cookieChoice(accepted){
 
   function isSold(bc){ return SOLD.has(String(bc)); }
   window.klStockReady=function(){ return loaded; };
-  window.klIsSold=isSold;
+  window.klIsSold=isSold; window.klAvail=function(bc){ return loaded ? (LIVEQTY[String(bc)] ?? 0) : Infinity; };
 
   /* Re-skin the grid + swatch bar after stock loads (or after every render()). */
   function applyAll(){
