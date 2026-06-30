@@ -524,7 +524,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 
       <div class="faq">
         <p class="faq-q">When will my order arrive?</p>
-        <p class="faq-a">We ship from our UK warehouse within 1–2 business days. Standard UK delivery takes 2–5 days. <b>Free shipping</b> on orders over £15 (or any 5-bracelet bundle).</p>
+        <p class="faq-a">We ship from our UK warehouse within 1–2 business days. Standard UK delivery takes 2–5 days. <b>Free shipping</b> on orders over £15 (or any 6-bracelet bundle).</p>
       </div>
 
       <div class="faq">
@@ -771,7 +771,7 @@ function updateBundleTotal(){
   const t=TIERS.find(x=>x.n===bTier);
   document.getElementById('bTot').textContent='£'+t.price.toFixed(2);
   document.getElementById('bEach').textContent = bTier>=6
-    ? `≈ £${(t.price/t.n).toFixed(2)} each · 5 bracelets · free UK shipping`
+    ? `≈ £${(t.price/t.n).toFixed(2)} each · 6 bracelets · free UK shipping`
     : `≈ £${(t.price/t.n).toFixed(2)} each · ${t.n} bracelet${t.n>1?'s':''}`;
 }
 function addBundle(){
