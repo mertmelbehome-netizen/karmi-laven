@@ -448,7 +448,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 
 <main class="wrap collection" id="palette">
   <div class="bundlecta">
-    <div><div class="t">Build your <em>gradient stack</em></div><div class="s">Mix any shades · 3 for £7.50 · 5 for £12 with free UK shipping</div></div>
+    <div><div class="t">Build your <em>gradient stack</em></div><div class="s">Mix any shades · 3 for £7.50 · 6 for £15 with free UK shipping</div></div>
     <button class="btn" onclick="openBundle()">Build your bundle</button>
   </div>
   <div class="col-head">
@@ -480,7 +480,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
   <details class="faqitem"><summary>When will my order arrive?</summary><p>In stock and ready now — orders ship within 1–2 business days and arrive in 2–5 business days via Royal Mail. You're charged securely at checkout.</p></details>
   <details class="faqitem"><summary>What size are they?</summary><p>One adjustable size. Each bracelet is hand-strung on a fine gold-tone chain with a slide adjuster, comfortable from roughly 14–19cm.</p></details>
   <details class="faqitem"><summary>What are they made of?</summary><p>4mm faceted crystal beads hand-strung on a gold-tone chain with a single delicate charm.</p></details>
-  <details class="faqitem"><summary>Shipping &amp; delivery?</summary><p>UK shipping £3.45, free over £15 (and free with the 5-bracelet stack). Delivery 2–5 business days after dispatch.</p></details>
+  <details class="faqitem"><summary>Shipping &amp; delivery?</summary><p>UK shipping £3.45, free over £15 (and free with the 6-bracelet stack). Delivery 2–5 business days after dispatch.</p></details>
 </section>
 
 <section class="reviews wrap" id="reviews">
@@ -519,7 +519,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 
       <div class="faq">
         <p class="faq-q">How do multi-buy savings work?</p>
-        <p class="faq-a">The more you add to your bag, the less each bracelet costs — <b>2 for £5.50 · 3 for £7.50 · 5 for £12</b>. Savings are applied automatically at checkout. Mix any colours you like.</p>
+        <p class="faq-a">The more you add to your bag, the less each bracelet costs — <b>2 for £5.50 · 3 for £7.50 · 6 for £15</b>. Savings are applied automatically at checkout. Mix any colours you like.</p>
       </div>
 
       <div class="faq">
@@ -620,7 +620,7 @@ const TIERS=[                             // multi-buy bundle tiers (volume valu
   {n:1,price:2.99,label:''},
   {n:2,price:5.50,label:'Save'},
   {n:3,price:7.50,label:'Most popular'},
-  {n:5,price:12.00,label:'Free shipping'}
+  {n:6,price:15.00,label:'Free shipping'}
 ];
 const STORENAMES={WAT:'Watford',GUI:'Guildford',BRA:'Bracknell',GLO:'Gloucester',SB:'Southampton',LCB:'Watford'};
 
@@ -733,7 +733,7 @@ function openModal(bc){
 function closeModal(){document.getElementById('modal').classList.remove('open');syncOvl();}
 
 /* ---- BUNDLE BUILDER ---- */
-let bTier=5;
+let bTier=6;
 function openBundle(seedBc){
   renderTiers(); renderSlots(seedBc); updateBundleTotal();
   document.getElementById('bundle').classList.add('open');
@@ -746,7 +746,7 @@ function renderTiers(){
   document.getElementById('tiers').innerHTML=TIERS.map(t=>`<div class="tier ${t.n===bTier?'sel':''}" onclick="setTier(${t.n})">
     <div class="qn">${t.n}</div><div class="qp">£${t.price.toFixed(2)}</div><div class="ql">${t.label}</div></div>`).join('');
   const t=TIERS.find(x=>x.n===bTier);
-  document.getElementById('tierhint').textContent = bTier>=5 ? 'Free UK shipping included' : (bTier>1?`Just £${(t.price/t.n).toFixed(2)} each`:'');
+  document.getElementById('tierhint').textContent = bTier>=6 ? 'Free UK shipping included' : (bTier>1?`Just £${(t.price/t.n).toFixed(2)} each`:'');
 }
 function setTier(n){bTier=n; renderTiers(); renderSlots(); updateBundleTotal();}
 function renderSlots(seedBc){
@@ -770,7 +770,7 @@ function onSlot(i){
 function updateBundleTotal(){
   const t=TIERS.find(x=>x.n===bTier);
   document.getElementById('bTot').textContent='£'+t.price.toFixed(2);
-  document.getElementById('bEach').textContent = bTier>=5
+  document.getElementById('bEach').textContent = bTier>=6
     ? `≈ £${(t.price/t.n).toFixed(2)} each · 5 bracelets · free UK shipping`
     : `≈ £${(t.price/t.n).toFixed(2)} each · ${t.n} bracelet${t.n>1?'s':''}`;
 }
