@@ -78,6 +78,13 @@ export default async function handler(req, res) {
       mode: 'payment',
       // payment_method_types omitted → Stripe Checkout auto-enables cards + Apple/Google Pay
       line_items, shipping_options,
+      // Abandoned-checkout recovery: capture the email on the hosted page, create a
+      // Customer, and let Stripe email a recovery link back to the prefilled cart when
+      // the session expires. NOTE: owner must toggle "recovery emails" ON in the Stripe
+      // Dashboard (Settings → Checkout & Payment Links → Manage recovery emails).
+      customer_creation: 'always',
+      after_expiration: { recovery: { enabled: true, allow_promotion_codes: true } },
+      consent_collection: { promotions: 'auto' },
       shipping_address_collection: { allowed_countries: ['GB'] },
       phone_number_collection: { enabled: true },
       allow_promotion_codes: true,
