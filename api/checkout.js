@@ -84,7 +84,8 @@ export default async function handler(req, res) {
       // Dashboard (Settings → Checkout & Payment Links → Manage recovery emails).
       customer_creation: 'always',
       after_expiration: { recovery: { enabled: true, allow_promotion_codes: true } },
-      consent_collection: { promotions: 'auto' },
+      // NOTE: consent_collection.promotions is NOT available for GB/UK Stripe accounts
+      // (Stripe rejects the session create → checkout 500 → no orders). Removed 2026-07-03.
       shipping_address_collection: { allowed_countries: ['GB'] },
       phone_number_collection: { enabled: true },
       allow_promotion_codes: true,
