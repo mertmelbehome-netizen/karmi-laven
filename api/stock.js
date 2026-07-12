@@ -21,6 +21,12 @@
 
 const STORE = 'WAT';
 
+// Safety buffer subtracted from WAT stockroom per SKU before exposing online:
+// the last 1–2 units per barcode often can't physically be located when picking
+// ("gözükmesine rağmen stockroomdan çıkmıyor"), so both the sellable qty AND the
+// catalogue in-stock flag are driven by (stockroom − buffer − holds).
+const ONLINE_STOCKROOM_BUFFER = 3;
+
 export default async function handler(req, res) {
   // short edge/browser cache — stock changes are not second-critical, and this
   // shields the DB from every page load. 30s fresh, 60s stale-while-revalidate.
@@ -115,14 +121,14 @@ export default async function handler(req, res) {
       }
     } // holds failure is non-fatal — better to slightly over-show than hide everything
 
-    // 4) available = WAT stockroom_count − holds, floored at 0
+    // 4) available = WAT stockroom_count − safety buffer − holds, floored at 0
     const stock = {};
     const keys = want.length ? want : Object.keys(bcToPid);
     for (const bc of keys) {
       const pid = bcToPid[bc];
       const onHand = pid != null ? (slMap[pid] || 0) : 0;
       const held = holds[bc] || 0;
-      stock[bc] = Math.max(0, onHand - held);
+      stock[bc] = Math.max(0, onHand - ONLINE_STOCKROOM_BUFFER - held);
     }
 
     return res.status(200).json({ ok: true, store: STORE, stock, ts: new Date().toISOString() });
