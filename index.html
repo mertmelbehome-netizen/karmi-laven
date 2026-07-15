@@ -343,6 +343,13 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
   color:var(--bg); background:var(--ink); border:none; padding:16px 0; cursor:pointer; transition:.3s}
 .cart-checkout:hover{opacity:.88} .cart-checkout:disabled{opacity:.4; cursor:default}
 .cart-wallet{text-align:center; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--soft); margin-top:10px}
+.cart-ship b{color:var(--accent); font-weight:600}
+.nudge-save{color:var(--gold); font-weight:600; margin-left:2px}
+.nudge-add{display:inline-block; margin-left:6px; font-family:'Jost'; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:#fff; background:linear-gradient(90deg,var(--accent),var(--gold)); border:none; border-radius:20px; padding:3px 11px; cursor:pointer; vertical-align:middle}
+.nudge-add:hover{opacity:.9}
+.cart-trustline{text-align:center; font-size:10px; letter-spacing:.02em; color:var(--soft); line-height:1.55; margin-top:9px}
+.cart-storeproof{text-align:center; font-size:10.5px; letter-spacing:.02em; color:var(--soft); margin-top:6px}
+.cart-storeproof b{color:var(--gold); font-weight:500}
 
 /* sticky mobile buy bar */
 .stickybar{position:fixed; left:0; right:0; bottom:0; z-index:55; display:none; background:rgba(255,254,251,.97);
@@ -650,7 +657,9 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <div class="cart-sub"><span>Subtotal</span><span id="cartSub">£0.00</span></div>
     <div class="cart-shipline" id="cartShipLine"><span>Shipping</span><span id="cartShipVal">£1.49</span></div>
     <div class="cart-pre" id="cartPre">In stock · ships in 2–5 days</div>
-    <button class="cart-checkout" id="checkoutBtn" onclick="checkout()">Checkout</button>
+    <button class="cart-checkout" id="checkoutBtn" onclick="checkout()">Secure Checkout →</button>
+    <div class="cart-trustline">🔒 Secure payment · 30-day returns · A real UK brand — 3 high-street shops</div>
+    <div class="cart-storeproof">Part of <b>Melbe Home</b> · 20,000+ pieces sold in our UK shops last month</div>
     <div class="cart-wallet">Apple Pay &amp; Google Pay at checkout</div>
   </div>
 </aside>
@@ -891,11 +900,32 @@ function renderCart(){
   const q=totalQty(), s=subtotal(), full=q*PRICE, saved=Math.max(0,full-s), free=hasFreeShip();
   document.getElementById('cartSub').textContent='£'+s.toFixed(2);
   document.getElementById('cartShipVal').innerHTML = free ? '<span class="free">FREE ✓</span>' : '£1.49 <span class="note">· free over £12 or 5-stack</span>';
-  const remain=Math.max(0,FREE_SHIP-s);
-  document.getElementById('cartShip').textContent = free ? '✓ Free UK shipping unlocked' : `You're £${remain.toFixed(2)} away from free UK shipping`;
-  document.getElementById('shipFill').style.width = (free?100:Math.min(100,s/FREE_SHIP*100))+'%';
+  // Value-forward bundle nudge: positive momentum toward the next real deal (replaces the "£X away" scold)
+  const cshEl=document.getElementById('cartShip');
+  if(free){
+    cshEl.innerHTML='✓ <b>Free UK shipping</b> + best multi-buy price unlocked';
+    document.getElementById('shipFill').style.width='100%';
+  }else{
+    const goal = q<3 ? 3 : 5;
+    const addN = goal - q;
+    const gPrice = bestPrice(goal);
+    const gSave = Math.max(0, goal*PRICE - gPrice);
+    const deal = goal>=5 ? `${goal} for £${gPrice.toFixed(2)} + free UK shipping` : `${goal} for £${gPrice.toFixed(2)}`;
+    cshEl.innerHTML = `Add ${addN} more → <b>${deal}</b>`
+      + (gSave>=0.01 ? ` <span class="nudge-save">save £${gSave.toFixed(2)}</span>` : '')
+      + ` <button class="nudge-add" type="button" onclick="nudgeAddOne()">＋ Add</button>`;
+    document.getElementById('shipFill').style.width = Math.min(100, q/goal*100)+'%';
+  }
   document.getElementById('cartPre').textContent = `${q} bracelet${q!==1?'s':''}${saved>=0.01?` · multi-buy saves £${saved.toFixed(2)}`:''} · in stock, ships in 2–5 days`;
   document.getElementById('checkoutBtn').disabled=!cart.length;
+}
+function nudgeAddOne(){
+  const avail=(bc)=>(typeof window.klAvail==='function'?window.klAvail(bc):Infinity);
+  let bc=null;
+  if(cart.length){const last=cart[cart.length-1]; if(last.qty<avail(last.bc)) bc=last.bc;}
+  if(!bc && typeof colours!=='undefined'){const c=colours.find(x=>{const inCart=cart.find(k=>k.bc===x.bc); return (inCart?inCart.qty:0)<avail(x.bc);}); if(c) bc=c.bc;}
+  if(bc){addToCartSilent(bc); save(); updateBag(); renderCart(); toast('Added to bag');}
+  else openBundle();
 }
 function openCart(){renderCart();document.getElementById('cart').classList.add('open');document.getElementById('ovl').classList.add('open');}
 function closeCart(){document.getElementById('cart').classList.remove('open');syncOvl();}
@@ -999,7 +1029,7 @@ render(DATA); renderSpectrum(); updateBag(); renderCart(); firePurchaseIfSuccess
   var fired=false;
   function fire(){ if(fired) return; fired=true; setTimeout(openEmailPopup, 500); }
   document.addEventListener('mouseleave',function(e){ if(e.clientY<=0) fire(); });
-  setTimeout(fire, 20000);
+  // Popup deferred to exit-intent only (removed 20s auto-timer) so it never interrupts the impulse-buy moment
   document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden') fire(); });
 })();
 </script>
