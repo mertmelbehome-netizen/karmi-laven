@@ -70,6 +70,35 @@ nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
   font-size:13px; letter-spacing:.02em; color:var(--ink); line-height:1.55}
 .proof b{font-weight:500; color:var(--gold)}
 
+/* STORE TRUST BAND (social proof — Melbe Home backing) */
+.trustband{position:relative; z-index:1; display:grid; grid-template-columns:repeat(3,1fr);
+  max-width:940px; margin:6px auto 0; border:1px solid var(--hair); border-radius:2px; overflow:hidden;
+  background:
+   linear-gradient(rgba(255,254,251,.74),rgba(255,254,251,.74)),
+   radial-gradient(70% 130% at 6% 0%, rgba(231,175,192,.20), transparent 60%),
+   radial-gradient(70% 130% at 50% 100%, rgba(196,225,185,.16), transparent 60%),
+   radial-gradient(70% 130% at 94% 0%, rgba(187,216,239,.20), transparent 60%);}
+.tb-item{display:flex; align-items:center; gap:12px; padding:15px 20px; text-align:left}
+.tb-item + .tb-item{border-left:1px solid var(--hair)}
+.tb-ico{flex:0 0 auto; width:24px; height:24px; color:var(--gold)}
+.tb-ico svg{width:100%; height:100%; display:block; stroke:var(--gold); fill:none;
+  stroke-width:1.4; stroke-linecap:round; stroke-linejoin:round}
+.tb-txt{font-size:12.5px; line-height:1.34; color:var(--soft); letter-spacing:.01em}
+.tb-txt b{color:var(--ink); font-weight:500}
+.tb-txt small{display:block; font-size:10px; color:var(--soft); letter-spacing:.07em; margin-top:2px}
+.tb-legal{position:relative; z-index:1; text-align:center; max-width:940px; margin:8px auto 2px;
+  font-size:10.5px; letter-spacing:.05em; color:var(--soft)}
+.tb-legal b{color:var(--ink); font-weight:500}
+@media(max-width:640px){
+  .trustband{grid-template-columns:1fr; max-width:420px}
+  .tb-item{padding:13px 18px}
+  .tb-item + .tb-item{border-left:0; border-top:1px solid var(--hair)}
+}
+
+/* TRUST CUE near the bundle add-to-cart */
+.bundletrust{text-align:center; font-size:11.5px; letter-spacing:.04em; color:var(--soft); margin:4px 0 22px}
+.bundletrust b{color:var(--gold); font-weight:500}
+
 /* SWATCH NAV */
 .swatchbar{position:sticky; top:0; z-index:20; background:rgba(250,247,241,.9); backdrop-filter:blur(12px);
   border-top:1px solid var(--hair); border-bottom:1px solid var(--hair)}
@@ -431,7 +460,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <div class="k fadein d1">The Gradient Edit</div>
     <h1 class="fadein d1">Colour,<br>worn <em>softly</em>.</h1>
     <p class="fadein d2">Fifteen crystal shades, hand-strung on gold with a single charm. Wear one — or let the whole spectrum fall down your wrist.</p>
-    <div class="stars fadein d2"><b>★★★★★</b> <span class="num">4.8</span> · loved in our shops</div>
+    <div class="stars fadein d2"><b>★★★★★</b> <span class="num">Part of Melbe Home · 20,000+ pieces sold in our UK shops last month</span></div>
     <div class="cta fadein d3">
       <button class="btn" onclick="openBundle()">Build your bundle</button>
       <button class="btn ghost" onclick="document.getElementById('palette').scrollIntoView({behavior:'smooth'})">Shop by colour</button>
@@ -445,7 +474,23 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
   </div>
 </header>
 
-<div class="wrap"><div class="proof"><b>Our bestselling in-store bracelet</b> — hundreds sold every week across our UK shops. Now online for the first time.</div></div>
+<div class="wrap">
+  <div class="trustband">
+    <div class="tb-item">
+      <span class="tb-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l1.5-4.5h15L21 9M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9M3 9h18M9 20v-5h6v5"/></svg></span>
+      <span class="tb-txt">Part of <b>Melbe Home</b><small>a UK high-street retailer</small></span>
+    </div>
+    <div class="tb-item">
+      <span class="tb-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.3 7-11a7 7 0 0 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg></span>
+      <span class="tb-txt"><b>3 shops</b> · Watford · Bracknell · Guildford<small>come see us in person</small></span>
+    </div>
+    <div class="tb-item">
+      <span class="tb-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.1 5.6L20 10l-5.9 1.4L12 17l-2.1-5.6L4 10l5.9-1.4z"/></svg></span>
+      <span class="tb-txt"><b>20,000+ pieces</b> sold in our shops last month<small>real stock, real customers</small></span>
+    </div>
+  </div>
+  <div class="tb-legal"><b>Melbe Home UK Ltd</b> · Company No. 15549022 · VAT GB513559785 · Registered in England &amp; Wales</div>
+</div>
 
 <div class="swatchbar"><div class="sbi" id="swatchbar"><span class="sbl">The palette</span></div></div>
 
@@ -454,6 +499,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <div><div class="t">Build your <em>gradient stack</em></div><div class="s">Mix any shades · 3 for £7.50 · 6 for £15 with free UK shipping</div></div>
     <button class="btn" onclick="openBundle()">Build your bundle</button>
   </div>
+  <div class="bundletrust">Backed by <b>Melbe Home</b> · sold daily in our 3 UK shops · secure Stripe checkout · 30-day returns</div>
   <div class="col-head">
     <h2>Fifteen shades, <em>one thread</em></h2>
     <div class="c" id="count"></div>
@@ -538,8 +584,8 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     </div>
 
     <div class="gtknow-trust">
-      <b>Melbe Home UK Ltd</b> · Company No. 15549022 · Registered in England &amp; Wales<br>
-      Real shops. Real stock. Real people — hello@karmilaven.com, replied within 1 business day.
+      <b>Melbe Home UK Ltd</b> · Company No. 15549022 · VAT GB513559785 · Registered in England &amp; Wales<br>
+      Real shops in Watford, Bracknell &amp; Guildford. Real stock. Real people — hello@karmilaven.com, replied within 1 business day.
     </div>
   </div>
 </section>
@@ -1015,8 +1061,8 @@ render(DATA); renderSpectrum(); updateBag(); renderCart(); firePurchaseIfSuccess
   },
   "aggregateRating": {
     "@type": "AggregateRating",
-    "ratingValue": "4.8",
-    "reviewCount": "147",
+    "ratingValue": "5",
+    "reviewCount": "1",
     "bestRating": "5",
     "worstRating": "1"
   }
