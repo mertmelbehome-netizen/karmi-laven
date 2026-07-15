@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 const stripe = new Stripe(process.env.STRIPE_SECRET);
 const UNIT = 299; // £2.99 launch unit price (pence) — never raised; value rises via quantity
-const FREE_SHIP_P = 1500; // free UK shipping at £15 subtotal (or 5+ bracelets)
+const FREE_SHIP_P = 1200; // free UK shipping at £12 subtotal (or 5+ bracelets)
 // multi-buy ladder (pence): cheapest combo applied automatically by total quantity
 const DENOMS = [[5, 1200], [3, 750], [2, 550], [1, 299]];
 function bestPriceP(q) {
