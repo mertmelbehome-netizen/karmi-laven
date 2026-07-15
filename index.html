@@ -962,7 +962,7 @@ async function checkout(){
   kl('Started Checkout',{$value:val,ItemNames:cart.map(c=>BY[c.bc].color_en),items:cart.map(c=>({ProductID:c.bc,SKU:c.bc,ProductName:BY[c.bc].color_en,Quantity:c.qty,ItemPrice:PRICE})),CheckoutURL:'https://karmilaven.com/'});
   try{
     const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({items,event_id:eventId})});
+      body:JSON.stringify({items,event_id:eventId,kl_sid:flSid()})});
     if(r.ok){const j=await r.json(); if(j.url){location.href=j.url;return;}}
   }catch(e){}
   // Fallback (static hosting only): single-colour payment link
@@ -999,6 +999,7 @@ render(DATA); renderSpectrum(); updateBag(); renderCart(); firePurchaseIfSuccess
     <button class="klpop-submit" id="klpopBtn" onclick="submitEmailPopup()">Notify Me</button>
   </div>
   <button class="klpop-skip" onclick="closeEmailPopup()">No thanks</button>
+  <div class="klpop-consent" style="font-size:11px;opacity:.6;margin-top:8px;line-height:1.4">Join for launches &amp; offers. We&#x2019;ll only email about new drops &amp; deals &#x2014; unsubscribe anytime.</div>
   <div class="klpop-thanks" id="klpopThanks">Thank you &#x2014; you are on the list!</div>
 </div>
 <script>
@@ -1022,6 +1023,9 @@ render(DATA); renderSpectrum(); updateBag(); renderCart(); firePurchaseIfSuccess
     if(!email || email.indexOf('@')<1){ document.getElementById('klpopEmail').focus(); return; }
     var btn=document.getElementById('klpopBtn');
     btn.disabled=true;
+    // Link this consented email to the visitor's browsing session (funnel identity).
+    // Fire-and-forget; flTrack is fully try/catch-wrapped and can never break the popup.
+    try{ if(typeof flTrack==='function'){ flTrack('email_capture',{email:email}); } }catch(e){}
     fetch('/api/subscribe',{
       method:'POST',
       headers:{'Content-Type':'application/json'},

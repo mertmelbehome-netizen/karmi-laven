@@ -207,6 +207,29 @@ async function handleRefund(charge) {
   } catch(e) { /* swallow — Stripe will retry the webhook */ }
 }
 
+// Link the buyer's email ↔ their anonymous browsing session in ops-v2 funnel_events.
+// This is a legit soft opt-in: the customer completed a purchase. Fire-and-forget +
+// fully wrapped — it can NEVER affect order recording or the webhook response.
+async function linkFunnelIdentity(s) {
+  try {
+    const email = s.customer_details && s.customer_details.email;
+    const klSid = s.metadata && s.metadata.kl_sid;
+    if (!email) return; // nothing to link without an email
+    await fetch('https://melbehome-ops-v2.vercel.app/api/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_type: 'purchase',
+        email,
+        session_id: klSid || null,
+        cart_value: (s.amount_total || 0) / 100,
+      }),
+    }).catch(() => {});
+  } catch (e) {
+    console.warn('[stripe-webhook] funnel identity link failed (non-fatal):', e.message);
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -233,6 +256,9 @@ export default async function handler(req, res) {
 
     // Record order → ops v2 (stock decrement happens on manual fulfilment)
     await recordOrder(s);
+
+    // Link buyer email ↔ browsing session (funnel identity). Fully wrapped, best-effort.
+    await linkFunnelIdentity(s);
 
     // Meta Conversions API (server-side, accurate ROI)
     if (process.env.META_PIXEL_ID && process.env.META_CAPI_TOKEN) {
