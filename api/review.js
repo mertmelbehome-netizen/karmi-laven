@@ -1,8 +1,42 @@
 // Karmi Laven — collect a customer review.
-// POST { order_id?, rating (1-5), title?, body, customer_name?, email?, product_bc?, hp? }
+// POST { order_id?, rating (1-5), title?, body, customer_name?, email?, product_bc?, photo?, hp? }
 // Inserts into the shared ops Supabase `reviews` table with approved=false
 // (owner moderates before it appears on site). No public read here.
+// `photo` (optional) is a base64 data URL — uploaded to the public `review-photos`
+// Storage bucket; the resulting public URL is stored in reviews.photo_url.
 const clip = (v, n) => (v == null ? null : String(v).trim().slice(0, n) || null);
+
+const PHOTO_BUCKET = 'review-photos';
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // ~5MB
+const EXT = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
+
+// Best-effort: upload a base64 data URL to Storage, return the public URL (or null).
+// Any failure returns null — a photo problem must never block the text review.
+async function uploadPhoto(base, key, dataUrl) {
+  try {
+    if (!dataUrl || typeof dataUrl !== 'string') return null;
+    const m = /^data:([^;,]+);base64,(.+)$/i.exec(dataUrl.trim());
+    if (!m) return null;
+    const mime = m[1].toLowerCase();
+    if (!/^image\//.test(mime) || !EXT[mime]) return null;
+    const buf = Buffer.from(m[2], 'base64');
+    if (!buf.length || buf.length > MAX_PHOTO_BYTES) return null;
+
+    const name = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${EXT[mime]}`;
+    const up = await fetch(`${base}/storage/v1/object/${PHOTO_BUCKET}/${name}`, {
+      method: 'POST',
+      headers: {
+        apikey: key, Authorization: `Bearer ${key}`,
+        'Content-Type': mime, 'x-upsert': 'true', 'cache-control': 'max-age=31536000',
+      },
+      body: buf,
+    });
+    if (!up.ok) return null;
+    return `${base}/storage/v1/object/public/${PHOTO_BUCKET}/${name}`;
+  } catch {
+    return null;
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method not allowed' });
@@ -22,6 +56,9 @@ export default async function handler(req, res) {
   const body = clip(b.body, 2000);
   if (!body || body.length < 2) return res.status(400).json({ error: 'review text required' });
 
+  // Optional photo — upload is isolated + non-blocking. Failure ⇒ photo_url stays null.
+  const photo_url = b.photo ? await uploadPhoto(base, key, b.photo) : null;
+
   const row = {
     order_id: clip(b.order_id, 120),
     customer_name: clip(b.customer_name, 80),
@@ -29,7 +66,7 @@ export default async function handler(req, res) {
     rating,
     title: clip(b.title, 120),
     body,
-    photo_url: clip(b.photo_url, 500),
+    photo_url,
     product_bc: clip(b.product_bc, 60),
     approved: false,
   };
@@ -55,7 +92,7 @@ export default async function handler(req, res) {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: 'Yeni değerlendirme — Karmi Laven',
-        detail: `${'★'.repeat(rating)} · ${row.customer_name || 'Anonim'}${row.title ? ` · ${row.title}` : ''} (onay bekliyor)`,
+        detail: `${'★'.repeat(rating)} · ${row.customer_name || 'Anonim'}${row.title ? ` · ${row.title}` : ''}${photo_url ? ' · 📷' : ''} (onay bekliyor)`,
         severity: 'info', store_id: 'WAT', url: '/orders',
       }),
     }).catch(() => {});
