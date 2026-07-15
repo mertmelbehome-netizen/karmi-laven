@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 const stripe = new Stripe(process.env.STRIPE_SECRET);
 const UNIT = 299; // £2.99 launch unit price (pence) — never raised; value rises via quantity
-const FREE_SHIP_P = 1500; // free UK shipping at £15 subtotal (or 6+ bracelets)
+const FREE_SHIP_P = 1500; // free UK shipping at £15 subtotal (or 5+ bracelets)
 // multi-buy ladder (pence): cheapest combo applied automatically by total quantity
 const DENOMS = [[5, 1200], [3, 750], [2, 550], [1, 299]];
 function bestPriceP(q) {
@@ -69,10 +69,10 @@ export default async function handler(req, res) {
     const itemsCsv = bcList.map(e => `${e.bc || '?'}x${e.qty}`).join(',').slice(0, 480);
     const itemsNamed = bcList.map(e => `${e.bc || '?'} ${e.name} x${e.qty}`).join(' | ').slice(0, 480);
 
-    const freeShip = amount >= FREE_SHIP_P || totalQty >= 6;
+    const freeShip = amount >= FREE_SHIP_P || totalQty >= 5;
     const shipping_options = [ freeShip
       ? { shipping_rate_data: { display_name: 'Free UK shipping', type: 'fixed_amount', fixed_amount: { amount: 0, currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } }
-      : { shipping_rate_data: { display_name: 'UK standard shipping', type: 'fixed_amount', fixed_amount: { amount: 345, currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } } ];
+      : { shipping_rate_data: { display_name: 'UK standard shipping', type: 'fixed_amount', fixed_amount: { amount: 282, currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } } ];
     const origin = req.headers.origin || 'https://karmilaven.com';
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
