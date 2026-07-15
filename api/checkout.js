@@ -72,7 +72,7 @@ export default async function handler(req, res) {
     const freeShip = amount >= FREE_SHIP_P || totalQty >= 5;
     const shipping_options = [ freeShip
       ? { shipping_rate_data: { display_name: 'Free UK shipping', type: 'fixed_amount', fixed_amount: { amount: 0, currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } }
-      : { shipping_rate_data: { display_name: 'UK standard shipping', type: 'fixed_amount', fixed_amount: { amount: 282, currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } } ];
+      : { shipping_rate_data: { display_name: 'UK standard shipping', type: 'fixed_amount', fixed_amount: { amount: 149, currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } } ];
     const origin = req.headers.origin || 'https://karmilaven.com';
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',

@@ -483,7 +483,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
   <details class="faqitem"><summary>When will my order arrive?</summary><p>In stock and ready now — orders ship within 1–2 business days and arrive in 2–5 business days via Royal Mail. You're charged securely at checkout.</p></details>
   <details class="faqitem"><summary>What size are they?</summary><p>Each bracelet is hand-strung on a fine gold-tone chain that fastens with a clasp and a loop extender chain, comfortable from roughly 14–19cm.</p></details>
   <details class="faqitem"><summary>What are they made of?</summary><p>4mm faceted crystal beads hand-strung on a gold-tone chain with a single delicate charm.</p></details>
-  <details class="faqitem"><summary>Shipping &amp; delivery?</summary><p>UK shipping £2.82, free over £12 (and free with the 5-bracelet stack). Delivery 2–5 business days after dispatch.</p></details>
+  <details class="faqitem"><summary>Shipping &amp; delivery?</summary><p>UK shipping £1.49, free over £12 (and free with the 5-bracelet stack). Delivery 2–5 business days after dispatch.</p></details>
 </section>
 
 <section class="reviews wrap" id="reviews">
@@ -602,7 +602,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <div class="shipbar"><i id="shipFill"></i></div>
     <div class="cart-ship" id="cartShip">Add £12.00 more for free UK shipping</div>
     <div class="cart-sub"><span>Subtotal</span><span id="cartSub">£0.00</span></div>
-    <div class="cart-shipline" id="cartShipLine"><span>Shipping</span><span id="cartShipVal">£2.82</span></div>
+    <div class="cart-shipline" id="cartShipLine"><span>Shipping</span><span id="cartShipVal">£1.49</span></div>
     <div class="cart-pre" id="cartPre">In stock · ships in 2–5 days</div>
     <button class="cart-checkout" id="checkoutBtn" onclick="checkout()">Checkout</button>
     <div class="cart-wallet">Apple Pay &amp; Google Pay at checkout</div>
@@ -844,7 +844,7 @@ function renderCart(){
   }).join('');
   const q=totalQty(), s=subtotal(), full=q*PRICE, saved=Math.max(0,full-s), free=hasFreeShip();
   document.getElementById('cartSub').textContent='£'+s.toFixed(2);
-  document.getElementById('cartShipVal').innerHTML = free ? '<span class="free">FREE ✓</span>' : '£2.82 <span class="note">· free over £12 or 5-stack</span>';
+  document.getElementById('cartShipVal').innerHTML = free ? '<span class="free">FREE ✓</span>' : '£1.49 <span class="note">· free over £12 or 5-stack</span>';
   const remain=Math.max(0,FREE_SHIP-s);
   document.getElementById('cartShip').textContent = free ? '✓ Free UK shipping unlocked' : `You're £${remain.toFixed(2)} away from free UK shipping`;
   document.getElementById('shipFill').style.width = (free?100:Math.min(100,s/FREE_SHIP*100))+'%';
