@@ -722,6 +722,19 @@ function track(fb, ga, params, opts){
 // Klaviyo onsite events (power abandoned-cart + personalisation). No-op until ANALYTICS.klaviyo set.
 function kl(metric, props){ try{ if(ANALYTICS.klaviyo){ (window.klaviyo=window.klaviyo||[]).push(['track', metric, props||{}]); } }catch(e){} }
 function klId(email){ try{ if(ANALYTICS.klaviyo && email){ (window.klaviyo=window.klaviyo||[]).push(['identify', {'$email':email}]); } }catch(e){} }
+// First-party funnel beacon → ops-v2 (owner-visible add-to-cart / begin-checkout funnel).
+// Fire-and-forget; fully try/catch-wrapped so it can NEVER break the page. Purely additive —
+// separate from the Meta Pixel / GA track() above. Persists a random session_id in localStorage.
+function flSid(){ try{ let s=localStorage.getItem('kl_sid'); if(!s){ s='kl-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10); localStorage.setItem('kl_sid',s); } return s; }catch(e){ return null; } }
+function flTrack(eventType, payload){
+  try{
+    var body=JSON.stringify(Object.assign({session_id:flSid(),event_type:eventType}, payload||{}));
+    var url='https://melbehome-ops-v2.vercel.app/api/track';
+    // text/plain keeps this a CORS "simple request" (no preflight); server reads raw text as JSON.
+    if(navigator.sendBeacon){ navigator.sendBeacon(url, new Blob([body],{type:'text/plain'})); }
+    else{ fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:body,keepalive:true,mode:'cors'}).catch(function(){}); }
+  }catch(e){}
+}
 function uuid(){return 'kl-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);}
 function firePurchaseIfSuccess(){
   const u=new URLSearchParams(location.search);
@@ -877,6 +890,7 @@ function addToCartSilent(bc){const a=(typeof window.klAvail==='function'?window.
 function addToCart(bc){
   addToCartSilent(bc); save();updateBag();renderCart();openCart();
   track('AddToCart','add_to_cart',{value:PRICE,currency:'GBP',content_name:BY[bc].color_en,content_ids:[bc],content_type:'product'});
+  flTrack('add_to_cart',{product_bc:bc,product_name:BY[bc].color_en,qty:1,value:PRICE,cart_qty:totalQty(),cart_value:subtotal()});
   kl('Added to Cart',{$value:bestPrice(totalQty()),AddedItemProductName:BY[bc].color_en,AddedItemSKU:bc,ItemNames:cart.map(c=>BY[c.bc].color_en),CheckoutURL:'https://karmilaven.com/'});
 }
 function setQty(i,v){const q=Math.max(1,Math.min(99,parseInt(v)||1)); if(cart[i])cart[i].qty=q; save();updateBag();renderCart();}
@@ -944,6 +958,7 @@ async function checkout(){
   const contents=cart.map(c=>({id:c.bc,quantity:c.qty}));
   localStorage.setItem('klpending',JSON.stringify({value:val,num_items:q,contents,eventId}));
   track('InitiateCheckout','begin_checkout',{value:val,currency:'GBP',num_items:q},{eventID:eventId});
+  flTrack('begin_checkout',{cart_qty:q,cart_value:val});
   kl('Started Checkout',{$value:val,ItemNames:cart.map(c=>BY[c.bc].color_en),items:cart.map(c=>({ProductID:c.bc,SKU:c.bc,ProductName:BY[c.bc].color_en,Quantity:c.qty,ItemPrice:PRICE})),CheckoutURL:'https://karmilaven.com/'});
   try{
     const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},
