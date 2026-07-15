@@ -45,6 +45,16 @@ textarea{resize:vertical; min-height:110px; line-height:1.5}
 .star.on{color:var(--gold)}
 .starhint{text-align:center; font-size:12px; color:var(--soft); min-height:16px; letter-spacing:.04em}
 .hp{position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden}
+.photoinput{position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; opacity:0}
+.photobtn{display:block; text-align:center; font-family:'Jost'; font-weight:400; font-size:11px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--soft); background:var(--bg); border:1px dashed var(--hair);
+  padding:14px; cursor:pointer; transition:.25s; margin-top:0}
+.photobtn:hover{border-color:var(--ink); color:var(--ink)}
+.photoprev{margin-top:12px; text-align:center}
+.photoprev img{max-width:100%; max-height:220px; border:1px solid var(--hair)}
+.photox{display:inline-block; margin-top:8px; font-family:'Jost'; font-weight:300; font-size:11px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--accent); background:none; border:none; cursor:pointer; padding:4px}
+.disclosure{font-size:12px; line-height:1.5; color:var(--soft); text-align:center; margin-top:22px; letter-spacing:.01em}
 .btn{width:100%; font-family:'Jost'; font-weight:400; font-size:12px; letter-spacing:.18em; text-transform:uppercase;
   padding:16px 30px; margin-top:26px; cursor:pointer; border:1px solid var(--ink); background:var(--ink);
   color:var(--bg); transition:.35s}
@@ -97,8 +107,18 @@ textarea{resize:vertical; min-height:110px; line-height:1.5}
       <label for="name">Your name <span style="text-transform:none;letter-spacing:0">(optional — shown with your review)</span></label>
       <input id="name" maxlength="80" placeholder="First name or initials">
 
+      <label for="photo">Add a photo <span style="text-transform:none;letter-spacing:0">📷 — for 5× draw entries</span></label>
+      <label class="photobtn" id="photolabel" for="photo">Choose a photo</label>
+      <input id="photo" type="file" accept="image/*" class="photoinput">
+      <div class="photoprev hide" id="photoprev">
+        <img id="photoimg" alt="Your photo preview">
+        <button type="button" class="photox" id="photox" aria-label="Remove photo">Remove</button>
+      </div>
+
       <!-- honeypot -->
       <div class="hp" aria-hidden="true"><label>Leave blank</label><input id="hp" tabindex="-1" autocomplete="off"></div>
+
+      <p class="disclosure">Every honest review — good or bad — enters this month's £25 Karmi Laven bundle draw. Add a photo for 5× entries. Your rating never affects your chances.</p>
 
       <button class="btn" id="submit" type="submit">Submit review</button>
       <div class="err" id="err"></div>
@@ -109,6 +129,7 @@ textarea{resize:vertical; min-height:110px; line-height:1.5}
       <div class="big">★</div>
       <h2>Thank <em style="font-style:italic">you</em></h2>
       <p>Your review has been received and will appear on our site after a quick check. We're so glad you're part of the gradient.</p>
+      <p class="lowrate hide" id="lowrate" style="font-size:13px">Thanks — if something wasn't right, email <a href="mailto:hello@karmilaven.com" style="color:var(--gold)">hello@karmilaven.com</a> and we'll make it right.</p>
       <a class="gostore" href="/">Back to the shop</a>
     </div>
   </div>
@@ -126,12 +147,44 @@ textarea{resize:vertical; min-height:110px; line-height:1.5}
   var stars = [].slice.call(document.querySelectorAll('.star'));
   var hint = document.getElementById('starhint');
 
-  function paint(n){ stars.forEach(function(s){ s.classList.toggle('on', +s.dataset.v <= n); });
+  function paint(n){ stars.forEach(function(s){ s.classList.toggle('on', +s.dataset.v <= n);
+      s.setAttribute('aria-checked', +s.dataset.v === n ? 'true' : 'false'); });
     hint.textContent = HINTS[n] || 'Tap a star'; }
   stars.forEach(function(s){
     s.addEventListener('mouseenter', function(){ paint(+s.dataset.v); });
     s.addEventListener('mouseleave', function(){ paint(rating); });
-    s.addEventListener('click', function(){ rating = +s.dataset.v; s.setAttribute('aria-checked','true'); paint(rating); });
+    s.addEventListener('click', function(){ rating = +s.dataset.v; paint(rating); });
+  });
+
+  // Pre-select rating from the email link (?rating=N). User can still change it.
+  var pre = parseInt(qs.get('rating'), 10);
+  if(pre >= 1 && pre <= 5){ rating = pre; paint(rating); }
+
+  // Optional photo (for 5× draw entries). Kept fully optional + non-blocking.
+  var MAX_PHOTO = 5 * 1024 * 1024; // ~5MB
+  var photoInput = document.getElementById('photo');
+  var photoLabel = document.getElementById('photolabel');
+  var photoPrev = document.getElementById('photoprev');
+  var photoImg = document.getElementById('photoimg');
+  var photoDataUrl = null;
+
+  function clearPhoto(){ photoDataUrl = null; photoInput.value = '';
+    photoPrev.classList.add('hide'); photoImg.removeAttribute('src');
+    photoLabel.textContent = 'Choose a photo'; }
+  document.getElementById('photox').addEventListener('click', clearPhoto);
+
+  photoInput.addEventListener('change', function(){
+    err.textContent = '';
+    var f = photoInput.files && photoInput.files[0];
+    if(!f){ clearPhoto(); return; }
+    if(!/^image\//.test(f.type)){ err.textContent = 'Please choose an image file.'; clearPhoto(); return; }
+    if(f.size > MAX_PHOTO){ err.textContent = 'That photo is a bit large (max 5MB).'; clearPhoto(); return; }
+    var reader = new FileReader();
+    reader.onload = function(){ photoDataUrl = reader.result;
+      photoImg.src = photoDataUrl; photoPrev.classList.remove('hide');
+      photoLabel.textContent = 'Change photo'; };
+    reader.onerror = function(){ clearPhoto(); };
+    reader.readAsDataURL(f);
   });
 
   var form = document.getElementById('form');
@@ -155,11 +208,16 @@ textarea{resize:vertical; min-height:110px; line-height:1.5}
         title: document.getElementById('title').value.trim() || null,
         body: body,
         customer_name: document.getElementById('name').value.trim() || null,
+        photo: photoDataUrl || null,
         hp: document.getElementById('hp').value || null
       })
     }).then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ return {ok:r.ok, j:j}; }); })
     .then(function(res){
       if(!res.ok){ throw new Error((res.j && res.j.error) || 'Something went wrong'); }
+      if(rating <= 2){
+        var note = document.getElementById('lowrate');
+        if(note){ note.classList.remove('hide'); }
+      }
       document.getElementById('form').classList.add('hide');
       document.getElementById('thanks').classList.remove('hide');
       window.scrollTo({top:0, behavior:'smooth'});
