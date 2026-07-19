@@ -202,20 +202,6 @@ nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
 .rinvite a:hover{color:var(--ink); border-color:var(--ink)}
 @media(max-width:860px){ .rgrid{grid-template-columns:1fr; max-width:520px} }
 
-/* FULL SPECTRUM proof */
-.spectrum-sec{padding:54px 0; border-top:1px solid var(--hair); text-align:center}
-.spectrum-sec h2{font-family:'Cormorant Garamond'; font-weight:300; font-size:clamp(28px,4vw,44px); letter-spacing:-.01em}
-.spectrum-sec h2 em{font-style:italic; color:var(--gold)}
-.spectrum-sec .c{font-size:12.5px; letter-spacing:.03em; color:var(--soft); margin:9px 0 24px}
-.specgrid{display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-bottom:26px}
-.specgrid .st{position:relative; aspect-ratio:1; overflow:hidden; cursor:pointer; background:var(--paper)}
-.specgrid .st img{width:100%; height:100%; object-fit:cover; transition:transform .6s cubic-bezier(.2,.8,.2,1)}
-.specgrid .st:hover img{transform:scale(1.06)}
-.specgrid .st .t{position:absolute; left:0; right:0; bottom:0; padding:4px 5px; font-size:8.5px; letter-spacing:.06em; text-transform:uppercase; color:#fff;
-  background:linear-gradient(0deg,rgba(20,15,12,.55),transparent); text-shadow:0 1px 4px rgba(0,0,0,.5); opacity:0; transition:.3s}
-.specgrid .st:hover .t{opacity:1}
-@media(max-width:560px){.specgrid{grid-template-columns:repeat(3,1fr); gap:4px}}
-
 footer{border-top:1px solid var(--hair); margin-top:10px; padding:56px 0 120px; text-align:center}
 footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size:25px; letter-spacing:.36em;
   text-transform:uppercase; line-height:1; margin-bottom:16px; color:var(--ink)}
@@ -534,13 +520,6 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <div class="it"><b>4mm</b> crystal</div>
     <div class="it"><b>£2.99</b> launch</div>
   </div>
-</section>
-
-<section class="spectrum-sec wrap">
-  <h2>The full <em>spectrum</em></h2>
-  <div class="c">Fifteen crystal shades that melt from rose to mint to sky — collect the gradient.</div>
-  <div class="specgrid" id="specgrid"></div>
-  <button class="btn" onclick="openBundle()">Build your stack</button>
 </section>
 
 <section class="faq wrap">
@@ -985,18 +964,7 @@ let toastT;
 function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1800);}
 document.getElementById('ovl').onclick=()=>{closeCart();closeModal();closeBundle();};
 
-function renderSpectrum(){
-  const g=document.getElementById('specgrid'); if(!g) return;
-  const hueOf=hx=>{hx=hx.replace('#','');const r=parseInt(hx.slice(0,2),16)/255,gn=parseInt(hx.slice(2,4),16)/255,b=parseInt(hx.slice(4,6),16)/255;
-    const mx=Math.max(r,gn,b),mn=Math.min(r,gn,b),dd=mx-mn;let h=0;
-    if(dd){if(mx===r)h=((gn-b)/dd)%6;else if(mx===gn)h=(b-r)/dd+2;else h=(r-gn)/dd+4;h*=60;if(h<0)h+=360;}return h;};
-  [...DATA].sort((a,b)=>hueOf(a.swatch)-hueOf(b.swatch)).forEach(d=>{
-    const t=document.createElement('div'); t.className='st'; t.onclick=()=>openModal(d.barcode);
-    t.innerHTML=`<img loading="lazy" src="${d.img}" alt="${d.color_en} crystal bracelet"><span class="t">${d.color_en}</span>`;
-    g.appendChild(t);
-  });
-}
-render(DATA); renderSpectrum(); updateBag(); renderCart(); firePurchaseIfSuccess();
+render(DATA); updateBag(); renderCart(); firePurchaseIfSuccess();
 </script>
 
 <!-- EMAIL CAPTURE POPUP -->
