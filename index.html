@@ -819,11 +819,24 @@ function renderTiers(){
   document.getElementById('tierhint').textContent = bTier>=5 ? 'Free UK shipping included' : (bTier>1?`Just £${(t.price/t.n).toFixed(2)} each`:'');
 }
 function setTier(n){bTier=n; renderTiers(); renderSlots(); updateBundleTotal();}
+/* Resolve a colour name to a LIVE in-stock barcode (Karmi is multi-barcode per colour).
+   The static `colours` map holds only the FIRST barcode per colour, which may be depleted. */
+function liveBcForColour(name){
+  const all=(window.DATA||[]).filter(d=>d.color_en===name).map(d=>String(d.barcode));
+  if(typeof window.klAvail!=='function') return all[0];
+  return all.find(bc=>window.klAvail(bc)>0) || all[0];
+}
+/* Colours that still have at least one in-stock barcode (falls back to all pre-stock-load). */
+function inStockColours(){
+  const s=colours.filter(c=>{ const bc=liveBcForColour(c.name); return typeof window.klAvail!=='function' || window.klAvail(bc)>0; });
+  return s.length?s:colours;
+}
 function renderSlots(seedBc){
   const prev=[...document.querySelectorAll('.slotsel')].map(s=>s.value);
+  const pool=inStockColours();
   let html='';
   for(let i=0;i<bTier;i++){
-    let def = prev[i] || colours[Math.round(i*(colours.length-1)/Math.max(1,bTier-1))].name;
+    let def = prev[i] || pool[Math.round(i*(pool.length-1)/Math.max(1,bTier-1))].name;
     if(i===0 && seedBc && BY[seedBc]) def=BY[seedBc].color_en;
     const opts=colours.map(c=>`<option value="${c.name}" ${c.name===def?'selected':''}>${c.name}</option>`).join('');
     const hex=(colours.find(c=>c.name===def)||colours[0]).hex;
@@ -846,12 +859,18 @@ function updateBundleTotal(){
 }
 function addBundle(){
   const cols=[...document.querySelectorAll('.slotsel')].map(s=>s.value);
-  const t=TIERS.find(x=>x.n===bTier);
-  cols.forEach(name=>{const c=colours.find(x=>x.name===name); if(c) addToCartSilent(c.bc);});
-  save();updateBag();renderCart();closeBundle();
-  track('AddToCart','add_to_cart',{value:t.price,currency:'GBP',content_name:`${bTier}-bracelet stack`,content_type:'product',num_items:bTier});
+  const before=totalQty(), beforeVal=bestPrice(before);
+  // Resolve each colour to a LIVE in-stock barcode at add-time (not the stale first barcode).
+  cols.forEach(name=>{const bc=liveBcForColour(name); if(bc) addToCartSilent(bc);});
+  const added=totalQty()-before, addedVal=bestPrice(totalQty())-beforeVal;
+  save();updateBag();renderCart();
+  // Never claim success unless items actually landed in the cart.
+  if(added<=0){ toast('Sorry — those shades just sold out online. Please pick others.'); return; }
+  closeBundle();
+  track('AddToCart','add_to_cart',{value:addedVal,currency:'GBP',content_name:`${bTier}-bracelet stack`,content_type:'product',num_items:added});
   kl('Added to Cart',{$value:bestPrice(totalQty()),AddedItemProductName:`${bTier}-bracelet stack`,ItemNames:cart.map(c=>BY[c.bc].color_en),CheckoutURL:'https://karmilaven.com/'});
-  openCart();toast('Added to bag');
+  openCart();
+  toast(added<bTier ? `Added ${added} of ${bTier} — some shades were sold out online` : 'Added to bag');
 }
 
 /* ---- CART (unified multi-buy: best price auto-applied by TOTAL bracelet count) ---- */
