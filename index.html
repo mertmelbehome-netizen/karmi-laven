@@ -426,6 +426,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 .sold-out-badge{position:absolute;top:13px;left:13px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;
   color:#fff;background:rgba(0,0,0,.55);padding:5px 10px;backdrop-filter:blur(4px);pointer-events:none;z-index:2}
 .sw.sold-out{display:none !important}
+.hide{display:none}
 </style>
 <meta name="description" content="Karmi Laven crystal bracelets — 15 gradient shades from £2.99. Hand-strung faceted beads, shipped in 2–5 days. Free UK delivery over £12.">
 <link rel="canonical" href="https://www.karmilaven.com/">
@@ -465,12 +466,12 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <div class="k fadein d1">The Gradient Edit</div>
     <h1 class="fadein d1">Colour,<br>worn <em>softly</em>.</h1>
     <p class="fadein d2">Fifteen crystal shades, hand-strung on gold with a single charm. Wear one — or let the whole spectrum fall down your wrist.</p>
-    <div class="stars fadein d2"><b>★★★★★</b> <span class="num">Part of Melbe Home · 20,000+ pieces sold in our UK shops last month</span></div>
+    <div class="stars fadein d2"><span class="num">Part of Melbe Home · with shops in Watford &amp; Guildford</span></div>
     <div class="cta fadein d3">
       <button class="btn" onclick="openBundle()">Build your bundle</button>
       <button class="btn ghost" onclick="document.getElementById('palette').scrollIntoView({behavior:'smooth'})">Shop by colour</button>
     </div>
-    <div class="launch fadein d3"><span>Online launch</span><span class="p">£2.99</span><span class="lbl">In stock</span></div>
+    <div class="launch fadein d3"><span>Online price</span><span class="p">£2.99</span><span class="lbl">In stock</span></div>
     <div class="spectrum fadein d4" id="spectrum"></div>
   </div>
   <div class="hero-img fadein d2">
@@ -487,11 +488,11 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     </div>
     <div class="tb-item">
       <span class="tb-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.3 7-11a7 7 0 0 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg></span>
-      <span class="tb-txt"><b>3 shops</b> · Watford · Bracknell · Guildford<small>come see us in person</small></span>
+      <span class="tb-txt"><b>2 shops</b> · Watford · Guildford<small>come see us in person</small></span>
     </div>
     <div class="tb-item">
       <span class="tb-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.1 5.6L20 10l-5.9 1.4L12 17l-2.1-5.6L4 10l5.9-1.4z"/></svg></span>
-      <span class="tb-txt"><b>20,000+ pieces</b> sold in our shops last month<small>real stock, real customers</small></span>
+      <span class="tb-txt"><b>Shipped from Watford</b> · from our own shop stock<small>real stock, real people</small></span>
     </div>
   </div>
   <div class="tb-legal"><b>Melbe Home UK Ltd</b> · Company No. 15549022 · VAT GB513559785 · Registered in England &amp; Wales</div>
@@ -504,7 +505,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <div><div class="t">Build your <em>gradient stack</em></div><div class="s">Mix any shades · 3 for £7.50 · 6 for £15 with free UK shipping</div></div>
     <button class="btn" onclick="openBundle()">Build your bundle</button>
   </div>
-  <div class="bundletrust">Backed by <b>Melbe Home</b> · sold daily in our 3 UK shops · secure Stripe checkout · 30-day returns</div>
+  <div class="bundletrust">Backed by <b>Melbe Home</b> · shops in Watford &amp; Guildford · secure Stripe checkout · 14-day returns</div>
   <div class="col-head">
     <h2>Fifteen shades, <em>one thread</em></h2>
     <div class="c" id="count"></div>
@@ -518,7 +519,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
   <div class="row">
     <div class="it"><b>15</b> shades</div>
     <div class="it"><b>4mm</b> crystal</div>
-    <div class="it"><b>£2.99</b> launch</div>
+    <div class="it"><b>£2.99</b> each</div>
   </div>
 </section>
 
@@ -537,6 +538,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <p class="rsubhead">A few notes from the people who found their shade.</p>
   </div>
   <div class="rgrid hide" id="rgrid"></div>
+  <p class="rdisclose hide" id="rdisclose" style="text-align:center;font-size:12px;color:var(--soft);margin-top:14px">Reviewers are entered into a monthly prize draw.</p>
   <p class="rinvite">
     <a href="/review.html">Wear yours? Share your Karmi Laven moment <span aria-hidden="true">&rarr;</span></a>
   </p>
@@ -551,12 +553,12 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 
       <div class="faq">
         <p class="faq-q">Are you online only?</p>
-        <p class="faq-a">No — Karmi Laven is part of <b>Melbe Home UK Ltd</b>, an established UK retailer with physical shops across England. karmilaven.com is our online home for the soft gradient bracelet collection; the same brand, the same crystals, online and in store.</p>
+        <p class="faq-a">No — Karmi Laven is part of <b>Melbe Home UK Ltd</b>, an established UK retailer with physical shops in Watford and Guildford. karmilaven.com is our online home for the soft gradient bracelet collection; the same brand, the same crystals, online and in store.</p>
       </div>
 
       <div class="faq">
         <p class="faq-q">Where are your shops?</p>
-        <p class="faq-a">You'll find Melbe Home in <b>Watford</b> (Harlequin Shopping Centre), <b>Bracknell</b> (The Lexicon), and <b>Guildford</b> (White Lion Walk) — with more locations planned for 2026. Pop in and see the full range in person.</p>
+        <p class="faq-a">You'll find Melbe Home in <b>Watford</b> (The Harlequin) and <b>Guildford</b> (White Lion Walk). Pop in and see the full range in person.</p>
       </div>
 
       <div class="faq">
@@ -571,19 +573,19 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 
       <div class="faq">
         <p class="faq-q">When will my order arrive?</p>
-        <p class="faq-a">We ship from our UK warehouse within 1–2 business days. Standard UK delivery takes 2–5 days. <b>Free shipping</b> on orders over £12 (or any 6-bracelet bundle).</p>
+        <p class="faq-a">We ship from our Watford shop within 1–2 business days. Standard UK delivery takes 2–5 days. <b>Free shipping</b> on orders over £12 (or any 6-bracelet bundle).</p>
       </div>
 
       <div class="faq">
         <p class="faq-q">Can I return or exchange?</p>
-        <p class="faq-a">Yes — we offer a <b>30-day hassle-free return</b> on all online orders. Items must be unworn and in original condition. See our <a href="/shipping-returns.html" style="color:var(--gold);text-decoration:none">Shipping &amp; Returns</a> page for full details.</p>
+        <p class="faq-a">Yes — you can cancel your order within <b>14 days</b> of receiving it, then send the item back within 14 days of telling us. <b>Christmas returns:</b> orders placed from 1 December 2026 can be returned until 15 January 2027, or within your standard 14-day period if that ends later. This is in addition to, and does not affect, your statutory right to cancel. Please return items unused and in their original packaging where you can. If an item has been handled more than is needed to check it, we may reduce your refund by the amount it has lost in value. See our <a href="/shipping-returns.html" style="color:var(--gold);text-decoration:none">Shipping &amp; Returns</a> page for full details.</p>
       </div>
 
     </div>
 
     <div class="gtknow-trust">
       <b>Melbe Home UK Ltd</b> · Company No. 15549022 · VAT GB513559785 · Registered in England &amp; Wales<br>
-      Real shops in Watford, Bracknell &amp; Guildford. Real stock. Real people — hello@karmilaven.com, replied within 1 business day.
+      Real shops in Watford &amp; Guildford. Real stock. Real people — hello@karmilaven.com, replied within 1 business day.
     </div>
   </div>
 </section>
@@ -602,7 +604,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <a href="/contact.html">Contact</a>
     <a href="https://www.instagram.com/karmilaven/" target="_blank" rel="noopener">Instagram</a>
   </div>
-  <div class="legal">Karmi Laven is a brand of <b>Melbe Home UK Ltd</b> · Company No. 15549022 · VAT 513559785 · Registered in England &amp; Wales · hello@karmilaven.com · We reply within 1 business day.</div>
+  <div class="legal">Karmi Laven is operated by <b>Melbe Home UK Ltd</b>, registered in England and Wales, company number 15549022. Registered office: 8 Turner Court, High Street, Berkhamsted, HP4 3ZE. · VAT 513559785 · hello@karmilaven.com · We reply within 1 business day.</div>
   <div class="fbot">© 2026 Karmi Laven · <a href="/terms.html">Terms</a> · Free UK shipping over £12 · <a href="/">karmilaven.com</a></div>
 </footer>
 
@@ -649,14 +651,14 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <div class="cart-shipline" id="cartShipLine"><span>Shipping</span><span id="cartShipVal">£1.49</span></div>
     <div class="cart-pre" id="cartPre">In stock · ships in 2–5 days</div>
     <button class="cart-checkout" id="checkoutBtn" onclick="checkout()">Secure Checkout →</button>
-    <div class="cart-trustline">🔒 Secure payment · 30-day returns · A real UK brand — 3 high-street shops</div>
-    <div class="cart-storeproof">Part of <b>Melbe Home</b> · 20,000+ pieces sold in our UK shops last month</div>
+    <div class="cart-trustline">🔒 Secure payment · 14-day returns · A real UK brand — 2 high-street shops</div>
+    <div class="cart-storeproof">Part of <b>Melbe Home</b> · shops in Watford &amp; Guildford</div>
     <div class="cart-wallet">Apple Pay &amp; Google Pay at checkout</div>
   </div>
 </aside>
 
 <div class="stickybar" id="stickybar">
-  <div class="sp" id="stickyInfo">Launch price<br><b>£2.99</b></div>
+  <div class="sp" id="stickyInfo">Each<br><b>£2.99</b></div>
   <button class="sbtn" id="stickyBtn" onclick="openBundle()">Build your bundle</button>
   <button class="sbtn" id="stickyCart" onclick="openCart()" style="display:none;background:var(--accent);color:#fff;max-width:160px">View bag &middot; <span id="stickyN">0</span></button>
 </div>
@@ -778,7 +780,7 @@ function card(d,i){
 }
 function render(list){
   grid.innerHTML=''; list.forEach((d,i)=>grid.appendChild(card(d,i)));
-  countEl.textContent=list.length+' shades · online launch £'+PRICE.toFixed(2);
+  countEl.textContent=list.length+' shades · online price £'+PRICE.toFixed(2);
   requestAnimationFrame(()=>{const cs=[...grid.children];
     cs.forEach((c,i)=>c.style.transitionDelay=(i*40)+'ms');
     const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.06});
@@ -894,7 +896,7 @@ function updateBag(){
   const inf=document.getElementById('stickyInfo');
   if(btn){ btn.style.display=hasItems?'none':''; }
   if(cBtn){ cBtn.style.display=hasItems?'':'none'; }
-  if(inf){ inf.innerHTML=hasItems?q+' bracelet'+(q!==1?'s':'')+' &middot; <b>£'+subtotal().toFixed(2)+'</b>':'Launch price<br><b>£2.99</b>'; }
+  if(inf){ inf.innerHTML=hasItems?q+' bracelet'+(q!==1?'s':'')+' &middot; <b>£'+subtotal().toFixed(2)+'</b>':'Each<br><b>£2.99</b>'; }
 }
 function addToCartSilent(bc){const a=(typeof window.klAvail==='function'?window.klAvail(bc):Infinity); const f=cart.find(c=>c.bc===bc); if(f){ if(f.qty<a) f.qty++; } else if(a>0){ cart.push({bc,qty:1}); }}
 function addToCart(bc){
@@ -1085,6 +1087,8 @@ render(DATA); updateBag(); renderCart(); firePurchaseIfSuccess();
     grid.style.setProperty('--rcols', Math.max(1, Math.min(3, cards.length)));
     grid.innerHTML=cards.join('');
     grid.classList.remove('hide');
+    // Incentive disclosure: only when real customer reviews are on show.
+    var disc=document.getElementById('rdisclose'); if(disc && list.length) disc.classList.remove('hide');
   }
   fetch('/api/reviews-public').then(function(r){ return r.json(); }).then(function(d){
     render((d&&d.reviews)||[]);
