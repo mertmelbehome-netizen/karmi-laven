@@ -426,6 +426,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 .sold-out-badge{position:absolute;top:13px;left:13px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;
   color:#fff;background:rgba(0,0,0,.55);padding:5px 10px;backdrop-filter:blur(4px);pointer-events:none;z-index:2}
 .sw.sold-out{display:none !important}
+.hide{display:none}
 </style>
 <meta name="description" content="Karmi Laven crystal bracelets — 15 gradient shades from £2.99. Hand-strung faceted beads, shipped in 2–5 days. Free UK delivery over £12.">
 <link rel="canonical" href="https://www.karmilaven.com/">
@@ -470,7 +471,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
       <button class="btn" onclick="openBundle()">Build your bundle</button>
       <button class="btn ghost" onclick="document.getElementById('palette').scrollIntoView({behavior:'smooth'})">Shop by colour</button>
     </div>
-    <div class="launch fadein d3"><span>Online launch</span><span class="p">£2.99</span><span class="lbl">In stock</span></div>
+    <div class="launch fadein d3"><span>Online price</span><span class="p">£2.99</span><span class="lbl">In stock</span></div>
     <div class="spectrum fadein d4" id="spectrum"></div>
   </div>
   <div class="hero-img fadein d2">
@@ -518,7 +519,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
   <div class="row">
     <div class="it"><b>15</b> shades</div>
     <div class="it"><b>4mm</b> crystal</div>
-    <div class="it"><b>£2.99</b> launch</div>
+    <div class="it"><b>£2.99</b> each</div>
   </div>
 </section>
 
@@ -657,7 +658,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 </aside>
 
 <div class="stickybar" id="stickybar">
-  <div class="sp" id="stickyInfo">Launch price<br><b>£2.99</b></div>
+  <div class="sp" id="stickyInfo">Each<br><b>£2.99</b></div>
   <button class="sbtn" id="stickyBtn" onclick="openBundle()">Build your bundle</button>
   <button class="sbtn" id="stickyCart" onclick="openCart()" style="display:none;background:var(--accent);color:#fff;max-width:160px">View bag &middot; <span id="stickyN">0</span></button>
 </div>
@@ -779,7 +780,7 @@ function card(d,i){
 }
 function render(list){
   grid.innerHTML=''; list.forEach((d,i)=>grid.appendChild(card(d,i)));
-  countEl.textContent=list.length+' shades · online launch £'+PRICE.toFixed(2);
+  countEl.textContent=list.length+' shades · online price £'+PRICE.toFixed(2);
   requestAnimationFrame(()=>{const cs=[...grid.children];
     cs.forEach((c,i)=>c.style.transitionDelay=(i*40)+'ms');
     const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.06});
@@ -895,7 +896,7 @@ function updateBag(){
   const inf=document.getElementById('stickyInfo');
   if(btn){ btn.style.display=hasItems?'none':''; }
   if(cBtn){ cBtn.style.display=hasItems?'':'none'; }
-  if(inf){ inf.innerHTML=hasItems?q+' bracelet'+(q!==1?'s':'')+' &middot; <b>£'+subtotal().toFixed(2)+'</b>':'Launch price<br><b>£2.99</b>'; }
+  if(inf){ inf.innerHTML=hasItems?q+' bracelet'+(q!==1?'s':'')+' &middot; <b>£'+subtotal().toFixed(2)+'</b>':'Each<br><b>£2.99</b>'; }
 }
 function addToCartSilent(bc){const a=(typeof window.klAvail==='function'?window.klAvail(bc):Infinity); const f=cart.find(c=>c.bc===bc); if(f){ if(f.qty<a) f.qty++; } else if(a>0){ cart.push({bc,qty:1}); }}
 function addToCart(bc){
