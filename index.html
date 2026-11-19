@@ -465,7 +465,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <div class="k fadein d1">The Gradient Edit</div>
     <h1 class="fadein d1">Colour,<br>worn <em>softly</em>.</h1>
     <p class="fadein d2">Fifteen crystal shades, hand-strung on gold with a single charm. Wear one — or let the whole spectrum fall down your wrist.</p>
-    <div class="stars fadein d2"><b>★★★★★</b> <span class="num">Part of Melbe Home · with shops in Watford &amp; Guildford</span></div>
+    <div class="stars fadein d2"><span class="num">Part of Melbe Home · with shops in Watford &amp; Guildford</span></div>
     <div class="cta fadein d3">
       <button class="btn" onclick="openBundle()">Build your bundle</button>
       <button class="btn ghost" onclick="document.getElementById('palette').scrollIntoView({behavior:'smooth'})">Shop by colour</button>
@@ -537,6 +537,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <p class="rsubhead">A few notes from the people who found their shade.</p>
   </div>
   <div class="rgrid hide" id="rgrid"></div>
+  <p class="rdisclose hide" id="rdisclose" style="text-align:center;font-size:12px;color:var(--soft);margin-top:14px">Reviewers are entered into a monthly prize draw.</p>
   <p class="rinvite">
     <a href="/review.html">Wear yours? Share your Karmi Laven moment <span aria-hidden="true">&rarr;</span></a>
   </p>
@@ -571,12 +572,12 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 
       <div class="faq">
         <p class="faq-q">When will my order arrive?</p>
-        <p class="faq-a">We ship from our UK warehouse within 1–2 business days. Standard UK delivery takes 2–5 days. <b>Free shipping</b> on orders over £12 (or any 6-bracelet bundle).</p>
+        <p class="faq-a">We ship from our Watford shop within 1–2 business days. Standard UK delivery takes 2–5 days. <b>Free shipping</b> on orders over £12 (or any 6-bracelet bundle).</p>
       </div>
 
       <div class="faq">
         <p class="faq-q">Can I return or exchange?</p>
-        <p class="faq-a">Yes — you can cancel your order within <b>14 days</b> of receiving it, then send the item back within 14 days of telling us. <b>Christmas returns: orders placed from 1 December 2026 can be returned until 15 January 2027.</b> Items must be unworn and in original condition. See our <a href="/shipping-returns.html" style="color:var(--gold);text-decoration:none">Shipping &amp; Returns</a> page for full details.</p>
+        <p class="faq-a">Yes — you can cancel your order within <b>14 days</b> of receiving it, then send the item back within 14 days of telling us. <b>Christmas returns:</b> orders placed from 1 December 2026 can be returned until 15 January 2027, or within your standard 14-day period if that ends later. This is in addition to, and does not affect, your statutory right to cancel. Please return items unused and in their original packaging where you can. If an item has been handled more than is needed to check it, we may reduce your refund by the amount it has lost in value. See our <a href="/shipping-returns.html" style="color:var(--gold);text-decoration:none">Shipping &amp; Returns</a> page for full details.</p>
       </div>
 
     </div>
@@ -602,7 +603,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <a href="/contact.html">Contact</a>
     <a href="https://www.instagram.com/karmilaven/" target="_blank" rel="noopener">Instagram</a>
   </div>
-  <div class="legal">Karmi Laven is a brand of <b>Melbe Home UK Ltd</b> · Company No. 15549022 · VAT 513559785 · Registered in England &amp; Wales · hello@karmilaven.com · We reply within 1 business day.</div>
+  <div class="legal">Karmi Laven is operated by <b>Melbe Home UK Ltd</b>, registered in England and Wales, company number 15549022. Registered office: 8 Turner Court, High Street, Berkhamsted, HP4 3ZE. · VAT 513559785 · hello@karmilaven.com · We reply within 1 business day.</div>
   <div class="fbot">© 2026 Karmi Laven · <a href="/terms.html">Terms</a> · Free UK shipping over £12 · <a href="/">karmilaven.com</a></div>
 </footer>
 
@@ -1085,6 +1086,8 @@ render(DATA); updateBag(); renderCart(); firePurchaseIfSuccess();
     grid.style.setProperty('--rcols', Math.max(1, Math.min(3, cards.length)));
     grid.innerHTML=cards.join('');
     grid.classList.remove('hide');
+    // Incentive disclosure: only when real customer reviews are on show.
+    var disc=document.getElementById('rdisclose'); if(disc && list.length) disc.classList.remove('hide');
   }
   fetch('/api/reviews-public').then(function(r){ return r.json(); }).then(function(d){
     render((d&&d.reviews)||[]);
