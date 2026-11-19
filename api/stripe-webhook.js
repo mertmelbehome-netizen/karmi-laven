@@ -22,12 +22,26 @@ function rawBody(req) {
   });
 }
 
+// Timeout for best-effort calls made AFTER the order is recorded (owner push,
+// funnel link, Meta CAPI, GA4). A slow or hanging third party must not hold the
+// webhook response open until Stripe times out and re-delivers the event.
+const SIDE_CALL_TIMEOUT_MS = 3000;
+function sideFetch(url, opts) {
+  return fetch(url, { ...opts, signal: AbortSignal.timeout(SIDE_CALL_TIMEOUT_MS) });
+}
+
 const sha = (v) =>
   v ? crypto.createHash('sha256').update(String(v).trim().toLowerCase()).digest('hex') : undefined;
 
 // Record the paid order into ops v2 (online_orders) so it can be fulfilled from
-// the /orders page (stockroom-first WAT decrement). Idempotent on stripe_session_id
-// (UNIQUE + Prefer: resolution=ignore-duplicates), so a Stripe retry is safe.
+// the /orders page (stockroom-first WAT decrement).
+//
+// Idempotency: stripe_session_id is UNIQUE (id is a uuid PK). The insert uses
+// ?on_conflict=stripe_session_id + Prefer: resolution=ignore-duplicates, so a
+// re-delivered event is ignored on that column (without on_conflict, PostgREST
+// only ignores PK conflicts). As an extra guard, a 409 / 23505 unique-violation
+// answer is treated as "already recorded" (success), so a re-delivery of the
+// same event never turns into a permanent 500.
 //
 // Throws on ANY failure (missing config, network error, non-2xx from ops v2).
 // The handler turns that into a 5xx, so Stripe retries the delivery instead of
@@ -99,7 +113,7 @@ async function recordOrder(s) {
   console.log('[stripe-webhook] recordOrder → inserting session', s.id, 'items:', items.length);
   let resp;
   try {
-    resp = await fetch(`${base}/rest/v1/online_orders`, {
+    resp = await fetch(`${base}/rest/v1/online_orders?on_conflict=stripe_session_id`, {
       method: 'POST',
       headers: {
         apikey: key,
@@ -116,33 +130,41 @@ async function recordOrder(s) {
   }
   if (!resp.ok) {
     const insertBody = await resp.text().catch(() => '(unreadable)');
+    if (resp.status === 409 || /23505/.test(insertBody)) {
+      // Unique violation on stripe_session_id: this session is already in
+      // online_orders (Stripe re-delivery). Success, not a retryable failure.
+      console.warn('[stripe-webhook] recordOrder: session already recorded (duplicate delivery)', s.id, resp.status);
+      return { row, duplicate: true };
+    }
     console.error('[stripe-webhook] recordOrder ops insert FAILED', resp.status, insertBody);
     // Throw so the handler answers 5xx and Stripe retries (insert is idempotent).
     throw new Error(`ops v2 insert failed: HTTP ${resp.status}`);
   }
   console.log('[stripe-webhook] recordOrder ops insert OK', resp.status);
+  return { row, duplicate: false };
+}
 
-  // Best-effort push notification to owner + currently-clocked-in WAT staff.
-  // Uses /api/orders/notify which fans out to owner subscriptions AND any WAT
-  // staff whose clock_records row has clock_in set and clock_out null today.
+// Best-effort push notification to owner + currently-clocked-in WAT staff.
+// Uses /api/orders/notify which fans out to owner subscriptions AND any WAT
+// staff whose clock_records row has clock_in set and clock_out null today.
+// Never throws; bounded by SIDE_CALL_TIMEOUT_MS.
+async function notifyOwner(row) {
   const appUrl = process.env.OPS_APP_URL;
-  if (appUrl) {
-    const n = items.reduce((a, i) => a + (i.qty || 0), 0);
-    try {
-      await fetch(`${appUrl}/api/orders/notify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: 'Yeni online sipariş — Karmi Laven',
-          detail: `${n} bileklik${row.customer_name ? ` · ${row.customer_name}` : ''}`,
-          url: '/orders',
-        }),
-      });
-    } catch (e) {
-      console.warn('[stripe-webhook] owner push failed (non-fatal):', e.message);
-    }
+  if (!appUrl) return;
+  const n = (row.items || []).reduce((a, i) => a + (i.qty || 0), 0);
+  try {
+    await sideFetch(`${appUrl}/api/orders/notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: 'Yeni online sipariş — Karmi Laven',
+        detail: `${n} bileklik${row.customer_name ? ` · ${row.customer_name}` : ''}`,
+        url: '/orders',
+      }),
+    });
+  } catch (e) {
+    console.warn('[stripe-webhook] owner push failed (non-fatal):', e.message);
   }
-  return row;
 }
 
 // Reverse a Stripe refund into ops v2: stock return + order status='refunded'/'partial_refund'.
@@ -238,14 +260,15 @@ async function handleRefund(charge) {
 }
 
 // Link the buyer's email ↔ their anonymous browsing session in ops-v2 funnel_events.
-// This is a legit soft opt-in: the customer completed a purchase. Fire-and-forget +
-// fully wrapped — it can NEVER affect order recording or the webhook response.
+// This is a legit soft opt-in: the customer completed a purchase. Best-effort,
+// fully wrapped and bounded by SIDE_CALL_TIMEOUT_MS — it can NEVER affect order
+// recording or the webhook status code.
 async function linkFunnelIdentity(s) {
   try {
     const email = s.customer_details && s.customer_details.email;
     const klSid = s.metadata && s.metadata.kl_sid;
     if (!email) return; // nothing to link without an email
-    await fetch('https://melbehome-ops-v2.vercel.app/api/track', {
+    await sideFetch('https://melbehome-ops-v2.vercel.app/api/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -254,7 +277,7 @@ async function linkFunnelIdentity(s) {
         session_id: klSid || null,
         cart_value: (s.amount_total || 0) / 100,
       }),
-    }).catch(() => {});
+    });
   } catch (e) {
     console.warn('[stripe-webhook] funnel identity link failed (non-fatal):', e.message);
   }
@@ -285,59 +308,75 @@ export default async function handler(req, res) {
     const d = s.customer_details || {};
 
     // Record order → ops v2 (stock decrement happens on manual fulfilment).
-    // On failure answer 5xx so Stripe retries; analytics below are skipped so
+    // On failure answer 5xx so Stripe retries; the calls below are skipped so
     // they fire once, on the successful retry.
+    let recorded;
     try {
-      await recordOrder(s);
+      recorded = await recordOrder(s);
     } catch (e) {
       console.error('[stripe-webhook] checkout.session.completed NOT recorded, returning 500 for retry:', event.id, s.id, e.message);
       return res.status(500).json({ error: 'order recording failed; retry' });
     }
 
-    // Link buyer email ↔ browsing session (funnel identity). Fully wrapped, best-effort.
-    await linkFunnelIdentity(s);
+    // The order is safely recorded: from here on the answer is always 200.
+    // The remaining calls are best-effort, run in parallel, each bounded by
+    // SIDE_CALL_TIMEOUT_MS, and their errors/timeouts are only logged. They are
+    // still awaited (work after the response is not guaranteed on Vercel), so
+    // the extra latency is at most ~3 s.
+    const side = [];
+    // Owner push only for a fresh insert (not on a 409/23505 duplicate re-delivery).
+    if (!recorded.duplicate) side.push(notifyOwner(recorded.row));
+    // Link buyer email ↔ browsing session (funnel identity).
+    side.push(linkFunnelIdentity(s));
 
-    // Meta Conversions API (server-side, accurate ROI)
+    // Meta Conversions API (server-side, accurate ROI). Deduplicated by event_id.
     if (process.env.META_PIXEL_ID && process.env.META_CAPI_TOKEN) {
-      await fetch(
-        `https://graph.facebook.com/v19.0/${process.env.META_PIXEL_ID}/events?access_token=${process.env.META_CAPI_TOKEN}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            data: [
-              {
-                event_name: 'Purchase',
-                event_time: Math.floor(Date.now() / 1000),
-                action_source: 'website',
-                event_source_url: 'https://karmilaven.com/',
-                event_id:
-                  (s.metadata && s.metadata.event_id) || s.client_reference_id || s.id,
-                user_data: {
-                  em: sha(d.email),
-                  ph: sha((d.phone || '').replace(/\D/g, '')),
+      side.push(
+        sideFetch(
+          `https://graph.facebook.com/v19.0/${process.env.META_PIXEL_ID}/events?access_token=${process.env.META_CAPI_TOKEN}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              data: [
+                {
+                  event_name: 'Purchase',
+                  event_time: Math.floor(Date.now() / 1000),
+                  action_source: 'website',
+                  event_source_url: 'https://karmilaven.com/',
+                  event_id:
+                    (s.metadata && s.metadata.event_id) || s.client_reference_id || s.id,
+                  user_data: {
+                    em: sha(d.email),
+                    ph: sha((d.phone || '').replace(/\D/g, '')),
+                  },
+                  custom_data: { value, currency },
                 },
-                custom_data: { value, currency },
-              },
-            ],
-          }),
-        },
-      ).catch((e) => console.warn('[stripe-webhook] Meta CAPI failed (non-fatal):', e.message));
+              ],
+            }),
+          },
+        ).catch((e) => console.warn('[stripe-webhook] Meta CAPI failed (non-fatal):', e.message)),
+      );
     }
 
-    // GA4 Measurement Protocol (server-side)
+    // GA4 Measurement Protocol (server-side). Deduplicated by transaction_id.
     if (process.env.GA4_MEASUREMENT_ID && process.env.GA4_API_SECRET) {
-      await fetch(
-        `https://www.google-analytics.com/mp/collect?measurement_id=${process.env.GA4_MEASUREMENT_ID}&api_secret=${process.env.GA4_API_SECRET}`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            client_id: s.id,
-            events: [{ name: 'purchase', params: { currency, value, transaction_id: s.id } }],
-          }),
-        },
-      ).catch((e) => console.warn('[stripe-webhook] GA4 failed (non-fatal):', e.message));
+      side.push(
+        sideFetch(
+          `https://www.google-analytics.com/mp/collect?measurement_id=${process.env.GA4_MEASUREMENT_ID}&api_secret=${process.env.GA4_API_SECRET}`,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              client_id: s.id,
+              events: [{ name: 'purchase', params: { currency, value, transaction_id: s.id } }],
+            }),
+          },
+        ).catch((e) => console.warn('[stripe-webhook] GA4 failed (non-fatal):', e.message)),
+      );
     }
+
+    await Promise.allSettled(side);
+    return res.status(200).json({ received: true });
   }
 
   // ── charge.refunded → reverse stock + mark order refunded in ops v2 ──────────
