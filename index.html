@@ -975,12 +975,12 @@ async function checkout(){
       body:JSON.stringify({items,event_id:eventId,kl_sid:flSid()})});
     if(r.ok){const j=await r.json(); if(j.url){location.href=j.url;return;}}
   }catch(e){}
-  // Fallback (static hosting only): single-colour payment link
-  toast('Taking you through checkout…');
-  location.href=BY[cart[0].bc].pay;
+  // No fallback payment link (the old per-colour Stripe test links charged the wrong
+  // amount / were missing). Show a clear error and keep the bag intact.
+  toast('Sorry — checkout is unavailable right now. Your bag is saved; please try again in a moment.',6000);
 }
 let toastT;
-function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1800);}
+function toast(msg,ms){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),ms||1800);}
 document.getElementById('ovl').onclick=()=>{closeCart();closeModal();closeBundle();};
 
 render(DATA); updateBag(); renderCart(); firePurchaseIfSuccess();

@@ -10,8 +10,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET);
 //
 // FIX: Read raw bytes via event-based Node.js stream API (req.on('data'/'end')).
 // This bypasses any middleware parsing and delivers the verbatim bytes Stripe signed.
-// Additionally, vercel.json sets "helpers: false" for this route so @vercel/node
-// does not pre-populate req.body and does not interfere with the raw stream.
+// NOTE (2026-11-19): vercel.json does NOT currently set "helpers: false" for this
+// route (an earlier comment claimed it did). Raw-body behaviour in production has
+// not been re-verified here; check a Stripe test-mode delivery before relying on it.
 function rawBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -25,12 +26,17 @@ const sha = (v) =>
   v ? crypto.createHash('sha256').update(String(v).trim().toLowerCase()).digest('hex') : undefined;
 
 // Record the paid order into ops v2 (online_orders) so it can be fulfilled from
-// the /orders page (stockroom-first WAT decrement). Idempotent on stripe_session_id.
+// the /orders page (stockroom-first WAT decrement). Idempotent on stripe_session_id
+// (UNIQUE + Prefer: resolution=ignore-duplicates), so a Stripe retry is safe.
+//
+// Throws on ANY failure (missing config, network error, non-2xx from ops v2).
+// The handler turns that into a 5xx, so Stripe retries the delivery instead of
+// the paid order being silently lost.
 async function recordOrder(s) {
   const base = process.env.OPS_SUPABASE_URL, key = process.env.OPS_SUPABASE_SERVICE_KEY;
   if (!base || !key) {
-    console.warn('[stripe-webhook] recordOrder skipped: OPS_SUPABASE_URL or OPS_SUPABASE_SERVICE_KEY not set');
-    return null;
+    console.error('[stripe-webhook] recordOrder FAILED: OPS_SUPABASE_URL or OPS_SUPABASE_SERVICE_KEY not set (session ' + s.id + ')');
+    throw new Error('ops v2 config missing (OPS_SUPABASE_URL / OPS_SUPABASE_SERVICE_KEY)');
   }
 
   // Pull line items to get the per-barcode breakdown + exact line revenue.
@@ -91,10 +97,9 @@ async function recordOrder(s) {
   };
 
   console.log('[stripe-webhook] recordOrder → inserting session', s.id, 'items:', items.length);
-  let insertStatus = null;
-  let insertBody = null;
+  let resp;
   try {
-    const resp = await fetch(`${base}/rest/v1/online_orders`, {
+    resp = await fetch(`${base}/rest/v1/online_orders`, {
       method: 'POST',
       headers: {
         apikey: key,
@@ -104,19 +109,18 @@ async function recordOrder(s) {
       },
       body: JSON.stringify(row),
     });
-    insertStatus = resp.status;
-    // Read body for logging only on non-2xx
-    if (!resp.ok) {
-      insertBody = await resp.text().catch(() => '(unreadable)');
-      console.error('[stripe-webhook] recordOrder ops insert FAILED', insertStatus, insertBody);
-    } else {
-      console.log('[stripe-webhook] recordOrder ops insert OK', insertStatus);
-    }
   } catch (e) {
     console.error('[stripe-webhook] recordOrder fetch error:', e.message);
-    // Re-throw so Stripe retries the webhook (non-2xx will trigger retry)
+    // Re-throw: the handler answers 5xx and Stripe retries the delivery.
     throw e;
   }
+  if (!resp.ok) {
+    const insertBody = await resp.text().catch(() => '(unreadable)');
+    console.error('[stripe-webhook] recordOrder ops insert FAILED', resp.status, insertBody);
+    // Throw so the handler answers 5xx and Stripe retries (insert is idempotent).
+    throw new Error(`ops v2 insert failed: HTTP ${resp.status}`);
+  }
+  console.log('[stripe-webhook] recordOrder ops insert OK', resp.status);
 
   // Best-effort push notification to owner + currently-clocked-in WAT staff.
   // Uses /api/orders/notify which fans out to owner subscriptions AND any WAT
@@ -143,10 +147,18 @@ async function recordOrder(s) {
 
 // Reverse a Stripe refund into ops v2: stock return + order status='refunded'/'partial_refund'.
 // charge object: https://stripe.com/docs/api/charges/object
+//
+// Throws on config errors, Stripe API errors and non-2xx from ops v2, so the
+// handler answers 5xx and Stripe retries. Safe to retry: fn_online_refund_event
+// is idempotent on charge_id+barcode, and ops answers 200 for an already-refunded
+// order and for order_not_found (so those are NOT retried forever).
 async function handleRefund(charge) {
   const appUrl = process.env.OPS_APP_URL;
   const secret = process.env.WEBHOOK_SECRET;
-  if (!appUrl || !secret) return;
+  if (!appUrl || !secret) {
+    console.error('[stripe-webhook] handleRefund FAILED: OPS_APP_URL or WEBHOOK_SECRET not set (charge ' + charge.id + ')');
+    throw new Error('ops v2 config missing (OPS_APP_URL / WEBHOOK_SECRET)');
+  }
 
   // Resolve the checkout session from the charge's payment_intent.
   // Charges on a checkout session have metadata.stripe_session_id or we look it
@@ -162,9 +174,17 @@ async function handleRefund(charge) {
         const sessions = await stripe.checkout.sessions.list({ payment_intent: charge.payment_intent, limit: 1 });
         sessionId = sessions.data[0] && sessions.data[0].id;
       }
-    } catch(e) { /* non-fatal */ }
+    } catch(e) {
+      // Stripe API error (transient or config) — retry rather than silently skip.
+      console.error('[stripe-webhook] handleRefund session lookup failed:', e.message);
+      throw e;
+    }
   }
-  if (!sessionId) return; // can't tie back to order — skip
+  if (!sessionId) {
+    // Not a Checkout-session charge (e.g. manual/payment-link charge) — nothing to sync.
+    console.warn('[stripe-webhook] handleRefund: no checkout session for charge', charge.id, '— skipped');
+    return;
+  }
 
   // Reconstruct line items from the original session so we know per-barcode qty.
   let lineItems = [];
@@ -190,8 +210,9 @@ async function handleRefund(charge) {
 
   const refundAmount = (charge.amount_refunded || 0) / 100;
 
+  let resp;
   try {
-    await fetch(`${appUrl}/api/orders/refund`, {
+    resp = await fetch(`${appUrl}/api/orders/refund`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -204,7 +225,16 @@ async function handleRefund(charge) {
         refund_amount: refundAmount,
       }),
     });
-  } catch(e) { /* swallow — Stripe will retry the webhook */ }
+  } catch (e) {
+    console.error('[stripe-webhook] handleRefund fetch error:', e.message);
+    throw e; // handler answers 5xx → Stripe retries
+  }
+  if (!resp.ok) {
+    const t = await resp.text().catch(() => '(unreadable)');
+    console.error('[stripe-webhook] handleRefund ops refund FAILED', resp.status, t.slice(0, 500));
+    throw new Error(`ops v2 refund failed: HTTP ${resp.status}`);
+  }
+  console.log('[stripe-webhook] handleRefund ops refund OK', resp.status, 'charge', charge.id);
 }
 
 // Link the buyer's email ↔ their anonymous browsing session in ops-v2 funnel_events.
@@ -254,8 +284,15 @@ export default async function handler(req, res) {
       currency = (s.currency || 'gbp').toUpperCase();
     const d = s.customer_details || {};
 
-    // Record order → ops v2 (stock decrement happens on manual fulfilment)
-    await recordOrder(s);
+    // Record order → ops v2 (stock decrement happens on manual fulfilment).
+    // On failure answer 5xx so Stripe retries; analytics below are skipped so
+    // they fire once, on the successful retry.
+    try {
+      await recordOrder(s);
+    } catch (e) {
+      console.error('[stripe-webhook] checkout.session.completed NOT recorded, returning 500 for retry:', event.id, s.id, e.message);
+      return res.status(500).json({ error: 'order recording failed; retry' });
+    }
 
     // Link buyer email ↔ browsing session (funnel identity). Fully wrapped, best-effort.
     await linkFunnelIdentity(s);
@@ -310,7 +347,12 @@ export default async function handler(req, res) {
   // The ops RPC fn_online_refund_event is idempotent — same charge_id+barcode
   // can be sent multiple times safely.
   if (event.type === 'charge.refunded') {
-    await handleRefund(event.data.object);
+    try {
+      await handleRefund(event.data.object);
+    } catch (e) {
+      console.error('[stripe-webhook] charge.refunded NOT synced to ops v2, returning 500 for retry:', event.id, e.message);
+      return res.status(500).json({ error: 'refund sync failed; retry' });
+    }
   }
 
   res.status(200).json({ received: true });
