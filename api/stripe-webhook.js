@@ -1,7 +1,13 @@
 import Stripe from 'stripe';
 import crypto from 'crypto';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET);
+// Bounded Stripe API calls (listLineItems, refund lookups). A timeout makes the
+// call throw; where that matters the handler answers 5xx and Stripe retries.
+const stripe = new Stripe(process.env.STRIPE_SECRET, { timeout: 8000 });
+
+// Timeout for the ops v2 order insert. A hang becomes an error -> 500 -> Stripe
+// retries the delivery (the insert is idempotent on stripe_session_id).
+const INSERT_TIMEOUT_MS = 8000;
 
 // NOTE: The "export const config = { api: { bodyParser: false } }" convention is
 // Next.js-ONLY and is completely ignored by @vercel/node plain serverless functions.
@@ -37,11 +43,15 @@ const sha = (v) =>
 // the /orders page (stockroom-first WAT decrement).
 //
 // Idempotency: stripe_session_id is UNIQUE (id is a uuid PK). The insert uses
-// ?on_conflict=stripe_session_id + Prefer: resolution=ignore-duplicates, so a
-// re-delivered event is ignored on that column (without on_conflict, PostgREST
-// only ignores PK conflicts). As an extra guard, a 409 / 23505 unique-violation
-// answer is treated as "already recorded" (success), so a re-delivery of the
-// same event never turns into a permanent 500.
+// ?on_conflict=stripe_session_id + Prefer: resolution=ignore-duplicates,
+// return=representation, so a re-delivered event becomes ON CONFLICT DO NOTHING
+// (without on_conflict, PostgREST only ignores PK conflicts). PostgREST then
+// answers 201 with an EMPTY array `[]` for an ignored duplicate and `[ {row} ]`
+// for a fresh insert, which is how we tell them apart (service_role can SELECT
+// online_orders, so the representation is returned). A 2xx body that is not a
+// JSON array is treated as a fresh insert (worst case: one extra owner push).
+// As an extra guard, a 409 / 23505 unique-violation answer is also treated as
+// "already recorded" (success), so a re-delivery never becomes a permanent 500.
 //
 // Throws on ANY failure (missing config, network error, non-2xx from ops v2).
 // The handler turns that into a 5xx, so Stripe retries the delivery instead of
@@ -119,13 +129,15 @@ async function recordOrder(s) {
         apikey: key,
         Authorization: `Bearer ${key}`,
         'Content-Type': 'application/json',
-        Prefer: 'resolution=ignore-duplicates,return=minimal',
+        Prefer: 'resolution=ignore-duplicates,return=representation',
       },
       body: JSON.stringify(row),
+      signal: AbortSignal.timeout(INSERT_TIMEOUT_MS),
     });
   } catch (e) {
     console.error('[stripe-webhook] recordOrder fetch error:', e.message);
-    // Re-throw: the handler answers 5xx and Stripe retries the delivery.
+    // Network error or INSERT_TIMEOUT_MS abort. Re-throw: the handler answers
+    // 5xx and Stripe retries the delivery.
     throw e;
   }
   if (!resp.ok) {
@@ -139,6 +151,14 @@ async function recordOrder(s) {
     console.error('[stripe-webhook] recordOrder ops insert FAILED', resp.status, insertBody);
     // Throw so the handler answers 5xx and Stripe retries (insert is idempotent).
     throw new Error(`ops v2 insert failed: HTTP ${resp.status}`);
+  }
+  // 2xx: an empty array means ON CONFLICT DO NOTHING ignored a re-delivery.
+  const okBody = await resp.text().catch(() => '');
+  let inserted = null;
+  try { inserted = JSON.parse(okBody); } catch (_) { /* not JSON -> treat as fresh */ }
+  if (Array.isArray(inserted) && inserted.length === 0) {
+    console.warn('[stripe-webhook] recordOrder: session already recorded (ignored duplicate, 2xx + [])', s.id, resp.status);
+    return { row, duplicate: true };
   }
   console.log('[stripe-webhook] recordOrder ops insert OK', resp.status);
   return { row, duplicate: false };
@@ -324,10 +344,13 @@ export default async function handler(req, res) {
     // still awaited (work after the response is not guaranteed on Vercel), so
     // the extra latency is at most ~3 s.
     const side = [];
-    // Owner push only for a fresh insert (not on a 409/23505 duplicate re-delivery).
-    if (!recorded.duplicate) side.push(notifyOwner(recorded.row));
-    // Link buyer email ↔ browsing session (funnel identity).
-    side.push(linkFunnelIdentity(s));
+    // Owner push and funnel purchase only for a fresh insert, not for a duplicate
+    // re-delivery (2xx + [] ignored row, or 409/23505).
+    if (!recorded.duplicate) {
+      side.push(notifyOwner(recorded.row));
+      // Link buyer email ↔ browsing session (funnel identity).
+      side.push(linkFunnelIdentity(s));
+    }
 
     // Meta Conversions API (server-side, accurate ROI). Deduplicated by event_id.
     if (process.env.META_PIXEL_ID && process.env.META_CAPI_TOKEN) {
