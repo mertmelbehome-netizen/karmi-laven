@@ -190,16 +190,21 @@ async function notifyOwner(row) {
 // Reverse a Stripe refund into ops v2: stock return + order status='refunded'/'partial_refund'.
 // charge object: https://stripe.com/docs/api/charges/object
 //
-// Throws on config errors, Stripe API errors and non-2xx from ops v2, so the
-// handler answers 5xx and Stripe retries. Safe to retry: fn_online_refund_event
+// Throws on Stripe API errors and non-2xx from ops v2, so the handler answers 5xx and
+// Stripe retries. Missing OPS_APP_URL / WEBHOOK_SECRET only logs (see below). Safe to retry: fn_online_refund_event
 // is idempotent on charge_id+barcode, and ops answers 200 for an already-refunded
 // order and for order_not_found (so those are NOT retried forever).
 async function handleRefund(charge) {
   const appUrl = process.env.OPS_APP_URL;
   const secret = process.env.WEBHOOK_SECRET;
   if (!appUrl || !secret) {
-    console.error('[stripe-webhook] handleRefund FAILED: OPS_APP_URL or WEBHOOK_SECRET not set (charge ' + charge.id + ')');
-    throw new Error('ops v2 config missing (OPS_APP_URL / WEBHOOK_SECRET)');
+    // WEBHOOK_SECRET is the Bearer secret shared with ops v2 (ops-v2 /api/orders/refund checks
+    // `Authorization: Bearer ${WEBHOOK_SECRET}`); it is NOT Stripe's signing secret. A missing
+    // config will not fix itself on retry, and answering 5xx for days could get this endpoint
+    // disabled by Stripe (which would also stop order delivery). So: log loudly, do not retry.
+    // The refund must then be reconciled by the daily Stripe <-> online_orders check.
+    console.error('[stripe-webhook] REFUND NOT SYNCED: OPS_APP_URL or WEBHOOK_SECRET not set (charge ' + charge.id + ')');
+    return;
   }
 
   // Resolve the checkout session from the charge's payment_intent.
@@ -288,7 +293,9 @@ async function linkFunnelIdentity(s) {
     const email = s.customer_details && s.customer_details.email;
     const klSid = s.metadata && s.metadata.kl_sid;
     if (!email) return; // nothing to link without an email
-    await sideFetch('https://melbehome-ops-v2.vercel.app/api/track', {
+    const opsApp = process.env.OPS_APP_URL;
+    if (!opsApp) { console.warn('[stripe-webhook] funnel link skipped: OPS_APP_URL not set'); return; }
+    await sideFetch(`${opsApp}/api/track`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
