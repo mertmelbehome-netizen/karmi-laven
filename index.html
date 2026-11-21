@@ -723,8 +723,12 @@ function klId(email){ try{ if(ANALYTICS.klaviyo && email){ (window.klaviyo=windo
 // First-party funnel beacon → ops-v2 (owner-visible add-to-cart / begin-checkout funnel).
 // Fire-and-forget; fully try/catch-wrapped so it can NEVER break the page. Purely additive —
 // separate from the Meta Pixel / GA track() above. Persists a random session_id in localStorage.
-function flSid(){ try{ let s=localStorage.getItem('kl_sid'); if(!s){ s='kl-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10); localStorage.setItem('kl_sid',s); } return s; }catch(e){ return null; } }
+// PECR (21 Nov 2026): ONLY after the visitor clicked Accept. Without consent nothing is written
+// to localStorage and nothing is sent (flSid -> null, flTrack -> no-op). Checkout is unaffected.
+function klConsent(){ try{ var c=localStorage.getItem('kl_cookie_consent'); return c==='accepted'||c==='rejected'?c:'none'; }catch(e){ return 'none'; } }
+function flSid(){ if(klConsent()!=='accepted') return null; try{ let s=localStorage.getItem('kl_sid'); if(!s){ s='kl-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10); localStorage.setItem('kl_sid',s); } return s; }catch(e){ return null; } }
 function flTrack(eventType, payload){
+  if(klConsent()!=='accepted') return;
   try{
     var body=JSON.stringify(Object.assign({session_id:flSid(),event_type:eventType}, payload||{}));
     var url='https://melbehome-ops-v2.vercel.app/api/track';
@@ -979,7 +983,7 @@ async function checkout(){
   kl('Started Checkout',{$value:val,ItemNames:cart.map(c=>BY[c.bc].color_en),items:cart.map(c=>({ProductID:c.bc,SKU:c.bc,ProductName:BY[c.bc].color_en,Quantity:c.qty,ItemPrice:PRICE})),CheckoutURL:'https://karmilaven.com/'});
   try{
     const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({items,event_id:eventId,kl_sid:flSid()})});
+      body:JSON.stringify({items,event_id:eventId,kl_sid:flSid(),consent:klConsent()})});
     if(r.ok){const j=await r.json(); if(j.url){location.href=j.url;return;}}
   }catch(e){}
   // No fallback payment link (21 Nov 2026): the old per-colour buy.stripe.com/test_ links are TEST mode,
@@ -1031,7 +1035,8 @@ render(DATA); updateBag(); renderCart(); firePurchaseIfSuccess();
     btn.disabled=true;
     // Link this consented email to the visitor's browsing session (funnel identity).
     // Fire-and-forget; flTrack is fully try/catch-wrapped and can never break the popup.
-    try{ if(typeof flTrack==='function'){ flTrack('email_capture',{email:email}); } }catch(e){}
+    // No e-mail in the beacon (21 Nov 2026): the address goes only through the subscribe form's own server call.
+    try{ if(typeof flTrack==='function'){ flTrack('email_capture'); } }catch(e){}
     fetch('/api/subscribe',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -1142,6 +1147,7 @@ function cookieChoice(accepted){
   if(b){ b.classList.remove('visible'); setTimeout(function(){ b.style.display='none'; },450); }
   localStorage.setItem('kl_cookie_consent', accepted ? 'accepted' : 'rejected');
   if(accepted) initConsentedAnalytics();
+  else { try{ localStorage.removeItem('kl_sid'); }catch(e){} }
 }
 </script>
 
