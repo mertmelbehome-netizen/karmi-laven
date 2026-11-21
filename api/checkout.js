@@ -14,11 +14,14 @@ const clampN = n => Math.max(1, Math.min(99, parseInt(n) || 1));
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
   try {
-    const { items, event_id, kl_sid } = req.body || {};
+    const { items, event_id, kl_sid, consent } = req.body || {};
+    // Cookie consent at checkout time (PECR, 21 Nov 2026). The webhook sends Meta CAPI and the funnel
+    // identity link ONLY when this is 'accepted'. Anything else (missing, tampered) = 'none'.
+    const consentState = consent === 'accepted' || consent === 'rejected' ? consent : 'none';
     // Funnel session id (from the storefront's localStorage kl_sid). Carried into the
     // Stripe session metadata so the webhook can link the buyer's email ↔ browsing
     // session. Purely additive — never affects pricing, shipping, or the cart.
-    const klSid = kl_sid != null ? String(kl_sid).trim().slice(0, 120) : '';
+    const klSid = consentState === 'accepted' && kl_sid != null ? String(kl_sid).trim().slice(0, 120) : '';
     if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: 'empty cart' });
 
     // Expand cart to one entry per bracelet, preserving barcode for ops-v2 mapping.
@@ -94,7 +97,7 @@ export default async function handler(req, res) {
       phone_number_collection: { enabled: true },
       allow_promotion_codes: true,
       client_reference_id: event_id || undefined,
-      metadata: { event_id: event_id || '', qty: String(totalQty), items: itemsCsv, items_named: itemsNamed, kl_sid: klSid },
+      metadata: { event_id: event_id || '', qty: String(totalQty), items: itemsCsv, items_named: itemsNamed, kl_sid: klSid, consent: consentState },
       success_url: `${origin}/?checkout=success`,
       cancel_url: `${origin}/?checkout=cancel`,
     });

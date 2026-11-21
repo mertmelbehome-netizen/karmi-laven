@@ -207,10 +207,17 @@ async function handleRefund(charge) {
   } catch(e) { /* swallow — Stripe will retry the webhook */ }
 }
 
+// Cookie consent the buyer gave on the storefront, carried in the Stripe session metadata by
+// api/checkout.js (21 Nov 2026). Sessions created before that have no field = no consent.
+function hasConsent(s) {
+  return !!(s && s.metadata && s.metadata.consent === 'accepted');
+}
+
 // Link the buyer's email ↔ their anonymous browsing session in ops-v2 funnel_events.
 // This is a legit soft opt-in: the customer completed a purchase. Fire-and-forget +
 // fully wrapped — it can NEVER affect order recording or the webhook response.
 async function linkFunnelIdentity(s) {
+  if (!hasConsent(s)) return; // PECR: no browsing<->buyer link without cookie consent
   try {
     const email = s.customer_details && s.customer_details.email;
     const klSid = s.metadata && s.metadata.kl_sid;
@@ -261,7 +268,8 @@ export default async function handler(req, res) {
     await linkFunnelIdentity(s);
 
     // Meta Conversions API (server-side, accurate ROI)
-    if (process.env.META_PIXEL_ID && process.env.META_CAPI_TOKEN) {
+    // Meta CAPI only with cookie consent (PECR, 21 Nov 2026): no hashed e-mail/phone to Meta otherwise.
+    if (hasConsent(s) && process.env.META_PIXEL_ID && process.env.META_CAPI_TOKEN) {
       await fetch(
         `https://graph.facebook.com/v19.0/${process.env.META_PIXEL_ID}/events?access_token=${process.env.META_CAPI_TOKEN}`,
         {
