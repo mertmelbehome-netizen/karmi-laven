@@ -451,7 +451,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <button class="cb-btn accept" onclick="cookieChoice(true)">Accept</button>
   </div>
 </div>
-<div class="announce">Now in stock · ships in 2–5 business days · free UK shipping over £12</div>
+<div class="announce">Ships in 2–5 business days · free UK shipping over £12</div>
 
 <nav>
   <div class="logo">Karmi Laven</div>
@@ -469,7 +469,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
       <button class="btn" onclick="openBundle()">Build your bundle</button>
       <button class="btn ghost" onclick="document.getElementById('palette').scrollIntoView({behavior:'smooth'})">Shop by colour</button>
     </div>
-    <div class="launch fadein d3"><span>Online price</span><span class="p">£2.99</span><span class="lbl">In stock</span></div>
+    <div class="launch fadein d3"><span>Online price</span><span class="p">£2.99</span><span class="lbl">Ships in 2–5 business days</span></div>
     <div class="spectrum fadein d4" id="spectrum"></div>
   </div>
   <div class="hero-img fadein d2">
@@ -523,7 +523,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 
 <section class="faq wrap">
   <h3>Good to <em>know</em></h3>
-  <details class="faqitem"><summary>When will my order arrive?</summary><p>In stock and ready now — orders ship within 1–2 business days and arrive in 2–5 business days via Royal Mail. You're charged securely at checkout.</p></details>
+  <details class="faqitem"><summary>When will my order arrive?</summary><p>Orders ship within 1–2 business days and arrive in 2–5 business days via Royal Mail. You're charged securely at checkout.</p></details>
   <details class="faqitem"><summary>What size are they?</summary><p>Each bracelet is hand-strung on a fine gold-tone chain that fastens with a clasp and a loop extender chain, comfortable from roughly 14–19cm.</p></details>
   <details class="faqitem"><summary>What are they made of?</summary><p>4mm faceted crystal beads hand-strung on a gold-tone chain with a single delicate charm.</p></details>
   <details class="faqitem"><summary>Shipping &amp; delivery?</summary><p>UK shipping £1.49, free over £12 (and free with the 5-bracelet stack). Delivery 2–5 business days after dispatch.</p></details>
@@ -646,7 +646,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
     <div class="cart-ship" id="cartShip">Add £12.00 more for free UK shipping</div>
     <div class="cart-sub"><span>Subtotal</span><span id="cartSub">£0.00</span></div>
     <div class="cart-shipline" id="cartShipLine"><span>Shipping</span><span id="cartShipVal">£1.49</span></div>
-    <div class="cart-pre" id="cartPre">In stock · ships in 2–5 days</div>
+    <div class="cart-pre" id="cartPre">Ships in 2–5 business days</div>
     <button class="cart-checkout" id="checkoutBtn" onclick="checkout()">Secure Checkout →</button>
     <div class="cart-trustline">🔒 Secure payment · 14-day returns · A real UK brand — 2 high-street shops</div>
     <div class="cart-storeproof">Part of <b>Melbe Home</b> · shops in Watford &amp; Guildford</div>
@@ -770,7 +770,7 @@ function stockTxt(d){
   const t=d.total||0; if(!t) return '';
   if(t<=6) return 'Only '+t+' left';
   const st=Object.keys(d.stock||{}).map(s=>STORENAMES[s]||s);
-  return 'In stock'+(st.length?' · '+st[0]:'');
+  return 'Ships in 2–5 business days'+(st.length?' · '+st[0]:'');
 }
 function card(d,i){
   const isNew=d.added==='2026-06-12';
@@ -782,7 +782,7 @@ function card(d,i){
       <div class="nm">${d.color_en}</div>
       <div class="sub"><span class="d" style="background:${d.swatch}"></span>Beaded bracelet</div>
       <div class="pr">£${PRICE.toFixed(2)}</div>
-      <div class="ship24">In stock · ships in 2–5 days</div>
+      <div class="ship24">Ships in 2–5 business days</div>
       <button class="add" onclick="addToCart('${d.barcode}')">Add to bag — £${PRICE.toFixed(2)}</button>
     </div>`;
   return el;
@@ -804,7 +804,7 @@ function openModal(bc){
   document.getElementById('mName').textContent=d.color_en;
   document.getElementById('mDot').style.background=d.swatch;
   document.getElementById('mPrice').innerHTML=`<span class="p">£${PRICE.toFixed(2)}</span>`;
-  document.getElementById('mStock').textContent='In stock · ships in 2–5 business days';
+  document.getElementById('mStock').textContent='Ships in 2–5 business days';
   document.getElementById('mAdd').onclick=()=>{addToCart(bc);closeModal();};
   document.getElementById('modal').classList.add('open');
   document.getElementById('ovl').classList.add('open');
@@ -951,7 +951,7 @@ function renderCart(){
       + ` <button class="nudge-add" type="button" onclick="nudgeAddOne()">＋ Add</button>`;
     document.getElementById('shipFill').style.width = Math.min(100, q/goal*100)+'%';
   }
-  document.getElementById('cartPre').textContent = `${q} bracelet${q!==1?'s':''}${saved>=0.01?` · multi-buy saves £${saved.toFixed(2)}`:''} · in stock, ships in 2–5 days`;
+  document.getElementById('cartPre').textContent = `${q} bracelet${q!==1?'s':''}${saved>=0.01?` · multi-buy saves £${saved.toFixed(2)}`:''} · ships in 2–5 business days`;
   document.getElementById('checkoutBtn').disabled=!cart.length;
 }
 function nudgeAddOne(){
