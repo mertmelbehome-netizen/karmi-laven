@@ -105,7 +105,7 @@ textarea{resize:vertical; min-height:110px; line-height:1.5}
       <label for="name">Your name <span style="text-transform:none;letter-spacing:0">(optional — shown with your review)</span></label>
       <input id="name" maxlength="80" placeholder="First name or initials">
 
-      <label for="photo">Add a photo <span style="text-transform:none;letter-spacing:0">📷 — for 5× draw entries</span></label>
+      <label for="photo">Add a photo <span style="text-transform:none;letter-spacing:0">📷 (optional)</span></label>
       <label class="photobtn" id="photolabel" for="photo">Choose a photo</label>
       <input id="photo" type="file" accept="image/*" class="photoinput">
       <div class="photoprev hide" id="photoprev">
@@ -116,7 +116,7 @@ textarea{resize:vertical; min-height:110px; line-height:1.5}
       <!-- honeypot -->
       <div class="hp" aria-hidden="true"><label>Leave blank</label><input id="hp" tabindex="-1" autocomplete="off"></div>
 
-      <p class="disclosure">Every honest review — good or bad — enters this month's £25 Karmi Laven bundle draw. Add a photo for 5× entries. Your rating never affects your chances.</p>
+      <p class="disclosure">Every honest review is welcome, good or bad. We never edit your words or your rating.</p>
 
       <button class="btn" id="submit" type="submit">Submit review</button>
       <div class="err" id="err"></div>
@@ -158,7 +158,7 @@ textarea{resize:vertical; min-height:110px; line-height:1.5}
   var pre = parseInt(qs.get('rating'), 10);
   if(pre >= 1 && pre <= 5){ rating = pre; paint(rating); }
 
-  // Optional photo (for 5× draw entries). Kept fully optional + non-blocking.
+  // Optional photo. Kept fully optional + non-blocking.
   var MAX_PHOTO = 5 * 1024 * 1024; // ~5MB
   var photoInput = document.getElementById('photo');
   var photoLabel = document.getElementById('photolabel');
