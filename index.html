@@ -985,6 +985,13 @@ async function checkout(){
     const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({items,event_id:eventId,kl_sid:flSid(),consent:klConsent()})});
     if(r.ok){const j=await r.json(); if(j.url){location.href=j.url;return;}}
+    if(r.status===409){ // server stock check: trim each short shade to what can ship, keep the rest of the bag
+      const j=await r.json().catch(()=>({})); const short=Array.isArray(j.items)?j.items:[];
+      short.forEach(s=>{ const c=cart.find(x=>String(x.bc)===String(s.bc)); if(c) c.qty=Math.max(0,Number(s.available)||0); });
+      cart=cart.filter(c=>c.qty>0); save(); updateBag(); renderCart();
+      toast(cart.length?'Some shades just sold out — your bag was updated. Please check it and try again.':'Sorry — those shades just sold out.',6000);
+      return;
+    }
   }catch(e){}
   // No fallback payment link (21 Nov 2026): the old per-colour buy.stripe.com/test_ links are TEST mode,
   // so a real card is refused there and the sale is lost. Show a clear error and keep the bag.

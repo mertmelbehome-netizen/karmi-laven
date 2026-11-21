@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { fetchAvailable, shortages } from './_stock-lib.js';
 const stripe = new Stripe(process.env.STRIPE_SECRET);
 const UNIT = 299; // £2.99 launch unit price (pence) — never raised; value rises via quantity
 const FREE_SHIP_P = 1200; // free UK shipping at £12 subtotal (or 5+ bracelets)
@@ -42,6 +43,22 @@ export default async function handler(req, res) {
     });
     if (!units.length) return res.status(400).json({ error: 'empty cart' });
     if (units.length > 99) units.length = 99; // hard cap
+
+    // Server-side stock check (21 Nov 2026): the storefront caps the bag with /api/stock, but a stale page, two tabs or
+    // a crafted request could still order more than the WAT stockroom can ship. Same maths as /api/stock
+    // (stockroom − buffer − paid holds). A shortage -> 409 with the available qty per barcode; the page trims the bag.
+    // Fail OPEN when the stock data cannot be read (env / DB error), like /api/stock: a short outage must not stop sales.
+    const cartQty = {};
+    units.forEach(u => { if (u.bc) cartQty[u.bc] = (cartQty[u.bc] || 0) + 1; });
+    if (Object.keys(cartQty).length) {
+      const av = await fetchAvailable(Object.keys(cartQty), { base: process.env.OPS_SUPABASE_URL, key: process.env.OPS_SUPABASE_SERVICE_KEY });
+      if (av.ok) {
+        const short = shortages(cartQty, av.stock);
+        if (short.length) return res.status(409).json({ error: 'out_of_stock', items: short });
+      } else {
+        console.warn('checkout stock check skipped (fail open):', av.error);
+      }
+    }
 
     const totalQty = units.length;
     const amount = Math.max(UNIT, bestPriceP(totalQty)); // total charge in pence (multi-buy ladder)

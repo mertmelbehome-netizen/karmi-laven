@@ -19,13 +19,9 @@
 //
 // Response: { ok:true, store:'WAT', stock:{ "<barcode>": <available_int>, ... }, ts:<iso> }
 
-const STORE = 'WAT';
-
-// Safety buffer subtracted from WAT stockroom per SKU before exposing online:
-// the last 1–2 units per barcode often can't physically be located when picking
-// ("gözükmesine rağmen stockroomdan çıkmıyor"), so both the sellable qty AND the
-// catalogue in-stock flag are driven by (stockroom − buffer − holds).
-const ONLINE_STOCKROOM_BUFFER = 3;
+// STORE, the safety buffer (ONLINE_STOCKROOM_BUFFER) and the maths live in ./_stock-lib.js, shared with /api/checkout
+// (server-side stock check, 21 Nov 2026), so the storefront and checkout never disagree.
+import { STORE, computeAvailable } from './_stock-lib.js';
 
 export default async function handler(req, res) {
   // short edge/browser cache — stock changes are not second-critical, and this
@@ -107,29 +103,11 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3) holds — sum qty on paid (un-fulfilled) online orders for this store, per barcode
-    const holds = {};
+    // 3) holds (paid, not yet fulfilled online orders) + 4) available = stockroom − buffer − holds, floored at 0
+    let orders = [];
     const ooRes = await q(`online_orders?status=eq.paid&store_id=eq.${STORE}&select=items&limit=5000`);
-    if (ooRes.ok) {
-      for (const o of await ooRes.json()) {
-        const items = Array.isArray(o.items) ? o.items : [];
-        for (const it of items) {
-          const bc = it && it.bc != null ? String(it.bc).trim() : '';
-          const qty = it && Number(it.qty) > 0 ? Number(it.qty) : 0;
-          if (bc) holds[bc] = (holds[bc] || 0) + qty;
-        }
-      }
-    } // holds failure is non-fatal — better to slightly over-show than hide everything
-
-    // 4) available = WAT stockroom_count − safety buffer − holds, floored at 0
-    const stock = {};
-    const keys = want.length ? want : Object.keys(bcToPid);
-    for (const bc of keys) {
-      const pid = bcToPid[bc];
-      const onHand = pid != null ? (slMap[pid] || 0) : 0;
-      const held = holds[bc] || 0;
-      stock[bc] = Math.max(0, onHand - ONLINE_STOCKROOM_BUFFER - held);
-    }
+    if (ooRes.ok) orders = await ooRes.json(); // holds failure is non-fatal — better to slightly over-show than hide everything
+    const stock = computeAvailable(want.length ? want : Object.keys(bcToPid), bcToPid, slMap, orders);
 
     return res.status(200).json({ ok: true, store: STORE, stock, ts: new Date().toISOString() });
   } catch (e) {
