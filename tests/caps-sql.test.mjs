@@ -10,6 +10,8 @@ const MIG = readFileSync(new URL('../db/20261122230000_karmi_online_caps.sql', i
 const ROLLBACK = readFileSync(new URL('../db/20261122230000_karmi_online_caps_ROLLBACK.sql', import.meta.url), 'utf8')
 const MIG2 = readFileSync(new URL('../db/20261123090000_karmi_online_caps_f1_f3.sql', import.meta.url), 'utf8')
 const ROLLBACK2 = readFileSync(new URL('../db/20261123090000_karmi_online_caps_f1_f3_ROLLBACK.sql', import.meta.url), 'utf8')
+const MIG3 = readFileSync(new URL('../db/20261123120000_karmi_online_caps_n_items.sql', import.meta.url), 'utf8')
+const ROLLBACK3 = readFileSync(new URL('../db/20261123120000_karmi_online_caps_n_items_ROLLBACK.sql', import.meta.url), 'utf8')
 
 const STUB = `
 create role anon; create role authenticated; create role service_role;
@@ -28,6 +30,7 @@ async function fresh() {
   await db.exec(STUB)
   await db.exec(MIG)
   await db.exec(MIG2)
+  await db.exec(MIG3)
   // Test-owned config: drop the seeded dates so the tests do not depend on today's date.
   await db.exec(`delete from karmi_online_window;
     update karmi_online_caps set period_start = now() - interval '1 day', period_end = null;`)
@@ -322,7 +325,7 @@ test('security: RLS on, browser roles have no table rights and cannot execute; s
   assert.deepEqual(rows.map((r) => [r.relname, r.relrowsecurity]), [
     ['karmi_online_caps', true], ['karmi_online_holds', true], ['karmi_online_products', true], ['karmi_online_window', true]])
   const { rows: defs } = await db.query(`select proname, prosecdef, array_to_string(proconfig, ',') cfg from pg_proc where proname like 'fn_karmi%'`)
-  assert.equal(defs.length, 17)
+  assert.equal(defs.length, 18)
   for (const d of defs) { assert.equal(d.prosecdef, true, d.proname); assert.match(d.cfg, /search_path=public, pg_temp/, d.proname) }
   for (const role of ['anon', 'authenticated']) {
     await db.exec(`set role ${role}`)
@@ -423,8 +426,8 @@ test('F1 overshoot alarm: sold + held over the product cap and the family cap is
     ('karmilaven', 'paid', 'WAT', '[{"bc":"O1","qty":2},{"bc":"O2","qty":1}]', 'cs_two')`)
   const { rows: [{ r }] } = await db.query(`select fn_karmi_cap_overshoot('cs_two') r`)
   assert.deepEqual(r.over, [
-    { kind: 'family', family: 'stretch_charm', cap: 4, sold: 5, held: 0 },
-    { kind: 'product', family: 'stretch_charm', product_id: a, cap: 2, sold: 4, held: 0 },
+    { kind: 'family', family: 'stretch_charm', name: 'Stretch Charm Bracelet', cap: 4, sold: 5, held: 0 },
+    { kind: 'product', family: 'stretch_charm', product_id: a, name: 'Stretch Charm Bracelet', bc: 'O1', cap: 2, sold: 4, held: 0 },
   ])
   // product b is within its own cap → not listed; unknown session → nothing
   assert.deepEqual((await db.query(`select fn_karmi_cap_overshoot('cs_none') r`)).rows[0].r, { over: [] })
@@ -486,4 +489,171 @@ test('F1/F3 migration: apply twice (idempotent), rollback → PR #34 functions, 
   // the PR #34 rollback alone also removes the F1/F3 functions
   await db.exec(MIG); await db.exec(MIG2); await db.exec(ROLLBACK)
   assert.equal((await db.query(`select count(*)::int n from pg_proc where proname like 'fn_karmi%'`)).rows[0].n, 0)
+})
+
+// ───────────────────────────── N1–N6 (K&D review of #35, 23 Nov) ─────────────────────────────
+
+const toCheck = async (db, n = 10) => (await db.query(`select fn_karmi_holds_to_check($1) sid`, [n])).rows.map((r) => r.sid)
+
+test('N1: holds_to_check hands out the least-recently-checked sessions first, so unanswerable ones cannot block newer ones', async () => {
+  const db = await fresh()
+  const a = await product(db, { barcodes: ['N1a'] })
+  await configure(db, a, { cap: 50 })
+  await open(db)
+  const sids = []
+  for (let i = 0; i < 12; i++) {
+    const r = await reserve(db, [{ bc: 'N1a', qty: 1 }])
+    const sid = 'cs_n1_' + String(i).padStart(2, '0')
+    await db.query(`select fn_karmi_checkout_attach($1::uuid, $2)`, [r.ref, sid])
+    await db.query(`update karmi_online_holds set expires_at = now() - interval '1 minute',
+      created_at = now() - make_interval(mins => 60 - $2::int) where ref = $1`, [r.ref, i])
+    sids.push(sid)
+  }
+  const first = await toCheck(db)
+  assert.deepEqual(first, sids.slice(0, 10), 'never-checked, oldest first')
+  // Stripe could not answer any of them (nothing resolved): the next call starts with the 2 never asked about
+  const second = await toCheck(db)
+  assert.deepEqual(second.slice(0, 2), sids.slice(10))
+  assert.equal(second.length, 10)
+  const third = await toCheck(db)
+  assert.ok(sids.every((s) => [...second, ...third].includes(s)), 'every session gets its turn')
+  const { rows: [{ n }] } = await db.query(`select count(*)::int n from karmi_online_holds where last_checked_at is null`)
+  assert.equal(n, 0)
+})
+
+test('N1: an attached short Gradient-only hold whose Stripe session is gone (404 → expired) is freed', async () => {
+  const db = await fresh()
+  // e.g. a smoke-test session: Gradient-only, short (Christmas window near), attached, unpaid, past its time
+  await db.exec(`insert into karmi_online_holds (ref, product_id, family, qty, expires_at, stripe_session_id, short_session)
+    values (gen_random_uuid(), null, 'gradient', 2, now() - interval '1 minute', 'cs_smoke', true)`)
+  assert.equal((await db.query(`select count(*)::int n from fn_karmi__open_holds()`)).rows[0].n, 1, 'counts until resolved')
+  assert.deepEqual(await toCheck(db), ['cs_smoke'])
+  assert.equal((await db.query(`select fn_karmi_checkout_resolve('cs_smoke', 'expired') n`)).rows[0].n, 1)
+  assert.equal((await db.query(`select count(*)::int n from fn_karmi__open_holds()`)).rows[0].n, 0)
+  assert.deepEqual(await toCheck(db), [])
+})
+
+test('N3: a paid hold with no order row after 2 h is reported once a day with product name + barcode, and keeps counting', async () => {
+  const db = await fresh()
+  const a = await product(db, { barcodes: ['N3a', 'N3b'] })
+  await configure(db, a, { cap: 5, name: 'Stretch Charm — Rose' })
+  await open(db)
+  const r = await reserve(db, [{ bc: 'N3a', qty: 2 }], 1)
+  await db.query(`select fn_karmi_checkout_complete($1::uuid, 'cs_unrec')`, [r.ref])
+  const unrec = async () => (await db.query(`select fn_karmi_paid_unrecorded('2 hours', 10) r`)).rows[0].r.items
+  assert.deepEqual(await unrec(), [], 'just paid: the webhook is still writing the order')
+  await db.query(`update karmi_online_holds set completed_at = now() - interval '3 hours', expires_at = now() - interval '3 hours' where ref = $1`, [r.ref])
+  const items = await unrec()
+  assert.equal(items.length, 1)
+  assert.equal(items[0].session, 'cs_unrec')
+  assert.equal(items[0].units, 3)
+  assert.deepEqual(items[0].lines, [
+    { name: 'Gradient Edit', family: 'gradient', qty: 1 },
+    { name: 'Stretch Charm — Rose', bc: 'N3a', family: 'stretch_charm', qty: 2 },
+  ])
+  assert.deepEqual(await unrec(), [], 'not again within 24 h')
+  assert.equal((await status(db, ['N3a'])).items['N3a'].sellable, 3, 'still counted: 5 − 2')
+  assert.equal((await db.query(`select count(*)::int n from karmi_online_holds where released_at is not null`)).rows[0].n, 0, 'nothing released')
+  await db.exec(`update karmi_online_holds set unrecorded_alarm_at = now() - interval '25 hours'`)
+  assert.equal((await unrec()).length, 1, 'reminded after 24 h')
+  // once the order row exists it is no longer reported
+  await db.exec(`update karmi_online_holds set unrecorded_alarm_at = null`)
+  await db.exec(`insert into online_orders (source, status, store_id, items, stripe_session_id)
+    values ('karmilaven', 'paid', 'WAT', '[{"bc":"N3a","qty":2}]', 'cs_unrec')`)
+  assert.deepEqual(await unrec(), [])
+})
+
+test('N4: listed stretch_double products with a barcode that has no WAT price are unlisted (idempotent, stretch_double only)', async () => {
+  const db = await fresh()
+  const ok = await product(db, { category: 'Stretch Double Bracelet', barcodes: ['0001', '0002'] })
+  const oldPrice = await product(db, { category: 'Stretch Double Bracelet', barcodes: ['0003'], priceAge: '10 days' })
+  const half = await product(db, { category: 'Stretch Double Bracelet', barcodes: ['0562', '0959'], price: null })
+  await db.exec(`insert into pos_promotion_products (store_id, barcode, list_price) values ('WAT', '0562', 3.99)`)
+  const zero = await product(db, { category: 'Stretch Double Bracelet', barcodes: ['0905', '0952'], price: null })
+  await db.exec(`insert into pos_promotion_products (store_id, barcode, list_price) values ('WAT', '0905', 3.99), ('WAT', '0952', 0)`)
+  const charm = await product(db, { barcodes: ['C1', 'C1b'], price: null })
+  await db.exec(`insert into pos_promotion_products (store_id, barcode, list_price) values ('WAT', 'C1', 3.99)`)
+  for (const p of [ok, oldPrice, half, zero]) await configure(db, p, { family: 'stretch_double' })
+  await configure(db, charm)
+  await db.exec(MIG3)
+  const listed = async () => (await db.query(`select product_id, set_by from karmi_online_products where listed order by product_id`)).rows
+  const after = await listed()
+  assert.deepEqual(after.map((r) => r.product_id).sort(), [ok, oldPrice, charm].sort(),
+    'a stale-but-present price (late feed) does not unlist; other families untouched')
+  const { rows } = await db.query(`select product_id, set_by from karmi_online_products where not listed`)
+  assert.deepEqual(rows.map((r) => r.product_id).sort(), [half, zero].sort())
+  assert.ok(rows.every((r) => r.set_by.startsWith('N4')))
+  await db.exec(MIG3)
+  assert.deepEqual(await listed(), after, 'second run changes nothing')
+})
+
+test('N5: #34 and #35 refuse to re-run on top of a later migration; N-items refuses to run without #35', async () => {
+  const db = new PGlite()
+  await db.exec(STUB)
+  await db.exec(MIG)
+  await assert.rejects(db.exec(MIG3), /apply db\/20261123090000_karmi_online_caps_f1_f3\.sql first/)
+  await db.exec(MIG2)
+  const body = async (fn) => (await db.query(`select md5(pg_get_functiondef(p.oid)) d from pg_proc p where proname = $1`, [fn])).rows[0].d
+  const openHolds = await body('fn_karmi__open_holds')
+  await assert.rejects(db.exec(MIG), /a later migration .* is applied/)
+  assert.equal(await body('fn_karmi__open_holds'), openHolds, '#35 open-holds rule kept')
+  await db.exec(MIG3)
+  const htc = await body('fn_karmi_holds_to_check')
+  await assert.rejects(db.exec(MIG2), /n_items is applied/)
+  await assert.rejects(db.exec(MIG), /a later migration .* is applied/)
+  assert.equal(await body('fn_karmi_holds_to_check'), htc, 'N1 order kept')
+  // in order: roll back the later ones, then the earlier file may run again
+  await db.exec(ROLLBACK3); await db.exec(MIG2)
+  await db.exec(ROLLBACK2); await db.exec(MIG)
+  await db.exec(MIG2); await db.exec(MIG3)
+  assert.equal(await body('fn_karmi_holds_to_check'), htc)
+})
+
+test('N-items migration: #34 ×2, #35 ×2, N ×2 (idempotent), rollback → #35 functions exactly, re-apply, full rollback', async () => {
+  const db = new PGlite()
+  await db.exec(STUB)
+  const snap = async () => (await db.query(`select p.proname, md5(replace(pg_get_functiondef(p.oid), chr(13), '')) d, array_to_string(p.proacl, ',') acl
+    from pg_proc p where proname like 'fn_karmi%' order by 1`)).rows
+  const cols = async () => (await db.query(`select column_name from information_schema.columns
+    where table_name = 'karmi_online_holds' order by ordinal_position`)).rows.map((r) => r.column_name)
+  await db.exec(MIG); await db.exec(MIG)
+  await db.exec(MIG2); await db.exec(MIG2)
+  const f1f3 = await snap()
+  const f1f3Cols = await cols()
+  await db.exec(MIG3)
+  const once = await snap()
+  await db.exec(MIG3)
+  assert.deepEqual(await snap(), once, 'second apply changes nothing')
+  assert.equal(once.length, 18)
+  assert.ok((await cols()).includes('last_checked_at') && (await cols()).includes('unrecorded_alarm_at'))
+  const { rows: defs } = await db.query(`select proname, prosecdef, array_to_string(proconfig, ',') cfg,
+    array_to_string(proacl, ',') acl from pg_proc where proname in ('fn_karmi_holds_to_check', 'fn_karmi_paid_unrecorded', 'fn_karmi_cap_overshoot')`)
+  assert.equal(defs.length, 3)
+  for (const d of defs) {
+    assert.equal(d.prosecdef, true, d.proname)
+    assert.match(d.cfg, /search_path=public, pg_temp/, d.proname)
+    assert.match(d.acl, /service_role=X/, d.proname)
+    assert.doesNotMatch(d.acl, /(^|,)(anon|authenticated)?=X/, d.proname)
+  }
+  for (const role of ['anon', 'authenticated']) {
+    await db.exec(`set role ${role}`)
+    await assert.rejects(db.query(`select fn_karmi_paid_unrecorded('2 hours', 10)`), /permission denied/)
+    await assert.rejects(db.query(`select fn_karmi_holds_to_check(10)`), /permission denied/)
+    await db.exec(`reset role`)
+  }
+  await db.exec(ROLLBACK3)
+  assert.deepEqual(await snap(), f1f3, 'rollback restores the #35 functions exactly')
+  assert.deepEqual(await cols(), f1f3Cols)
+  await db.exec(MIG3)
+  assert.deepEqual(await snap(), once, 're-apply after rollback')
+  await db.exec(ROLLBACK3); await db.exec(ROLLBACK2); await db.exec(ROLLBACK)
+  const count = async () => (await db.query(`select (select count(*)::int from pg_proc where proname like 'fn_karmi%') f,
+    (select count(*)::int from pg_class where relname like 'karmi_online_%') t`)).rows[0]
+  assert.deepEqual(await count(), { f: 0, t: 0 })
+  // the #35 rollback / the #34 rollback alone also remove the N-items objects
+  await db.exec(MIG); await db.exec(MIG2); await db.exec(MIG3); await db.exec(ROLLBACK2)
+  assert.equal((await db.query(`select count(*)::int n from pg_proc where proname = 'fn_karmi_paid_unrecorded'`)).rows[0].n, 0)
+  assert.ok(!(await cols()).includes('last_checked_at'))
+  await db.exec(MIG2); await db.exec(MIG3); await db.exec(ROLLBACK)
+  assert.deepEqual(await count(), { f: 0, t: 0 })
 })

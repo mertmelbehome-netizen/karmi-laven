@@ -24,6 +24,16 @@
 --   makes the whole product not sellable ('no_price' → checkout refuses with not_available, status sellable 0).
 --   (Wave-1 config, O&W: sub-barcodes share one cap and price = the WAT single price.)
 
+-- ───────────────────────────── re-run guard (N5) ─────────────────────────────
+-- Re-running this file after db/20261123120000_karmi_online_caps_n_items.sql would put back the oldest-first
+-- fn_karmi_holds_to_check and the name-less overshoot alarm. Refuse; roll that one back first.
+do $$
+begin
+  if to_regprocedure('public.fn_karmi_paid_unrecorded(interval, int)') is not null then
+    raise exception 'karmi_online_caps F1/F3 (#35): 20261123120000_karmi_online_caps_n_items is applied; re-running this file would revert it. Roll it back first.';
+  end if;
+end $$;
+
 -- ───────────────────────────── holds: outcome columns ─────────────────────────────
 alter table public.karmi_online_holds add column if not exists completed_at  timestamptz;  -- Stripe session complete
 alter table public.karmi_online_holds add column if not exists short_session boolean not null default false;
