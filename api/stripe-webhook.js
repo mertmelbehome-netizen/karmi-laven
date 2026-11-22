@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import crypto from 'crypto';
+import { attach, release } from './_caps-lib.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET);
 
@@ -207,6 +208,14 @@ async function handleRefund(charge) {
   } catch(e) { /* swallow — Stripe will retry the webhook */ }
 }
 
+// Online caps reservation (db/20261122230000_karmi_online_caps.sql): hold_ref is set by api/checkout.js.
+async function holdCall(fn, s, ...args) {
+  const ref = s && s.metadata && s.metadata.hold_ref;
+  if (!ref) return;
+  const r = await fn(ref, ...args, { base: process.env.OPS_SUPABASE_URL, key: process.env.OPS_SUPABASE_SERVICE_KEY });
+  if (!r.ok) console.warn('[stripe-webhook] hold', fn.name, 'failed (non-fatal):', r.error);
+}
+
 // Cookie consent the buyer gave on the storefront, carried in the Stripe session metadata by
 // api/checkout.js (21 Nov 2026). Sessions created before that have no field = no consent.
 function hasConsent(s) {
@@ -264,6 +273,10 @@ export default async function handler(req, res) {
     // Record order → ops v2 (stock decrement happens on manual fulfilment)
     await recordOrder(s);
 
+    // Link the online caps reservation to this session (checkout.js does it too; repeat in case that call failed).
+    // Once linked, the order counts as sold and the hold is no longer counted. Best effort, never blocks.
+    await holdCall(attach, s, s.id);
+
     // Link buyer email ↔ browsing session (funnel identity). Fully wrapped, best-effort.
     await linkFunnelIdentity(s);
 
@@ -319,6 +332,12 @@ export default async function handler(req, res) {
   // can be sent multiple times safely.
   if (event.type === 'charge.refunded') {
     await handleRefund(event.data.object);
+  }
+
+  // ── checkout.session.expired → free the online caps reservation early (it also expires on its own after 40 min).
+  // Requires this event to be enabled on the Stripe webhook endpoint; harmless if it is not.
+  if (event.type === 'checkout.session.expired') {
+    await holdCall(release, event.data.object);
   }
 
   res.status(200).json({ received: true });
