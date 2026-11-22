@@ -18,10 +18,20 @@
 // Service-role key stays server-side (Vercel env). Never shipped to the browser.
 //
 // Response: { ok:true, store:'WAT', stock:{ "<barcode>": <available_int>, ... }, ts:<iso> }
+//
+// Non-Gradient products (22 Nov 2026, db/20261122230000_karmi_online_caps.sql): for every requested barcode that is
+// not in api/_gradient.js the response also carries
+//   sellable[bc]     = what the bag may hold now (online caps AND stock; 0 = "Not available online right now")
+//   price_pence[bc]  = WAT till single price (the same number /api/checkout charges)
+//   stock[bc]        = real WAT stock (product-level), used ONLY for "Only N left" — never the cap
+// and window = { open, message } for the Christmas cut-off / limit. These barcodes FAIL CLOSED: if the caps data
+// cannot be read they are absent from `sellable` and the page treats them as not sellable.
 
 // STORE, the safety buffer (ONLINE_STOCKROOM_BUFFER) and the maths live in ./_stock-lib.js, shared with /api/checkout
 // (server-side stock check, 21 Nov 2026), so the storefront and checkout never disagree.
 import { STORE, computeAvailable } from './_stock-lib.js';
+import { isGradient } from './_gradient.js';
+import { status as capsStatus } from './_caps-lib.js';
 
 export default async function handler(req, res) {
   // short edge/browser cache — stock changes are not second-critical, and this
@@ -109,7 +119,28 @@ export default async function handler(req, res) {
     if (ooRes.ok) orders = await ooRes.json(); // holds failure is non-fatal — better to slightly over-show than hide everything
     const stock = computeAvailable(want.length ? want : Object.keys(bcToPid), bcToPid, slMap, orders);
 
-    return res.status(200).json({ ok: true, store: STORE, stock, ts: new Date().toISOString() });
+    // 5) non-Gradient barcodes: caps + WAT price + Christmas window (only on the storefront's ?bc= call)
+    const sellable = {}, price_pence = {};
+    let window = null;
+    if (want.length) {
+      const other = want.filter((bc) => !isGradient(bc));
+      for (const bc of other) delete stock[bc]; // barcode-level maths does not apply to capped products
+      const st = await capsStatus(other, { base, key });
+      const d = st.ok && st.data && typeof st.data === 'object' ? st.data : null;
+      if (d && d.window) window = { open: !!d.window.open, message: d.window.message || null };
+      if (d && d.items) {
+        for (const bc of other) {
+          const it = d.items[bc];
+          if (!it) continue;
+          stock[bc] = Number(it.stock) || 0;
+          sellable[bc] = Number(it.sellable) || 0;
+          if (Number.isInteger(it.price_pence) && it.price_pence > 0) price_pence[bc] = it.price_pence;
+          else sellable[bc] = 0;
+        }
+      }
+    }
+
+    return res.status(200).json({ ok: true, store: STORE, stock, sellable, price_pence, window, ts: new Date().toISOString() });
   } catch (e) {
     // Fail OPEN on any error: empty stock + ok:false → storefront shows all products.
     return res.status(200).json({ ok: false, store: STORE, stock: {}, error: String(e.message || e) });

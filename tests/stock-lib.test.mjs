@@ -54,18 +54,23 @@ test('fetchAvailable: env missing or DB error -> ok:false (callers fail open); h
   assert.deepEqual(r, { ok: true, stock: { 111: 10 - B } })
 })
 
-test('/api/stock output is unchanged by the refactor (same maths through the shared module)', async () => {
+test('/api/stock output is unchanged for Gradient Edit barcodes (same maths through the shared module)', async () => {
+  // 22 Nov 2026: non-Gradient barcodes now come from the caps functions (tests/checkout.test.mjs); the Gradient Edit
+  // barcodes 1074 / 1111 keep the barcode-level maths exactly as before.
   process.env.OPS_SUPABASE_URL = 'https://db.test'
   process.env.OPS_SUPABASE_SERVICE_KEY = 'k'
   const real = globalThis.fetch
-  globalThis.fetch = fakeFetch(ROWS)
+  const rows = { pb: [{ barcode: '1074', product_id: 'p1' }, { barcode: '1111', product_id: 'p2' }], sl: ROWS.sl,
+    oo: [{ items: [{ bc: '1074', qty: 2 }, { bc: '999', qty: 1 }] }, { items: [{ bc: '1074', qty: '1' }] }, { items: null }] }
+  const f = fakeFetch(rows)
+  globalThis.fetch = async (url, o) => (url.includes('/rpc/') ? { ok: true, status: 200, json: async () => ({ window: { open: true }, items: {} }) } : f(url, o))
   try {
     let status, body
     const res = { setHeader() {}, status(s) { status = s; return this }, json(b) { body = b; return this } }
-    await stockHandler({ query: { bc: '111,222' } }, res)
+    await stockHandler({ query: { bc: '1074,1111' } }, res)
     assert.equal(status, 200)
     assert.equal(body.ok, true)
-    assert.deepEqual(body.stock, { 111: 10 - B - 3, 222: 0 })
+    assert.deepEqual(body.stock, { 1074: 10 - B - 3, 1111: 0 })
   } finally {
     globalThis.fetch = real
   }

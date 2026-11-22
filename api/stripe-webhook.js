@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import crypto from 'crypto';
+import { attach, release, flagLate } from './_caps-lib.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET);
 
@@ -207,6 +208,39 @@ async function handleRefund(charge) {
   } catch(e) { /* swallow — Stripe will retry the webhook */ }
 }
 
+// Order paid after the Christmas cut-off or beyond the 13–15 Dec total (command centre, 22 Nov): NO automatic refund.
+// fn_karmi_flag_late_order appends a "FLAG manual check" note to online_orders.fulfilment_note; we log it and push
+// the owner/staff notification. Best effort: it never fails the webhook (the order is already recorded).
+export async function flagLateOrder(s, { env = { base: process.env.OPS_SUPABASE_URL, key: process.env.OPS_SUPABASE_SERVICE_KEY },
+  appUrl = process.env.OPS_APP_URL, fetchImpl = fetch } = {}) {
+  if (!s || !s.id) return null;
+  const r = await flagLate(s.id, { ...env, fetchImpl });
+  if (!r.ok) { console.warn('[stripe-webhook] late-order check failed (non-fatal):', r.error); return null; }
+  const d = r.data || {};
+  if (!d.flagged) return d;
+  console.warn('[stripe-webhook] LATE ORDER flagged for manual handling (no refund):', s.id, d.reason);
+  if (appUrl) {
+    try {
+      await fetchImpl(`${appUrl}/api/orders/notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Karmi order needs a manual check', detail: `Christmas rule: ${d.reason}`, url: '/orders' }),
+      });
+    } catch (e) {
+      console.warn('[stripe-webhook] late-order push failed (non-fatal):', e.message);
+    }
+  }
+  return d;
+}
+
+// Online caps reservation (db/20261122230000_karmi_online_caps.sql): hold_ref is set by api/checkout.js.
+async function holdCall(fn, s, ...args) {
+  const ref = s && s.metadata && s.metadata.hold_ref;
+  if (!ref) return;
+  const r = await fn(ref, ...args, { base: process.env.OPS_SUPABASE_URL, key: process.env.OPS_SUPABASE_SERVICE_KEY });
+  if (!r.ok) console.warn('[stripe-webhook] hold', fn.name, 'failed (non-fatal):', r.error);
+}
+
 // Cookie consent the buyer gave on the storefront, carried in the Stripe session metadata by
 // api/checkout.js (21 Nov 2026). Sessions created before that have no field = no consent.
 function hasConsent(s) {
@@ -264,6 +298,13 @@ export default async function handler(req, res) {
     // Record order → ops v2 (stock decrement happens on manual fulfilment)
     await recordOrder(s);
 
+    // Link the online caps reservation to this session (checkout.js does it too; repeat in case that call failed).
+    // Once linked, the order counts as sold and the hold is no longer counted. Best effort, never blocks.
+    await holdCall(attach, s, s.id);
+
+    // Late Christmas order (e.g. paid through a recovery link issued before 13 Dec): flag for manual handling.
+    await flagLateOrder(s);
+
     // Link buyer email ↔ browsing session (funnel identity). Fully wrapped, best-effort.
     await linkFunnelIdentity(s);
 
@@ -319,6 +360,12 @@ export default async function handler(req, res) {
   // can be sent multiple times safely.
   if (event.type === 'charge.refunded') {
     await handleRefund(event.data.object);
+  }
+
+  // ── checkout.session.expired → free the online caps reservation early (it also expires on its own after 40 min).
+  // Requires this event to be enabled on the Stripe webhook endpoint; harmless if it is not.
+  if (event.type === 'checkout.session.expired') {
+    await holdCall(release, event.data.object);
   }
 
   res.status(200).json({ received: true });
