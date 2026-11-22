@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto';
 import { fetchAvailable, shortages } from './_stock-lib.js';
 import { GRADIENT, isGradient } from './_gradient.js';
 import { priceUnits, freeShipping } from './_pricing.js';
-import { reserve, attach, release, gradientFallback, MSG_UNAVAILABLE } from './_caps-lib.js';
+import { reserve, attach, release, gradientFallback, resolveStaleHolds, MSG_UNAVAILABLE } from './_caps-lib.js';
 
 const clampN = n => Math.max(1, Math.min(99, parseInt(n) || 1));
 
@@ -70,6 +70,9 @@ export function createHandler({
       }
 
       // 2) Admission: Christmas cut-off + 13–15 Dec limit (all carts), caps/stock/WAT price (non-Gradient units).
+      //    First settle holds whose Stripe session ended but whose outcome is not known yet (late / failed webhook):
+      //    a paid one keeps counting, an expired one is freed (F1). Best effort; unknown ones keep counting.
+      try { await resolveStaleHolds(stripe, db); } catch (e) { console.warn('checkout hold resolver skipped:', e.message); }
       const ref = randomUUID();
       const rv = await reserve(ref, otherQty, gradientUnits, db);
       let held = false, shortSession = false, recoveryOk = false;

@@ -208,3 +208,147 @@ test('/api/stock: non-Gradient barcodes get sellable + WAT price + real stock; D
     globalThis.fetch = real
   }
 })
+
+// ───────────────────────────── F1 resolver, overshoot alarm, F6 notify bearer ─────────────────────────────
+
+/** fake ops DB that also answers the F1 RPCs; toCheck = session ids fn_karmi_holds_to_check returns */
+function fakeDbF1({ toCheck = [], over = [], flagged = false } = {}) {
+  const base = fakeDb({ reserveReply: OK_GRADIENT })
+  const fn = async (url, opts = {}) => {
+    if (url.includes('/rpc/fn_karmi_holds_to_check')) {
+      base.calls.push({ url, body: JSON.parse(opts.body) })
+      return { ok: true, status: 200, json: async () => toCheck }
+    }
+    if (url.includes('/rpc/fn_karmi_checkout_resolve') || url.includes('/rpc/fn_karmi_checkout_complete')) {
+      base.calls.push({ url, body: JSON.parse(opts.body) })
+      return { ok: true, status: 200, json: async () => 1 }
+    }
+    if (url.includes('/rpc/fn_karmi_cap_overshoot')) {
+      base.calls.push({ url, body: JSON.parse(opts.body) })
+      return { ok: true, status: 200, json: async () => ({ over }) }
+    }
+    if (url.includes('/rpc/fn_karmi_flag_late_order')) {
+      base.calls.push({ url, body: JSON.parse(opts.body) })
+      return { ok: true, status: 200, json: async () => (flagged ? { flagged: true, reason: 'paid after the Christmas cut-off' } : { flagged: false }) }
+    }
+    if (url.includes('/api/orders/notify') || (url.endsWith('/rest/v1/online_orders') && opts.method === 'POST')) {
+      base.calls.push({ url, body: JSON.parse(opts.body), headers: opts.headers })
+      return { ok: true, status: 201, json: async () => ({}), text: async () => '' }
+    }
+    return base(url, opts)
+  }
+  fn.calls = base.calls
+  fn.rpc = base.rpc
+  return fn
+}
+
+const stripeWithSessions = (statuses) => {
+  const s = fakeStripe()
+  s.retrieved = []
+  s.checkout.sessions.retrieve = async (id) => {
+    s.retrieved.push(id)
+    if (statuses[id] === 'throw') throw new Error('stripe down')
+    return { id, status: statuses[id] }
+  }
+  return s
+}
+
+test('F1 checkout: before admission, holds past their time are settled from Stripe (complete counts, expired freed, error keeps counting)', async () => {
+  const db = fakeDbF1({ toCheck: ['cs_paid', 'cs_gone', 'cs_err', 'cs_open'] })
+  const stripe = stripeWithSessions({ cs_paid: 'complete', cs_gone: 'expired', cs_err: 'throw', cs_open: 'open' })
+  const h = createHandler({ stripe, env, fetchImpl: db, now: () => new Date('2026-11-25T12:00:00Z') })
+  const r = await call(h, { items: [{ bc: G1, qty: 1 }] })
+  assert.equal(r.status, 200)
+  assert.deepEqual(stripe.retrieved, ['cs_paid', 'cs_gone', 'cs_err', 'cs_open'])
+  assert.deepEqual(db.rpc('fn_karmi_checkout_resolve').map((c) => [c.body.p_session_id, c.body.p_outcome]),
+    [['cs_paid', 'complete'], ['cs_gone', 'expired']], 'unknown outcomes are not reported: those holds keep counting')
+  const order = db.calls.map((c) => c.url).filter((u) => /holds_to_check|checkout_reserve/.test(u))
+  assert.ok(order[0].includes('holds_to_check') && order[1].includes('checkout_reserve'), 'resolver runs before reserve')
+})
+
+test('F1 checkout: resolver failure never blocks or changes the admission', async () => {
+  const db = fakeDbF1({ toCheck: ['cs_x'] })
+  const stripe = stripeWithSessions({ cs_x: 'throw' })
+  const h = createHandler({ stripe, env, fetchImpl: db, now: () => new Date('2026-11-25T12:00:00Z') })
+  assert.equal((await call(h, { items: [{ bc: G1, qty: 1 }] })).status, 200)
+  assert.equal(db.rpc('fn_karmi_checkout_resolve').length, 0)
+})
+
+test('F1 /api/stock: settles stale holds before reading capped status (so an expired session cannot block the page)', async () => {
+  process.env.OPS_SUPABASE_URL = 'https://db.test'
+  process.env.OPS_SUPABASE_SERVICE_KEY = 'k'
+  const { _setStripe } = await import('../api/stock.js')
+  const real = globalThis.fetch
+  const db = fakeDbF1({ toCheck: ['cs_gone'] })
+  try {
+    globalThis.fetch = db
+    _setStripe(stripeWithSessions({ cs_gone: 'expired' }))
+    let body
+    const res = { setHeader() {}, status() { return this }, json(b) { body = b; return this } }
+    await stockHandler({ query: { bc: '6101' } }, res)
+    assert.equal(body.ok, true, body.error)
+    assert.deepEqual(db.rpc('fn_karmi_checkout_resolve').map((c) => c.body.p_outcome), ['expired'])
+    const urls = db.calls.map((c) => c.url)
+    assert.ok(urls.findIndex((u) => u.includes('checkout_resolve')) < urls.findIndex((u) => u.includes('online_status')))
+  } finally {
+    globalThis.fetch = real
+    _setStripe(undefined)
+  }
+})
+
+test('F1 overshoot alarm: warning + push on the order-notify route; nothing when within the caps; never refunds', async () => {
+  const { alarmOvershoot } = await import('../api/stripe-webhook.js')
+  const over = [{ kind: 'product', family: 'stretch_charm', product_id: 'p1', cap: 2, sold: 4, held: 0 }]
+  for (const o of [over, []]) {
+    const db = fakeDbF1({ over: o })
+    const d = await alarmOvershoot({ id: 'cs_late' }, { env: { base: 'https://db.test', key: 'k' }, appUrl: 'https://ops.test', fetchImpl: db, secret: '' })
+    assert.deepEqual(d.over, o)
+    assert.equal(db.rpc('fn_karmi_cap_overshoot')[0].body.p_session_id, 'cs_late')
+    const push = db.calls.filter((c) => c.url === 'https://ops.test/api/orders/notify')
+    assert.equal(push.length, o.length ? 1 : 0)
+    if (o.length) {
+      assert.equal(push[0].body.title, 'Karmi online cap exceeded: manual check')
+      assert.match(push[0].body.detail, /stretch_charm product: 4 sold \+ 0 held > cap 2/)
+    }
+    assert.ok(!db.calls.some((c) => /refund|cancel/.test(c.url)), 'no refund / cancel call')
+  }
+})
+
+test('F6: every /api/orders/notify push sends the WEBHOOK_SECRET bearer when it is set, and no Authorization when not', async () => {
+  const { notifyHeaders } = await import('../api/_caps-lib.js')
+  const wh = await import('../api/stripe-webhook.js')
+  assert.deepEqual(notifyHeaders('s3cret'), { 'Content-Type': 'application/json', Authorization: 'Bearer s3cret' })
+  assert.deepEqual(notifyHeaders(''), { 'Content-Type': 'application/json' })
+  const saved = { ...process.env }
+  const realFetch = globalThis.fetch
+  const realWarn = console.warn, realLog = console.log, realErr = console.error
+  const logged = []
+  console.warn = console.log = console.error = (...a) => logged.push(a.map(String).join(' '))
+  try {
+    for (const secret of ['s3cret-test-value', undefined]) {
+      if (secret) process.env.WEBHOOK_SECRET = secret; else delete process.env.WEBHOOK_SECRET
+      process.env.OPS_SUPABASE_URL = 'https://db.test'
+      process.env.OPS_SUPABASE_SERVICE_KEY = 'k'
+      process.env.OPS_APP_URL = 'https://ops.test'
+      const db = fakeDbF1({ over: [{ kind: 'family', family: 'hair', cap: 1, sold: 2, held: 0 }], flagged: true })
+      globalThis.fetch = db
+      // 1) new-order push (recordOrder), 2) late-order flag push, 3) overshoot alarm push — env defaults, no injection
+      await wh.recordOrder({ id: 'cs_1', metadata: { items: '6101x1' }, customer_details: {} })
+      await wh.flagLateOrder({ id: 'cs_1' }, { fetchImpl: db })
+      await wh.alarmOvershoot({ id: 'cs_1' }, { fetchImpl: db })
+      const pushes = db.calls.filter((c) => c.url === 'https://ops.test/api/orders/notify')
+      assert.equal(pushes.length, 3)
+      for (const p of pushes) {
+        if (secret) assert.equal(p.headers.Authorization, `Bearer ${secret}`)
+        else assert.equal('Authorization' in p.headers, false)
+        assert.equal(p.headers['Content-Type'], 'application/json')
+      }
+    }
+    assert.ok(!logged.some((l) => l.includes('s3cret-test-value')), 'the secret is never logged')
+  } finally {
+    globalThis.fetch = realFetch
+    console.warn = realWarn; console.log = realLog; console.error = realErr
+    for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k]
+    Object.assign(process.env, saved)
+  }
+})

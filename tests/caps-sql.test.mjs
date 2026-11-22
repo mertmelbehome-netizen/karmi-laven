@@ -8,6 +8,8 @@ import { PGlite } from '@electric-sql/pglite'
 
 const MIG = readFileSync(new URL('../db/20261122230000_karmi_online_caps.sql', import.meta.url), 'utf8')
 const ROLLBACK = readFileSync(new URL('../db/20261122230000_karmi_online_caps_ROLLBACK.sql', import.meta.url), 'utf8')
+const MIG2 = readFileSync(new URL('../db/20261123090000_karmi_online_caps_f1_f3.sql', import.meta.url), 'utf8')
+const ROLLBACK2 = readFileSync(new URL('../db/20261123090000_karmi_online_caps_f1_f3_ROLLBACK.sql', import.meta.url), 'utf8')
 
 const STUB = `
 create role anon; create role authenticated; create role service_role;
@@ -25,19 +27,21 @@ async function fresh() {
   const db = new PGlite()
   await db.exec(STUB)
   await db.exec(MIG)
+  await db.exec(MIG2)
   // Test-owned config: drop the seeded dates so the tests do not depend on today's date.
   await db.exec(`delete from karmi_online_window;
     update karmi_online_caps set period_start = now() - interval '1 day', period_end = null;`)
   return db
 }
 
-/** product in `category` with barcodes, WAT stockroom, WAT till price (null = none). Returns product id. */
+/** product in `category` with barcodes, WAT stockroom, WAT till price on EVERY barcode (null = none; wave-1 config:
+ *  sub-barcodes carry the same WAT single price). Returns product id. */
 async function product(db, { category = 'Stretch Charm Bracelet', barcodes, stockroom = 100, price = 5.99, priceAge = '0 hours' }) {
   const { rows: [{ id }] } = await db.query(`insert into products (category_name) values ($1) returning id`, [category])
   for (const bc of barcodes) await db.query(`insert into product_barcodes values ($1, $2)`, [bc, id])
   await db.query(`insert into stock_levels values ($1, 'WAT', $2)`, [id, stockroom])
-  if (price != null) await db.query(`insert into pos_promotion_products (store_id, barcode, list_price, received_at)
-    values ('WAT', $1, $2, now() - $3::interval)`, [barcodes[0], price, priceAge])
+  if (price != null) for (const bc of barcodes) await db.query(`insert into pos_promotion_products (store_id, barcode, list_price, received_at)
+    values ('WAT', $1, $2, now() - $3::interval)`, [bc, price, priceAge])
   return id
 }
 
@@ -318,7 +322,7 @@ test('security: RLS on, browser roles have no table rights and cannot execute; s
   assert.deepEqual(rows.map((r) => [r.relname, r.relrowsecurity]), [
     ['karmi_online_caps', true], ['karmi_online_holds', true], ['karmi_online_products', true], ['karmi_online_window', true]])
   const { rows: defs } = await db.query(`select proname, prosecdef, array_to_string(proconfig, ',') cfg from pg_proc where proname like 'fn_karmi%'`)
-  assert.equal(defs.length, 13)
+  assert.equal(defs.length, 17)
   for (const d of defs) { assert.equal(d.prosecdef, true, d.proname); assert.match(d.cfg, /search_path=public, pg_temp/, d.proname) }
   for (const role of ['anon', 'authenticated']) {
     await db.exec(`set role ${role}`)
@@ -339,4 +343,147 @@ test('rollback removes every object', async () => {
   const { rows } = await db.query(`select (select count(*)::int from pg_proc where proname like 'fn_karmi%') f,
     (select count(*)::int from pg_class where relname like 'karmi_online_%') t`)
   assert.deepEqual(rows[0], { f: 0, t: 0 })
+})
+
+// ───────────────────────────── F1 / F3 (K&D review of PR #34, 23 Nov) ─────────────────────────────
+
+const holdsExpire = (db, ref) => db.query(`update karmi_online_holds set expires_at = now() - interval '1 minute' where ref = $1`, [ref])
+
+test('F1 late webhook: hold expired, Stripe session complete, no order yet → still counted, second buyer refused', async () => {
+  const db = await fresh()
+  const a = await product(db, { barcodes: ['L1'] })
+  await configure(db, a, { cap: 2 })
+  await open(db)
+  const first = await reserve(db, [{ bc: 'L1', qty: 2 }])
+  assert.equal(first.ok, true)
+  assert.equal(first.short_session, true)
+  await db.query(`select fn_karmi_checkout_attach($1::uuid, 'cs_paid')`, [first.ref])
+  await holdsExpire(db, first.ref) // 40 min later: the buyer paid at minute 20, the webhook has not arrived
+  // outcome not known yet: the attached short hold keeps counting (PR #34 freed it here → 4 sold vs cap 2)
+  let r = await reserve(db, [{ bc: 'L1', qty: 1 }])
+  assert.deepEqual([r.ok, r.error], [false, 'not_available'])
+  assert.equal((await status(db, ['L1'])).items['L1'].sellable, 0)
+  // the resolver asks Stripe: complete → keeps counting until the order row exists
+  const { rows: chk } = await db.query(`select fn_karmi_holds_to_check(10) sid`)
+  assert.deepEqual(chk.map((x) => x.sid), ['cs_paid'])
+  await db.query(`select fn_karmi_checkout_resolve('cs_paid', 'complete')`)
+  assert.equal((await db.query(`select count(*)::int n from fn_karmi_holds_to_check(10)`)).rows[0].n, 0, 'asked once')
+  assert.equal((await db.query(`select fn_karmi_checkout_release($1::uuid) n`, [first.ref])).rows[0].n, 0, 'a complete hold is never released')
+  r = await reserve(db, [{ bc: 'L1', qty: 1 }])
+  assert.equal(r.ok, false, 'second buyer refused while the order row is missing')
+  // the late webhook finally writes the order: counted once, as the order
+  await db.exec(`insert into online_orders (source, status, store_id, items, stripe_session_id)
+    values ('karmilaven', 'paid', 'WAT', '[{"bc":"L1","qty":2}]', 'cs_paid')`)
+  const { rows: [{ n }] } = await db.query(`select count(*)::int n from fn_karmi__open_holds()`)
+  assert.equal(n, 0)
+  assert.equal((await reserve(db, [{ bc: 'L1', qty: 1 }])).ok, false)
+  assert.deepEqual((await db.query(`select fn_karmi_cap_overshoot('cs_paid') r`)).rows[0].r, { over: [] }, 'exactly at cap: no alarm')
+})
+
+test('F1: webhook marks the hold complete before the order is written; Stripe "expired" frees it; unattached holds still expire', async () => {
+  const db = await fresh()
+  const a = await product(db, { barcodes: ['L2'] })
+  await configure(db, a, { cap: 2 })
+  await open(db)
+  // checkout could not attach (no session id on the hold); the webhook completes it by ref
+  const w = await reserve(db, [{ bc: 'L2', qty: 1 }])
+  assert.equal((await db.query(`select fn_karmi_checkout_complete($1::uuid, 'cs_w') n`, [w.ref])).rows[0].n, 1)
+  await holdsExpire(db, w.ref)
+  assert.equal((await status(db, ['L2'])).items['L2'].sellable, 1, 'complete hold counts past expiry')
+  // abandoned session: Stripe says expired → released
+  const x = await reserve(db, [{ bc: 'L2', qty: 1 }])
+  await db.query(`select fn_karmi_checkout_attach($1::uuid, 'cs_x')`, [x.ref])
+  await holdsExpire(db, x.ref)
+  assert.equal((await status(db, ['L2'])).items['L2'].sellable, 0)
+  assert.equal((await db.query(`select fn_karmi_checkout_resolve('cs_x', 'expired') n`)).rows[0].n, 1)
+  assert.equal((await status(db, ['L2'])).items['L2'].sellable, 1)
+  assert.equal((await db.query(`select fn_karmi_checkout_resolve('cs_w', 'expired') n`)).rows[0].n, 0, 'expired never frees a complete hold')
+  // a hold with no Stripe session at all still expires by the clock (nothing can be paid)
+  const y = await reserve(db, [{ bc: 'L2', qty: 1 }])
+  await holdsExpire(db, y.ref)
+  assert.equal((await status(db, ['L2'])).items['L2'].sellable, 1)
+  // a non-short Gradient-only hold (no Christmas window) keeps the old clock expiry
+  const g = await reserve(db, [], 2)
+  assert.equal(g.short_session, false)
+  await db.query(`select fn_karmi_checkout_attach($1::uuid, 'cs_g')`, [g.ref])
+  await holdsExpire(db, g.ref)
+  assert.equal((await db.query(`select count(*)::int n from fn_karmi__open_holds() where family = 'gradient'`)).rows[0].n, 0)
+  assert.equal((await db.query(`select count(*)::int n from fn_karmi_holds_to_check(10)`)).rows[0].n, 0)
+})
+
+test('F1 overshoot alarm: sold + held over the product cap and the family cap is reported for that order', async () => {
+  const db = await fresh()
+  const a = await product(db, { barcodes: ['O1'] })
+  const b = await product(db, { barcodes: ['O2'] })
+  await configure(db, a, { cap: 2 }); await configure(db, b, { cap: 5 })
+  await open(db, 'stretch_charm', ', max_units = 4')
+  // residual case: a webhook so late that the hold had no session to wait for → the cap was sold twice
+  await db.exec(`insert into online_orders (source, status, store_id, items, stripe_session_id) values
+    ('karmilaven', 'paid', 'WAT', '[{"bc":"O1","qty":2}]', 'cs_one'),
+    ('karmilaven', 'paid', 'WAT', '[{"bc":"O1","qty":2},{"bc":"O2","qty":1}]', 'cs_two')`)
+  const { rows: [{ r }] } = await db.query(`select fn_karmi_cap_overshoot('cs_two') r`)
+  assert.deepEqual(r.over, [
+    { kind: 'family', family: 'stretch_charm', cap: 4, sold: 5, held: 0 },
+    { kind: 'product', family: 'stretch_charm', product_id: a, cap: 2, sold: 4, held: 0 },
+  ])
+  // product b is within its own cap → not listed; unknown session → nothing
+  assert.deepEqual((await db.query(`select fn_karmi_cap_overshoot('cs_none') r`)).rows[0].r, { over: [] })
+  // status floors at 0 and cannot show the overshoot; the alarm is what makes it visible
+  assert.equal((await status(db, ['O1'])).items['O1'].sellable, 0)
+})
+
+test('F3: a product with ANY barcode lacking a valid current WAT price is not sellable', async () => {
+  const db = await fresh()
+  await open(db)
+  const good = await product(db, { barcodes: ['P1', 'P1b'] })            // both barcodes £5.99 → sellable
+  const missing = await product(db, { barcodes: ['P2', 'P2b'], price: null })
+  await db.exec(`insert into pos_promotion_products (store_id, barcode, list_price) values ('WAT', 'P2', 5.99)`) // P2b: no WAT row
+  const stale = await product(db, { barcodes: ['P3', 'P3b'], price: null })
+  await db.exec(`insert into pos_promotion_products (store_id, barcode, list_price, received_at) values
+    ('WAT', 'P3', 5.99, now()), ('WAT', 'P3b', 5.99, now() - interval '4 days')`)       // P3b: only an old price
+  const zero = await product(db, { barcodes: ['P4', 'P4b'], price: null })
+  await db.exec(`insert into pos_promotion_products (store_id, barcode, list_price) values ('WAT', 'P4', 5.99), ('WAT', 'P4b', 0)`)
+  for (const p of [good, missing, stale, zero]) await configure(db, p)
+  assert.equal((await reserve(db, [{ bc: 'P1b', qty: 1 }])).ok, true)
+  for (const bc of ['P2', 'P2b', 'P3', 'P3b', 'P4', 'P4b']) {
+    const r = await reserve(db, [{ bc, qty: 1 }])
+    assert.deepEqual([r.ok, r.error, r.message], [false, 'not_available', 'Not available online right now'], bc)
+    const st = (await status(db, [bc])).items[bc]
+    assert.deepEqual([st.sellable, st.price_pence], [0, null], bc)
+  }
+  // reselect never lists it either
+  await db.exec(`update karmi_online_products set listed = false`)
+  await db.query(`select fn_karmi_online_reselect('stretch_charm')`)
+  const { rows } = await db.query(`select product_id from karmi_online_products where listed`)
+  assert.deepEqual(rows.map((x) => x.product_id), [good])
+})
+
+test('F1/F3 migration: apply twice (idempotent), rollback → PR #34 functions, re-apply, full rollback', async () => {
+  const db = new PGlite()
+  await db.exec(STUB)
+  await db.exec(MIG)
+  const snap = async () => (await db.query(`select p.proname, md5(replace(pg_get_functiondef(p.oid), chr(13), '')) d, array_to_string(p.proacl, ',') acl
+    from pg_proc p where proname like 'fn_karmi%' order by 1`)).rows
+  const cols = async () => (await db.query(`select column_name from information_schema.columns
+    where table_name = 'karmi_online_holds' order by ordinal_position`)).rows.map((r) => r.column_name)
+  const before = await snap()
+  await db.exec(MIG2)
+  const once = await snap()
+  await db.exec(MIG2)
+  assert.deepEqual(await snap(), once, 'second apply changes nothing')
+  assert.equal(once.length, 17)
+  assert.ok((await cols()).includes('completed_at'))
+  await db.exec(ROLLBACK2)
+  assert.deepEqual(await snap(), before, 'rollback restores the PR #34 functions exactly')
+  assert.ok(!(await cols()).includes('completed_at') && !(await cols()).includes('short_session'))
+  await db.exec(MIG2)
+  assert.deepEqual(await snap(), once, 're-apply after rollback')
+  await db.exec(ROLLBACK2)
+  await db.exec(ROLLBACK)
+  const { rows } = await db.query(`select (select count(*)::int from pg_proc where proname like 'fn_karmi%') f,
+    (select count(*)::int from pg_class where relname like 'karmi_online_%') t`)
+  assert.deepEqual(rows[0], { f: 0, t: 0 })
+  // the PR #34 rollback alone also removes the F1/F3 functions
+  await db.exec(MIG); await db.exec(MIG2); await db.exec(ROLLBACK)
+  assert.equal((await db.query(`select count(*)::int n from pg_proc where proname like 'fn_karmi%'`)).rows[0].n, 0)
 })

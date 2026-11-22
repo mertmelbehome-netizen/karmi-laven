@@ -40,6 +40,45 @@ export const attach = (ref, sessionId, env) => rpc('fn_karmi_checkout_attach', {
 export const release = (ref, env) => rpc('fn_karmi_checkout_release', { p_ref: ref }, env);
 export const status = (barcodes, env) => rpc('fn_karmi_online_status', { p_barcodes: barcodes }, env);
 export const flagLate = (sessionId, env) => rpc('fn_karmi_flag_late_order', { p_session_id: sessionId }, env);
+export const complete = (ref, sessionId, env) => rpc('fn_karmi_checkout_complete', { p_ref: ref, p_session_id: sessionId }, env);
+export const overshoot = (sessionId, env) => rpc('fn_karmi_cap_overshoot', { p_session_id: sessionId }, env);
+
+/**
+ * F1 (K&D 23 Nov): a hold attached to a short Stripe session keeps counting after its 40 min until Stripe's outcome
+ * is known. Ask Stripe about the ones past their time (fn_karmi_holds_to_check) and report each outcome:
+ * 'complete' → keeps counting until the webhook writes the order; 'expired' → released. Any error → nothing is
+ * reported and the hold keeps counting (under-sell, never over-sell). Best effort: never throws.
+ */
+export async function resolveStaleHolds(stripe, env, { max = 10 } = {}) {
+  const out = { checked: 0, complete: 0, expired: 0 };
+  if (!stripe || !stripe.checkout || !stripe.checkout.sessions || !stripe.checkout.sessions.retrieve) return out;
+  const r = await rpc('fn_karmi_holds_to_check', { p_limit: max }, env);
+  if (!r.ok || !Array.isArray(r.data)) return out;
+  for (const row of r.data.slice(0, max)) {
+    const sid = typeof row === 'string' ? row : row && (row.fn_karmi_holds_to_check || row.stripe_session_id);
+    if (!sid) continue;
+    let outcome = null;
+    try {
+      const s = await stripe.checkout.sessions.retrieve(sid);
+      if (s && s.status === 'complete') outcome = 'complete';
+      else if (s && s.status === 'expired') outcome = 'expired';
+    } catch (e) {
+      console.warn('[caps] Stripe session lookup failed; hold keeps counting:', (e && e.message) || e);
+    }
+    out.checked++;
+    if (!outcome) continue;
+    const w = await rpc('fn_karmi_checkout_resolve', { p_session_id: sid, p_outcome: outcome }, env);
+    if (w.ok) out[outcome]++;
+  }
+  return out;
+}
+
+/** Headers for ops-v2 /api/orders/notify: the route reads the body only with the WEBHOOK_SECRET bearer (F6). */
+export function notifyHeaders(secret = process.env.WEBHOOK_SECRET) {
+  const h = { 'Content-Type': 'application/json' };
+  if (secret) h.Authorization = `Bearer ${secret}`;
+  return h;
+}
 
 /** Gradient-only cart while the DB is unreadable: allowed before the limit window, refused from it on. */
 export function gradientFallback(now = new Date()) {
