@@ -212,7 +212,7 @@ test('/api/stock: non-Gradient barcodes get sellable + WAT price + real stock; D
 // ───────────────────────────── F1 resolver, overshoot alarm, F6 notify bearer ─────────────────────────────
 
 /** fake ops DB that also answers the F1 RPCs; toCheck = session ids fn_karmi_holds_to_check returns */
-function fakeDbF1({ toCheck = [], over = [], flagged = false, reserveReply = OK_GRADIENT } = {}) {
+function fakeDbF1({ toCheck = [], over = [], flagged = false, reserveReply = OK_GRADIENT, unrecorded = [] } = {}) {
   const base = fakeDb({ reserveReply })
   const fn = async (url, opts = {}) => {
     if (url.includes('/rpc/fn_karmi_holds_to_check')) {
@@ -222,6 +222,11 @@ function fakeDbF1({ toCheck = [], over = [], flagged = false, reserveReply = OK_
     if (url.includes('/rpc/fn_karmi_checkout_resolve') || url.includes('/rpc/fn_karmi_checkout_complete')) {
       base.calls.push({ url, body: JSON.parse(opts.body) })
       return { ok: true, status: 200, json: async () => 1 }
+    }
+    if (url.includes('/rpc/fn_karmi_paid_unrecorded')) {
+      base.calls.push({ url, body: JSON.parse(opts.body) })
+      if (unrecorded === 'error') return { ok: false, status: 500, json: async () => ({}) }
+      return { ok: true, status: 200, json: async () => ({ items: unrecorded }) }
     }
     if (url.includes('/rpc/fn_karmi_cap_overshoot')) {
       base.calls.push({ url, body: JSON.parse(opts.body) })
@@ -467,4 +472,72 @@ test('N2 /api/stock: a hanging Stripe does not hang the storefront stock call', 
     globalThis.fetch = real
     _setStripe(undefined)
   }
+})
+
+// ───────────────────────────── N1 (404), N3 (paid not recorded), N6 (alarm names the product) ─────────────────────────────
+
+test('N1 resolver: a session Stripe does not know (404 / resource_missing) is reported as expired, so its hold is freed', async () => {
+  const { resolveStaleHolds } = await import('../api/_caps-lib.js')
+  const db = fakeDbF1({ toCheck: ['cs_smoke', 'cs_err'] })
+  const stripe = fakeStripe()
+  stripe.checkout.sessions.retrieve = async (id) => {
+    if (id === 'cs_smoke') throw Object.assign(new Error('No such checkout.session'), { statusCode: 404, code: 'resource_missing' })
+    throw Object.assign(new Error('api error'), { statusCode: 500 })
+  }
+  const out = await resolveStaleHolds(stripe, { base: 'https://db.test', key: 'k', fetchImpl: db }, { paidAlarm: false })
+  assert.deepEqual([out.missing, out.expired, out.failed], [1, 1, 1])
+  assert.deepEqual(db.rpc('fn_karmi_checkout_resolve').map((c) => [c.body.p_session_id, c.body.p_outcome]), [['cs_smoke', 'expired']],
+    'a 500 is not an answer: that hold keeps counting')
+})
+
+test('N3: a paid hold with no order row → warning + push (Bearer when set) naming the products; nothing released; throttled', async () => {
+  const { resolveStaleHolds, _resetPaidCheck } = await import('../api/_caps-lib.js')
+  const items = [{ session: 'cs_unrec', completed_at: '2026-11-25T09:00:00Z', units: 3,
+    lines: [{ name: 'Gradient Edit', family: 'gradient', qty: 1 }, { name: 'Stretch Charm — Rose', bc: '6101', family: 'stretch_charm', qty: 2 }] }]
+  const db = fakeDbF1({ unrecorded: items })
+  const realWarn = console.warn
+  const warned = []
+  console.warn = (...a) => warned.push(a.join(' '))
+  try {
+    _resetPaidCheck()
+    const env = { base: 'https://db.test', key: 'k', fetchImpl: db }
+    const opts = { appUrl: 'https://ops.test', secret: 'tok' }
+    const out = await resolveStaleHolds(null, env, opts)
+    assert.equal(out.unrecorded, 1)
+    const rpc = db.rpc('fn_karmi_paid_unrecorded')
+    assert.equal(rpc.length, 1)
+    assert.deepEqual(rpc[0].body, { p_min_age: '2 hours', p_limit: 10 })
+    const push = db.calls.filter((c) => c.url === 'https://ops.test/api/orders/notify')
+    assert.equal(push.length, 1)
+    assert.equal(push[0].body.title, 'Karmi paid order not recorded: manual check')
+    assert.equal(push[0].body.detail, 'cs_unrec: 1 x Gradient Edit, 2 x Stretch Charm — Rose (6101)')
+    assert.equal(push[0].headers.Authorization, 'Bearer tok')
+    assert.ok(warned.some((w) => w.includes('PAID ORDER NOT RECORDED')))
+    assert.ok(!db.calls.some((c) => /release|resolve|refund|cancel/.test(c.url)), 'nothing released, resolved or refunded')
+    // throttled: the next call within 5 min does not ask again
+    await resolveStaleHolds(null, env, opts)
+    assert.equal(db.rpc('fn_karmi_paid_unrecorded').length, 1)
+    // DB error → no push, no throw
+    _resetPaidCheck()
+    const bad = fakeDbF1({ unrecorded: 'error' })
+    const o2 = await resolveStaleHolds(null, { ...env, fetchImpl: bad }, opts)
+    assert.equal(o2.unrecorded, 0)
+    assert.equal(bad.calls.filter((c) => c.url.includes('/api/orders/notify')).length, 0)
+  } finally {
+    console.warn = realWarn
+    _resetPaidCheck()
+  }
+})
+
+test('N6: the overshoot alarm names the product (line name + ordered barcode) and the family', async () => {
+  const { alarmOvershoot } = await import('../api/stripe-webhook.js')
+  const over = [
+    { kind: 'family', family: 'stretch_charm', name: 'Stretch Charm Bracelet', cap: 4, sold: 5, held: 0 },
+    { kind: 'product', family: 'stretch_charm', product_id: 'p1', name: 'Stretch Charm — Rose', bc: '6101', cap: 2, sold: 4, held: 1 },
+  ]
+  const db = fakeDbF1({ over })
+  await alarmOvershoot({ id: 'cs_late' }, { env: { base: 'https://db.test', key: 'k' }, appUrl: 'https://ops.test', fetchImpl: db, secret: '' })
+  const push = db.calls.filter((c) => c.url === 'https://ops.test/api/orders/notify')
+  assert.equal(push[0].body.detail,
+    'family Stretch Charm Bracelet (stretch_charm): 5 sold + 0 held > cap 4; Stretch Charm — Rose (6101): 4 sold + 1 held > cap 2')
 })

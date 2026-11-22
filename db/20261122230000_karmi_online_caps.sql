@@ -25,6 +25,17 @@
 -- Security: every table has RLS on and no policies; anon/authenticated have no table rights and no EXECUTE.
 -- Only service_role (the Vercel functions) calls the fn_karmi_* functions. SECURITY DEFINER + fixed search_path.
 
+-- ───────────────────────────── re-run guard (N5, K&D 23 Nov) ─────────────────────────────
+-- Re-running THIS file after db/20261123090000_karmi_online_caps_f1_f3.sql (#35) would silently put back the old
+-- open-holds and price rules (F1/F3 off). Refuse instead: roll the later migrations back first, then re-apply in order.
+do $$
+begin
+  if to_regprocedure('public.fn_karmi_checkout_resolve(text, text)') is not null
+     or to_regprocedure('public.fn_karmi_paid_unrecorded(interval, int)') is not null then
+    raise exception 'karmi_online_caps (#34): a later migration (20261123090000 / 20261123120000) is applied; re-running this file would revert it. Roll those back first.';
+  end if;
+end $$;
+
 -- ───────────────────────────── tables ─────────────────────────────
 
 create table if not exists public.karmi_online_caps (

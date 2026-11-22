@@ -4,6 +4,10 @@
 -- treated as best effort / skipped). Data loss: karmi_online_holds.completed_at / short_session.
 -- After this file the PR #34 rollback (20261122230000_karmi_online_caps_ROLLBACK.sql) can run as before.
 
+-- added by 20261123120000_karmi_online_caps_n_items.sql (harmless if that file was never applied)
+drop function if exists public.fn_karmi_paid_unrecorded(interval, int);
+alter table public.karmi_online_holds drop column if exists last_checked_at;
+alter table public.karmi_online_holds drop column if exists unrecorded_alarm_at;
 drop function if exists public.fn_karmi_cap_overshoot(text);
 drop function if exists public.fn_karmi_checkout_resolve(text, text);
 drop function if exists public.fn_karmi_holds_to_check(int);
