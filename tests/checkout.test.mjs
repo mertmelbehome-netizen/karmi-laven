@@ -99,10 +99,33 @@ test('a new family is charged the WAT single price from the DB; mixed cart 3 Gra
   assert.equal(db.rpc('fn_karmi_checkout_attach')[0].body.p_session_id, 'cs_test_1')
 })
 
-test('recovery stays ON for Gradient-only carts even near the cut-off (no global switch-off)', async () => {
-  const { stripe, h } = make({ reserveReply: { ...OK_GRADIENT, short_session: true, recovery_ok: false } })
-  await call(h, { items: [{ bc: G1, qty: 1 }] })
-  assert.equal(stripe.created[0].after_expiration.recovery.enabled, true)
+test('Gradient-only recovery follows recovery_off_from: session on 12 Dec has it, on 13 Dec has none', async () => {
+  // DB answer for a session created 12 Dec (before recovery_off_from) vs 13 Dec (from it)
+  let m = make({ reserveReply: { ...OK_GRADIENT, short_session: true, recovery_ok: true }, now: new Date('2026-12-12T15:00:00Z') })
+  await call(m.h, { items: [{ bc: G1, qty: 1 }] })
+  assert.deepEqual(m.stripe.created[0].after_expiration, { recovery: { enabled: true, allow_promotion_codes: true } })
+  m = make({ reserveReply: { ...OK_GRADIENT, short_session: true, recovery_ok: false }, now: new Date('2026-12-13T15:00:00Z') })
+  await call(m.h, { items: [{ bc: G1, qty: 1 }] })
+  assert.deepEqual(m.stripe.created[0].after_expiration, { recovery: { enabled: false } })
+})
+
+test('webhook: a late Gradient payment is flagged (note + push), never refunded', async () => {
+  const { flagLateOrder } = await import('../api/stripe-webhook.js')
+  for (const flagged of [true, false]) {
+    const calls = []
+    const fetchImpl = async (url, o) => {
+      calls.push(url)
+      if (url.includes('/rpc/fn_karmi_flag_late_order')) {
+        assert.equal(JSON.parse(o.body).p_session_id, 'cs_live_late')
+        return { ok: true, status: 200, json: async () => (flagged ? { flagged: true, reason: 'paid after the Christmas cut-off', order_id: 'o1' } : { flagged: false }) }
+      }
+      return { ok: true, status: 200, json: async () => ({}) }
+    }
+    const d = await flagLateOrder({ id: 'cs_live_late' }, { env: { base: 'https://db.test', key: 'k' }, appUrl: 'https://ops.test', fetchImpl })
+    assert.equal(d.flagged, flagged)
+    assert.equal(calls.some((u) => u.includes('/api/orders/notify')), flagged)
+    assert.ok(!calls.some((u) => /refund|cancel/.test(u)), 'no refund / cancel call')
+  }
 })
 
 test('fail CLOSED: caps DB unreadable with a capped product in the cart → 503, Stripe never called', async () => {

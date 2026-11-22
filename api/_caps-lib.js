@@ -10,6 +10,7 @@
 /** Built-in copy of the Christmas 2026 dates, used ONLY when the DB cannot be read (karmi_online_window is the source). */
 export const FALLBACK_WINDOW = Object.freeze({
   limitFrom: '2026-12-13T00:00:00Z', // 13 Dec 00:00 London (GMT in December)
+  recoveryOffFrom: '2026-12-13T00:00:00Z', // no Stripe recovery link for sessions created from here
   message: "Sorry — we can't take online orders right now. Please try again shortly.",
 });
 
@@ -38,9 +39,10 @@ export function reserve(ref, otherQty, gradientUnits, env) {
 export const attach = (ref, sessionId, env) => rpc('fn_karmi_checkout_attach', { p_ref: ref, p_session_id: sessionId }, env);
 export const release = (ref, env) => rpc('fn_karmi_checkout_release', { p_ref: ref }, env);
 export const status = (barcodes, env) => rpc('fn_karmi_online_status', { p_barcodes: barcodes }, env);
+export const flagLate = (sessionId, env) => rpc('fn_karmi_flag_late_order', { p_session_id: sessionId }, env);
 
 /** Gradient-only cart while the DB is unreadable: allowed before the limit window, refused from it on. */
 export function gradientFallback(now = new Date()) {
   if (now.getTime() >= Date.parse(FALLBACK_WINDOW.limitFrom)) return { ok: false, message: FALLBACK_WINDOW.message };
-  return { ok: true };
+  return { ok: true, recoveryOk: now.getTime() < Date.parse(FALLBACK_WINDOW.recoveryOffFrom) };
 }

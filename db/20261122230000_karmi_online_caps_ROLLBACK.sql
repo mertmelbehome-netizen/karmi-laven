@@ -5,6 +5,7 @@
 -- Data loss: the config rows and the reservation log (karmi_online_holds). Export them first if needed:
 --   select * from karmi_online_caps; select * from karmi_online_products; select * from karmi_online_window;
 
+drop function if exists public.fn_karmi_flag_late_order(text);
 drop function if exists public.fn_karmi_online_reselect(text);
 drop function if exists public.fn_karmi_online_status(text[]);
 drop function if exists public.fn_karmi_checkout_release(uuid);

@@ -15,7 +15,7 @@ create table products (id uuid primary key default gen_random_uuid(), category_n
 create table product_barcodes (barcode text primary key, product_id uuid references products(id));
 create table stock_levels (product_id uuid, store_id text, stockroom_count int);
 create table online_orders (id uuid primary key default gen_random_uuid(), source text, stripe_session_id text,
-  created_at timestamptz not null default now(), items jsonb, store_id text, status text);
+  created_at timestamptz not null default now(), items jsonb, store_id text, status text, fulfilment_note text);
 create table pos_promotion_products (id bigserial primary key, store_id text, barcode text, list_price numeric,
   received_at timestamptz not null default now());
 create table pos_daily_item_sales (store_id text, sale_date date, barcode text, qty numeric);
@@ -72,9 +72,10 @@ test('seed: wave-1 families carry the O&W numbers, all CLOSED (enabled=false); D
     { family: 'stretch_double', max_products: 14, max_units: 92, enabled: false },
   ])
   const { rows: [w] } = await db.query(`select to_char(closes_at at time zone 'Europe/London', 'YYYY-MM-DD HH24:MI') c,
-    to_char(limit_from at time zone 'Europe/London', 'YYYY-MM-DD HH24:MI') f, limit_orders, limit_units, limit_per_day
+    to_char(limit_from at time zone 'Europe/London', 'YYYY-MM-DD HH24:MI') f, limit_orders, limit_units, limit_per_day,
+    to_char(recovery_off_from at time zone 'Europe/London', 'YYYY-MM-DD HH24:MI') r
     from karmi_online_window where id = 'christmas_2026'`)
-  assert.deepEqual(w, { c: '2026-12-16 00:00', f: '2026-12-13 00:00', limit_orders: 15, limit_units: 40, limit_per_day: false })
+  assert.deepEqual(w, { c: '2026-12-16 00:00', f: '2026-12-13 00:00', limit_orders: 15, limit_units: 40, limit_per_day: false, r: '2026-12-13 00:00' })
   // 200 per-product caps in the migration text (merch v2), 1 738 units
   const vals = [...MIG.matchAll(/^\s+\('([^']+)', '([a-z_]+)', (\d+)\)/gm)]
   assert.equal(vals.length, 200)
@@ -253,15 +254,52 @@ test('Christmas: 13–15 Dec style limit — total orders and units incl. open h
   assert.equal((await reserve(db, [], 1)).ok, true) // order 3, units 8
   assert.equal((await reserve(db, [], 1)).error, 'limit_reached') // order 4 > 3
   assert.equal((await status(db, [])).window.open, false)
-  // inside the 24 h before the window: short Stripe sessions; within 30 days: no recovery links
-  const db2 = await fresh()
-  await db2.exec(`insert into karmi_online_window (id, closes_at, limit_from, limit_orders, limit_units, closed_message, limit_message, set_by)
-    values ('x', now() + interval '20 days', now() + interval '10 days', 15, 40, 'c', 'l', 't')`)
-  const g = await reserve(db2, [], 1)
-  assert.deepEqual([g.ok, g.short_session, g.recovery_ok], [true, false, false])
-  await db2.exec(`update karmi_online_window set limit_from = now() + interval '40 days', closes_at = now() + interval '43 days'`)
-  const g2 = await reserve(db2, [], 1)
-  assert.deepEqual([g2.short_session, g2.recovery_ok], [false, true])
+})
+
+test('recovery_off_from: a session created before it (12 Dec) gets a recovery link, one created from it (13 Dec) does not', async () => {
+  const db = await fresh()
+  // "12 Dec": recovery_off_from is still 1 day ahead
+  await db.exec(`insert into karmi_online_window (id, closes_at, limit_from, limit_orders, limit_units, recovery_off_from, closed_message, limit_message, set_by)
+    values ('x', now() + interval '4 days', now() + interval '1 day', 15, 40, now() + interval '1 day', 'c', 'l', 't')`)
+  const before = await reserve(db, [], 1)
+  assert.deepEqual([before.ok, before.recovery_ok, before.short_session], [true, true, true]) // 24 h before the window: short session
+  // "13 Dec": recovery_off_from has passed
+  await db.exec(`update karmi_online_window set recovery_off_from = now() - interval '1 minute', limit_from = now() - interval '1 minute'`)
+  const after = await reserve(db, [], 1)
+  assert.deepEqual([after.ok, after.recovery_ok], [true, false])
+  // a capped product never gets recovery
+  const a = await product(db, { barcodes: ['R1'] }); await configure(db, a); await open(db)
+  await db.exec(`update karmi_online_window set recovery_off_from = now() + interval '1 day'`)
+  assert.equal((await reserve(db, [{ bc: 'R1', qty: 1 }])).recovery_ok, false)
+})
+
+test('late order (e.g. via an old recovery link) is FLAGGED for manual handling, never refunded or cancelled', async () => {
+  const db = await fresh()
+  await db.exec(`insert into karmi_online_window (id, closes_at, limit_from, limit_orders, limit_units, closed_message, limit_message, set_by)
+    values ('x', now() + interval '2 days', now() - interval '2 hours', 2, 40, 'c', 'l', 't')`)
+  await db.exec(`insert into online_orders (source, status, store_id, items, stripe_session_id, created_at, fulfilment_note) values
+    ('karmilaven', 'paid', 'WAT', '[{"bc":"1074","qty":2}]', 'cs_a', now() - interval '90 minutes', null),
+    ('karmilaven', 'paid', 'WAT', '[{"bc":"1074","qty":1}]', 'cs_b', now() - interval '60 minutes', null),
+    ('karmilaven', 'paid', 'WAT', '[{"bc":"1111","qty":1}]', 'cs_c', now() - interval '30 minutes', 'gift wrap')`)
+  const flag = async (sid) => (await db.query(`select fn_karmi_flag_late_order($1) r`, [sid])).rows[0].r
+  assert.equal((await flag('cs_b')).flagged, false, 'order 2 of 2 is within the total')
+  const c = await flag('cs_c')
+  assert.equal(c.flagged, true)
+  assert.match(c.reason, /beyond the Christmas limit \(3 orders/)
+  await flag('cs_c') // idempotent
+  let { rows: [o] } = await db.query(`select status, fulfilment_note from online_orders where stripe_session_id = 'cs_c'`)
+  assert.equal(o.status, 'paid', 'no refund / cancel')
+  assert.equal(o.fulfilment_note.match(/FLAG manual check/g).length, 1)
+  assert.ok(o.fulfilment_note.startsWith('gift wrap | FLAG manual check (no auto-refund): beyond'))
+  // paid after the cut-off
+  await db.exec(`update karmi_online_window set closes_at = now() - interval '10 minutes', limit_from = now() - interval '3 hours'`)
+  await db.exec(`insert into online_orders (source, status, store_id, items, stripe_session_id) values ('karmilaven', 'paid', 'WAT', '[{"bc":"1074","qty":1}]', 'cs_late')`)
+  const late = await flag('cs_late')
+  assert.equal(late.flagged, true)
+  assert.match(late.reason, /after the Christmas cut-off/)
+  ;({ rows: [o] } = await db.query(`select status from online_orders where stripe_session_id = 'cs_late'`))
+  assert.equal(o.status, 'paid')
+  assert.equal((await flag('cs_unknown')).flagged, false)
 })
 
 test('per-day option counts from London midnight', async () => {
@@ -280,7 +318,7 @@ test('security: RLS on, browser roles have no table rights and cannot execute; s
   assert.deepEqual(rows.map((r) => [r.relname, r.relrowsecurity]), [
     ['karmi_online_caps', true], ['karmi_online_holds', true], ['karmi_online_products', true], ['karmi_online_window', true]])
   const { rows: defs } = await db.query(`select proname, prosecdef, array_to_string(proconfig, ',') cfg from pg_proc where proname like 'fn_karmi%'`)
-  assert.equal(defs.length, 12)
+  assert.equal(defs.length, 13)
   for (const d of defs) { assert.equal(d.prosecdef, true, d.proname); assert.match(d.cfg, /search_path=public, pg_temp/, d.proname) }
   for (const role of ['anon', 'authenticated']) {
     await db.exec(`set role ${role}`)

@@ -63,6 +63,7 @@ create table if not exists public.karmi_online_window (
   limit_orders    int check (limit_orders >= 0),
   limit_units     int check (limit_units >= 0),
   limit_per_day   boolean not null default false,   -- false = the limit is a TOTAL for limit_from..closes_at
+  recovery_off_from timestamptz,              -- Stripe recovery links are not issued for sessions created from here
   closed_message  text not null,
   limit_message   text not null,
   set_by          text not null,
@@ -248,8 +249,9 @@ $$;
 
 -- Christmas cut-off and the peak order/unit limit. p_add_* = what this checkout adds (status calls pass 0/0 and are
 -- told "full" when one more order/unit would not fit). Also says whether the Stripe session must be short (holds
--- matter / cut-off near). recovery_ok is informational only: api/checkout.js keeps recovery ON for Gradient-only
--- carts and OFF whenever a capped product is in the cart (command centre, 22 Nov).
+-- matter / cut-off near) and whether a Stripe recovery link may be issued for a session created now
+-- (recovery_ok = false from recovery_off_from until reopen_at; api/checkout.js also never issues one for a cart
+-- with a capped product — command centre, 22 Nov).
 create or replace function public.fn_karmi__window(p_add_units int, p_add_orders int)
 returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
 declare w record; v_since timestamptz; v_orders int; v_units int; v_short boolean := false; v_recovery boolean := true;
@@ -261,7 +263,7 @@ begin
     end if;
     if now() < coalesce(w.reopen_at, 'infinity'::timestamptz) then
       if now() + interval '24 hours' >= coalesce(w.limit_from, w.closes_at) then v_short := true; end if;
-      if now() + interval '30 days'  >= coalesce(w.limit_from, w.closes_at) then v_recovery := false; end if;
+      if w.recovery_off_from is not null and now() >= w.recovery_off_from then v_recovery := false; end if;
     end if;
     if w.limit_from is not null and now() >= w.limit_from and now() < w.closes_at
        and (w.limit_orders is not null or w.limit_units is not null) then
@@ -441,14 +443,54 @@ begin
   return v_n;
 end $$;
 
+-- After payment (webhook): flag an order paid after the cut-off or beyond the 13–15 Dec total, e.g. one paid through
+-- a Stripe recovery link issued before 13 Dec (nothing on our side sees those before payment). NEVER refunds or
+-- cancels: it appends a note to online_orders.fulfilment_note (the existing note column; the refund route appends
+-- there the same way) for manual handling. Idempotent. Returns {flagged, reason, order_id}.
+create or replace function public.fn_karmi_flag_late_order(p_session_id text)
+returns jsonb language plpgsql volatile security definer set search_path = public, pg_temp as $$
+declare o record; w record; v_since timestamptz; v_orders int; v_units int; v_reason text;
+  c_tag constant text := 'FLAG manual check (no auto-refund):';
+begin
+  select * into o from online_orders where stripe_session_id = p_session_id;
+  if not found then return jsonb_build_object('flagged', false, 'reason', 'no_order'); end if;
+  for w in select * from karmi_online_window order by closes_at loop
+    if o.created_at >= w.closes_at and (w.reopen_at is null or o.created_at < w.reopen_at) then
+      v_reason := format('paid after the Christmas cut-off (%s)', to_char(w.closes_at at time zone 'Europe/London', 'DD Mon HH24:MI'));
+      exit;
+    end if;
+    if w.limit_from is not null and o.created_at >= w.limit_from and o.created_at < w.closes_at then
+      v_since := case when w.limit_per_day
+                      then greatest(w.limit_from, (date_trunc('day', o.created_at at time zone 'Europe/London')) at time zone 'Europe/London')
+                      else w.limit_from end;
+      select count(distinct s.order_id)::int, coalesce(sum(s.qty), 0)::int into v_orders, v_units
+        from fn_karmi__sold_lines(v_since) s where s.created_at <= o.created_at;
+      if (w.limit_orders is not null and v_orders > w.limit_orders) or (w.limit_units is not null and v_units > w.limit_units) then
+        v_reason := format('beyond the Christmas limit (%s orders / %s units; limit %s / %s)', v_orders, v_units,
+                           coalesce(w.limit_orders::text, '-'), coalesce(w.limit_units::text, '-'));
+        exit;
+      end if;
+    end if;
+  end loop;
+  if v_reason is null then return jsonb_build_object('flagged', false, 'order_id', o.id); end if;
+  if coalesce(o.fulfilment_note, '') not like '%' || c_tag || '%' then
+    update online_orders
+       set fulfilment_note = concat_ws(' | ', nullif(o.fulfilment_note, ''), c_tag || ' ' || v_reason)
+     where id = o.id;
+  end if;
+  return jsonb_build_object('flagged', true, 'reason', v_reason, 'order_id', o.id);
+end $$;
+
 revoke all on function public.fn_karmi__products_guard(), public.fn_karmi__caps_guard(),
   public.fn_karmi__wat_price_pence(uuid, interval), public.fn_karmi__open_holds(),
   public.fn_karmi__sold_lines(timestamptz), public.fn_karmi__state(text[]), public.fn_karmi__window(int, int),
   public.fn_karmi_checkout_reserve(uuid, jsonb, int), public.fn_karmi_checkout_attach(uuid, text),
-  public.fn_karmi_checkout_release(uuid), public.fn_karmi_online_status(text[]), public.fn_karmi_online_reselect(text)
+  public.fn_karmi_checkout_release(uuid), public.fn_karmi_online_status(text[]), public.fn_karmi_online_reselect(text),
+  public.fn_karmi_flag_late_order(text)
   from public, anon, authenticated;
 grant execute on function public.fn_karmi_checkout_reserve(uuid, jsonb, int), public.fn_karmi_checkout_attach(uuid, text),
-  public.fn_karmi_checkout_release(uuid), public.fn_karmi_online_status(text[]), public.fn_karmi_online_reselect(text)
+  public.fn_karmi_checkout_release(uuid), public.fn_karmi_online_status(text[]), public.fn_karmi_online_reselect(text),
+  public.fn_karmi_flag_late_order(text)
   to service_role;
 
 -- ───────────────────────────── seed config (O&W 22 Nov) ─────────────────────────────
@@ -473,9 +515,11 @@ on conflict (family) do nothing;
 -- Christmas 2026 (owner decision 5): last order Tue 15 Dec (closes 16 Dec 00:00 London); 13–15 Dec at most
 -- 15 orders / 40 units IN TOTAL, all products. Stays closed until reopen_at is set.
 insert into public.karmi_online_window
-  (id, closes_at, reopen_at, limit_from, limit_orders, limit_units, limit_per_day, closed_message, limit_message, set_by)
+  (id, closes_at, reopen_at, limit_from, limit_orders, limit_units, limit_per_day, recovery_off_from,
+   closed_message, limit_message, set_by)
 values
   ('christmas_2026', '2026-12-16 00:00 Europe/London', null, '2026-12-13 00:00 Europe/London', 15, 40, false,
+   '2026-12-13 00:00 Europe/London',
    'Online orders are closed for Christmas. Our last order date was Tuesday 15 December.',
    'Online orders are paused: we have reached our Christmas order limit.',
    'owner 2026-11-22')
