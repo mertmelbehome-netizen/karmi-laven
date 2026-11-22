@@ -31,7 +31,15 @@
 // (server-side stock check, 21 Nov 2026), so the storefront and checkout never disagree.
 import { STORE, computeAvailable } from './_stock-lib.js';
 import { isGradient } from './_gradient.js';
-import { status as capsStatus } from './_caps-lib.js';
+import Stripe from 'stripe';
+import { status as capsStatus, resolveStaleHolds } from './_caps-lib.js';
+
+// Stripe client for the hold resolver only (F1): created on first use, never when the key is not set.
+let stripeClient;
+const getStripe = () => (stripeClient !== undefined ? stripeClient
+  : (stripeClient = process.env.STRIPE_SECRET ? new Stripe(process.env.STRIPE_SECRET) : null));
+/** Test hook: inject a fake Stripe (null = none). */
+export function _setStripe(s) { stripeClient = s; }
 
 export default async function handler(req, res) {
   // short edge/browser cache — stock changes are not second-critical, and this
@@ -125,6 +133,11 @@ export default async function handler(req, res) {
     if (want.length) {
       const other = want.filter((bc) => !isGradient(bc));
       for (const bc of other) delete stock[bc]; // barcode-level maths does not apply to capped products
+      // A paid-but-unrecorded session must not show as free capacity, and an expired one must not block the page
+      // forever when checkout.session.expired was missed (F1). Best effort.
+      if (other.length) {
+        try { await resolveStaleHolds(getStripe(), { base, key }); } catch (e) { /* holds keep counting */ }
+      }
       const st = await capsStatus(other, { base, key });
       const d = st.ok && st.data && typeof st.data === 'object' ? st.data : null;
       if (d && d.window) window = { open: !!d.window.open, message: d.window.message || null };

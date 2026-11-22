@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 import crypto from 'crypto';
-import { attach, release, flagLate } from './_caps-lib.js';
+import { complete, release, flagLate, overshoot, notifyHeaders } from './_caps-lib.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET);
 
@@ -27,7 +27,7 @@ const sha = (v) =>
 
 // Record the paid order into ops v2 (online_orders) so it can be fulfilled from
 // the /orders page (stockroom-first WAT decrement). Idempotent on stripe_session_id.
-async function recordOrder(s) {
+export async function recordOrder(s) {
   const base = process.env.OPS_SUPABASE_URL, key = process.env.OPS_SUPABASE_SERVICE_KEY;
   if (!base || !key) {
     console.warn('[stripe-webhook] recordOrder skipped: OPS_SUPABASE_URL or OPS_SUPABASE_SERVICE_KEY not set');
@@ -128,7 +128,7 @@ async function recordOrder(s) {
     try {
       await fetch(`${appUrl}/api/orders/notify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: notifyHeaders(), // + WEBHOOK_SECRET bearer when set (ops-v2 reads the body only then)
         body: JSON.stringify({
           title: 'Yeni online sipariş — Karmi Laven',
           detail: `${n} bileklik${row.customer_name ? ` · ${row.customer_name}` : ''}`,
@@ -212,7 +212,7 @@ async function handleRefund(charge) {
 // fn_karmi_flag_late_order appends a "FLAG manual check" note to online_orders.fulfilment_note; we log it and push
 // the owner/staff notification. Best effort: it never fails the webhook (the order is already recorded).
 export async function flagLateOrder(s, { env = { base: process.env.OPS_SUPABASE_URL, key: process.env.OPS_SUPABASE_SERVICE_KEY },
-  appUrl = process.env.OPS_APP_URL, fetchImpl = fetch } = {}) {
+  appUrl = process.env.OPS_APP_URL, fetchImpl = fetch, secret = process.env.WEBHOOK_SECRET } = {}) {
   if (!s || !s.id) return null;
   const r = await flagLate(s.id, { ...env, fetchImpl });
   if (!r.ok) { console.warn('[stripe-webhook] late-order check failed (non-fatal):', r.error); return null; }
@@ -223,7 +223,7 @@ export async function flagLateOrder(s, { env = { base: process.env.OPS_SUPABASE_
     try {
       await fetchImpl(`${appUrl}/api/orders/notify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: notifyHeaders(secret),
         body: JSON.stringify({ title: 'Karmi order needs a manual check', detail: `Christmas rule: ${d.reason}`, url: '/orders' }),
       });
     } catch (e) {
@@ -231,6 +231,33 @@ export async function flagLateOrder(s, { env = { base: process.env.OPS_SUPABASE_
     }
   }
   return d;
+}
+
+// Cap overshoot alarm (F1, K&D 23 Nov): after the order row is written, any product / family of this order whose
+// sold + open holds is over its cap (e.g. a webhook so late that the hold had no Stripe session to wait for) is
+// logged and pushed via the same /api/orders/notify route. NEVER refunds or cancels. Best effort.
+export async function alarmOvershoot(s, { env = { base: process.env.OPS_SUPABASE_URL, key: process.env.OPS_SUPABASE_SERVICE_KEY },
+  appUrl = process.env.OPS_APP_URL, fetchImpl = fetch, secret = process.env.WEBHOOK_SECRET } = {}) {
+  if (!s || !s.id) return null;
+  const r = await overshoot(s.id, { ...env, fetchImpl });
+  if (!r.ok) { console.warn('[stripe-webhook] cap overshoot check failed (non-fatal):', r.error); return null; }
+  const over = (r.data && Array.isArray(r.data.over)) ? r.data.over : [];
+  if (!over.length) return { over };
+  const detail = over.slice(0, 5).map((o) => `${o.kind === 'family' ? 'family ' + o.family : (o.family + ' product')}: `
+    + `${o.sold} sold + ${o.held} held > cap ${o.cap}`).join('; ');
+  console.warn('[stripe-webhook] CAP OVERSHOOT (manual check, no refund):', s.id, detail);
+  if (appUrl) {
+    try {
+      await fetchImpl(`${appUrl}/api/orders/notify`, {
+        method: 'POST',
+        headers: notifyHeaders(secret),
+        body: JSON.stringify({ title: 'Karmi online cap exceeded: manual check', detail, url: '/orders' }),
+      });
+    } catch (e) {
+      console.warn('[stripe-webhook] overshoot push failed (non-fatal):', e.message);
+    }
+  }
+  return { over };
 }
 
 // Online caps reservation (db/20261122230000_karmi_online_caps.sql): hold_ref is set by api/checkout.js.
@@ -295,15 +322,19 @@ export default async function handler(req, res) {
       currency = (s.currency || 'gbp').toUpperCase();
     const d = s.customer_details || {};
 
+    // Online caps reservation FIRST: link it to this session (if checkout.js could not) and mark it complete, so it
+    // keeps counting even if writing the order below fails (F1). Once the order row exists the order counts instead.
+    // Best effort, never blocks.
+    await holdCall(complete, s, s.id);
+
     // Record order → ops v2 (stock decrement happens on manual fulfilment)
     await recordOrder(s);
 
-    // Link the online caps reservation to this session (checkout.js does it too; repeat in case that call failed).
-    // Once linked, the order counts as sold and the hold is no longer counted. Best effort, never blocks.
-    await holdCall(attach, s, s.id);
-
     // Late Christmas order (e.g. paid through a recovery link issued before 13 Dec): flag for manual handling.
     await flagLateOrder(s);
+
+    // Cap overshoot (sold + held > cap) → warning + push for manual handling. Never refunds.
+    await alarmOvershoot(s);
 
     // Link buyer email ↔ browsing session (funnel identity). Fully wrapped, best-effort.
     await linkFunnelIdentity(s);
