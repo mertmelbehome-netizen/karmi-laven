@@ -5,6 +5,9 @@
 -- Data loss: the config rows and the reservation log (karmi_online_holds). Export them first if needed:
 --   select * from karmi_online_caps; select * from karmi_online_products; select * from karmi_online_window;
 
+-- added by 20261123150000_karmi_online_caps_k_items.sql (harmless if that file was never applied)
+drop function if exists public.fn_karmi_paid_unrecorded_mark(text[]);
+drop function if exists public.fn_karmi_paid_unrecorded_due(interval, int);
 -- added by 20261123120000_karmi_online_caps_n_items.sql (harmless if that file was never applied)
 drop function if exists public.fn_karmi_paid_unrecorded(interval, int);
 -- added by 20261123090000_karmi_online_caps_f1_f3.sql (harmless if that file was never applied)
