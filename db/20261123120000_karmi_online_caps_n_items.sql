@@ -29,6 +29,16 @@ begin
   end if;
 end $$;
 
+-- ───────────────────────────── re-run guard (K&D #36 review) ─────────────────────────────
+-- Re-running this file after db/20261123150000_karmi_online_caps_k_items.sql would put back the overshoot alarm
+-- without the family name. Refuse; roll that one back first.
+do $$
+begin
+  if to_regprocedure('public.fn_karmi_paid_unrecorded_mark(text[])') is not null then
+    raise exception 'karmi_online_caps N-items: 20261123150000_karmi_online_caps_k_items is applied; re-running this file would revert it. Roll it back first.';
+  end if;
+end $$;
+
 -- ───────────────────────────── holds: check / alarm stamps ─────────────────────────────
 alter table public.karmi_online_holds add column if not exists last_checked_at     timestamptz;  -- N1
 alter table public.karmi_online_holds add column if not exists unrecorded_alarm_at timestamptz;  -- N3

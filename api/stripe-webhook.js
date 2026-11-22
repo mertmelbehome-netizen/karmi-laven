@@ -243,10 +243,12 @@ export async function alarmOvershoot(s, { env = { base: process.env.OPS_SUPABASE
   if (!r.ok) { console.warn('[stripe-webhook] cap overshoot check failed (non-fatal):', r.error); return null; }
   const over = (r.data && Array.isArray(r.data.over)) ? r.data.over : [];
   if (!over.length) return { over };
-  // N6: name the product (customer-safe line name + the ordered barcode) so staff can tell which one it is.
+  // N6: name the product (customer-safe line name + the ordered barcode) so staff can tell which one it is;
+  // K3: and the family it belongs to (family_name = display_label from the K-items migration, else the family key).
+  const fam = (name, key) => (name ? `${name} (${key})` : key);
   const detail = over.slice(0, 5).map((o) => `${o.kind === 'family'
-      ? `family ${o.name ? `${o.name} (${o.family})` : o.family}`
-      : `${o.name || o.family + ' product'}${o.bc ? ` (${o.bc})` : ''}`}: `
+      ? `family ${fam(o.name, o.family)}`
+      : `${o.name || o.family + ' product'}${o.bc ? ` (${o.bc})` : ''} in ${fam(o.family_name, o.family)}`}: `
     + `${o.sold} sold + ${o.held} held > cap ${o.cap}`).join('; ');
   console.warn('[stripe-webhook] CAP OVERSHOOT (manual check, no refund):', s.id, detail);
   if (appUrl) {
