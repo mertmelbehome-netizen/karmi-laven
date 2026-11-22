@@ -43,34 +43,82 @@ export const flagLate = (sessionId, env) => rpc('fn_karmi_flag_late_order', { p_
 export const complete = (ref, sessionId, env) => rpc('fn_karmi_checkout_complete', { p_ref: ref, p_session_id: sessionId }, env);
 export const overshoot = (sessionId, env) => rpc('fn_karmi_cap_overshoot', { p_session_id: sessionId }, env);
 
+/** Rejects after `ms` (the underlying call is not cancelled; its late answer is ignored). */
+export function withTimeout(promise, ms) {
+  let t;
+  const timer = new Promise((_, reject) => {
+    t = setTimeout(() => reject(Object.assign(new Error(`timed out after ${ms} ms`), { code: 'caps_timeout' })), ms);
+  });
+  return Promise.race([promise, timer]).finally(() => clearTimeout(t));
+}
+
+/**
+ * Resolver limits (N2, K&D 23 Nov). Every Stripe lookup has its own short timeout and no retries, at most
+ * `concurrency` run at once, and the whole resolver (DB calls included) returns after `budgetMs` at the latest.
+ * Anything not answered in time is simply not reported: that hold keeps counting (fail closed for caps); the
+ * caller then admits / reads as usual, so a slow Stripe never blocks a Gradient-only cart.
+ */
+export const RESOLVER_DEFAULTS = Object.freeze({
+  max: 10, concurrency: 3, perCallMs: 2500, budgetMs: 3000,
+});
+
 /**
  * F1 (K&D 23 Nov): a hold attached to a short Stripe session keeps counting after its 40 min until Stripe's outcome
- * is known. Ask Stripe about the ones past their time (fn_karmi_holds_to_check) and report each outcome:
- * 'complete' → keeps counting until the webhook writes the order; 'expired' → released. Any error → nothing is
- * reported and the hold keeps counting (under-sell, never over-sell). Best effort: never throws.
+ * is known. Ask Stripe about the ones past their time (fn_karmi_holds_to_check)
+ * and report each outcome: 'complete' → keeps counting until the webhook writes the order; 'expired' → released.
+ * Error / timeout → nothing is reported and the hold keeps counting (under-sell, never over-sell). Best effort:
+ * never throws, and returns within opts.budgetMs (N2).
  */
-export async function resolveStaleHolds(stripe, env, { max = 10 } = {}) {
-  const out = { checked: 0, complete: 0, expired: 0 };
-  if (!stripe || !stripe.checkout || !stripe.checkout.sessions || !stripe.checkout.sessions.retrieve) return out;
-  const r = await rpc('fn_karmi_holds_to_check', { p_limit: max }, env);
-  if (!r.ok || !Array.isArray(r.data)) return out;
-  for (const row of r.data.slice(0, max)) {
-    const sid = typeof row === 'string' ? row : row && (row.fn_karmi_holds_to_check || row.stripe_session_id);
-    if (!sid) continue;
+export async function resolveStaleHolds(stripe, env, opts = {}) {
+  const o = { ...RESOLVER_DEFAULTS, ...opts };
+  const out = { checked: 0, complete: 0, expired: 0, failed: 0, timedOut: 0, budgetHit: false };
+  const deadline = Date.now() + o.budgetMs;
+
+  const lookup = async (sid) => {
+    const left = deadline - Date.now();
+    if (left <= 0) return;
+    const ms = Math.max(1, Math.min(o.perCallMs, left));
     let outcome = null;
     try {
-      const s = await stripe.checkout.sessions.retrieve(sid);
+      const s = await withTimeout(stripe.checkout.sessions.retrieve(sid, {}, { timeout: ms, maxNetworkRetries: 0 }), ms);
       if (s && s.status === 'complete') outcome = 'complete';
       else if (s && s.status === 'expired') outcome = 'expired';
     } catch (e) {
+      if (e && e.code === 'caps_timeout') out.timedOut++;
+      else out.failed++;
       console.warn('[caps] Stripe session lookup failed; hold keeps counting:', (e && e.message) || e);
     }
     out.checked++;
-    if (!outcome) continue;
+    if (!outcome) return;
     const w = await rpc('fn_karmi_checkout_resolve', { p_session_id: sid, p_outcome: outcome }, env);
     if (w.ok) out[outcome]++;
+  };
+
+  const work = async () => {
+    const canAsk = !!(stripe && stripe.checkout && stripe.checkout.sessions && stripe.checkout.sessions.retrieve);
+    if (canAsk) {
+      const r = await rpc('fn_karmi_holds_to_check', { p_limit: o.max }, env);
+      if (r.ok && Array.isArray(r.data)) {
+        const queue = r.data.slice(0, o.max)
+          .map((row) => (typeof row === 'string' ? row : row && (row.fn_karmi_holds_to_check || row.stripe_session_id)))
+          .filter(Boolean);
+        const worker = async () => {
+          while (queue.length && Date.now() < deadline) await lookup(queue.shift());
+        };
+        await Promise.all(Array.from({ length: Math.max(1, Math.min(o.concurrency, queue.length)) }, worker));
+      }
+    }
+  };
+
+  let t;
+  const budget = new Promise((resolve) => { t = setTimeout(() => { out.budgetHit = true; resolve(); }, o.budgetMs); });
+  try {
+    await Promise.race([work().catch((e) => console.warn('[caps] hold resolver error (holds keep counting):', (e && e.message) || e)), budget]);
+  } finally {
+    clearTimeout(t);
   }
-  return out;
+  if (out.budgetHit) console.warn('[caps] hold resolver stopped at its time budget; unanswered holds keep counting');
+  return { ...out };
 }
 
 /** Headers for ops-v2 /api/orders/notify: the route reads the body only with the WEBHOOK_SECRET bearer (F6). */

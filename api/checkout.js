@@ -72,7 +72,10 @@ export function createHandler({
       // 2) Admission: Christmas cut-off + 13–15 Dec limit (all carts), caps/stock/WAT price (non-Gradient units).
       //    First settle holds whose Stripe session ended but whose outcome is not known yet (late / failed webhook):
       //    a paid one keeps counting, an expired one is freed (F1). Best effort; unknown ones keep counting.
-      try { await resolveStaleHolds(stripe, db); } catch (e) { console.warn('checkout hold resolver skipped:', e.message); }
+      //    N2: at most 3 sessions, 2.5 s per Stripe call, 3 at once, and the whole step returns within its budget
+      //    (1.5 s for a Gradient-only cart, so a slow Stripe never holds it up); unanswered holds keep counting.
+      try { await resolveStaleHolds(stripe, db, { max: 3, budgetMs: hasOther ? 3000 : 1500 }); }
+      catch (e) { console.warn('checkout hold resolver skipped:', e.message); }
       const ref = randomUUID();
       const rv = await reserve(ref, otherQty, gradientUnits, db);
       let held = false, shortSession = false, recoveryOk = false;

@@ -212,8 +212,8 @@ test('/api/stock: non-Gradient barcodes get sellable + WAT price + real stock; D
 // ───────────────────────────── F1 resolver, overshoot alarm, F6 notify bearer ─────────────────────────────
 
 /** fake ops DB that also answers the F1 RPCs; toCheck = session ids fn_karmi_holds_to_check returns */
-function fakeDbF1({ toCheck = [], over = [], flagged = false } = {}) {
-  const base = fakeDb({ reserveReply: OK_GRADIENT })
+function fakeDbF1({ toCheck = [], over = [], flagged = false, reserveReply = OK_GRADIENT } = {}) {
+  const base = fakeDb({ reserveReply })
   const fn = async (url, opts = {}) => {
     if (url.includes('/rpc/fn_karmi_holds_to_check')) {
       base.calls.push({ url, body: JSON.parse(opts.body) })
@@ -259,7 +259,9 @@ test('F1 checkout: before admission, holds past their time are settled from Stri
   const h = createHandler({ stripe, env, fetchImpl: db, now: () => new Date('2026-11-25T12:00:00Z') })
   const r = await call(h, { items: [{ bc: G1, qty: 1 }] })
   assert.equal(r.status, 200)
-  assert.deepEqual(stripe.retrieved, ['cs_paid', 'cs_gone', 'cs_err', 'cs_open'])
+  // N2: the checkout path asks Stripe about at most 3 sessions (the 4th waits for the next call / /api/stock)
+  assert.deepEqual(db.rpc('fn_karmi_holds_to_check')[0].body.p_limit, 3)
+  assert.deepEqual(stripe.retrieved, ['cs_paid', 'cs_gone', 'cs_err'])
   assert.deepEqual(db.rpc('fn_karmi_checkout_resolve').map((c) => [c.body.p_session_id, c.body.p_outcome]),
     [['cs_paid', 'complete'], ['cs_gone', 'expired']], 'unknown outcomes are not reported: those holds keep counting')
   const order = db.calls.map((c) => c.url).filter((u) => /holds_to_check|checkout_reserve/.test(u))
@@ -350,5 +352,119 @@ test('F6: every /api/orders/notify push sends the WEBHOOK_SECRET bearer when it 
     console.warn = realWarn; console.log = realLog; console.error = realErr
     for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k]
     Object.assign(process.env, saved)
+  }
+})
+
+// ───────────────────────────── N2: Stripe latency off the critical path (K&D review of #35) ─────────────────────────────
+
+const hang = () => new Promise(() => {})
+const NON_GRADIENT_OK = { ok: true, ref: 'r', short_session: true, recovery_ok: false,
+  lines: [{ bc: '6101', product_id: 'p', family: 'stretch_charm', price_pence: 599, name: 'Stretch Charm' }] }
+
+test('N2 resolver: each Stripe lookup has a short timeout and no retries; a hanging one is not reported (keeps counting)', async () => {
+  const { resolveStaleHolds } = await import('../api/_caps-lib.js')
+  const db = fakeDbF1({ toCheck: ['cs_hang', 'cs_gone', 'cs_paid'] })
+  const seenOpts = []
+  const stripe = fakeStripe()
+  stripe.checkout.sessions.retrieve = async (id, params, opts) => {
+    seenOpts.push(opts)
+    if (id === 'cs_hang') return hang()
+    return { id, status: id === 'cs_gone' ? 'expired' : 'complete' }
+  }
+  const t0 = Date.now()
+  const out = await resolveStaleHolds(stripe, { base: 'https://db.test', key: 'k', fetchImpl: db }, { perCallMs: 80, budgetMs: 2000 })
+  const ms = Date.now() - t0
+  assert.ok(ms < 1000, `returned after ${ms} ms`)
+  assert.equal(out.timedOut, 1)
+  assert.equal(out.budgetHit, false)
+  assert.deepEqual([out.complete, out.expired], [1, 1])
+  assert.deepEqual(db.rpc('fn_karmi_checkout_resolve').map((c) => c.body.p_session_id).sort(), ['cs_gone', 'cs_paid'])
+  for (const o of seenOpts) { assert.equal(o.maxNetworkRetries, 0); assert.ok(o.timeout > 0 && o.timeout <= 80) }
+})
+
+test('N2 resolver: lookups run in parallel, never more than `concurrency` at once', async () => {
+  const { resolveStaleHolds } = await import('../api/_caps-lib.js')
+  const ids = Array.from({ length: 10 }, (_, i) => 'cs_' + i)
+  const db = fakeDbF1({ toCheck: ids })
+  let inFlight = 0, peak = 0
+  const stripe = fakeStripe()
+  stripe.checkout.sessions.retrieve = async (id) => {
+    inFlight++; peak = Math.max(peak, inFlight)
+    await new Promise((r) => setTimeout(r, 40))
+    inFlight--
+    return { id, status: 'expired' }
+  }
+  const t0 = Date.now()
+  const out = await resolveStaleHolds(stripe, { base: 'https://db.test', key: 'k', fetchImpl: db }, { concurrency: 3, budgetMs: 5000 })
+  assert.equal(out.checked, 10)
+  assert.equal(out.expired, 10)
+  assert.equal(peak, 3)
+  assert.ok(Date.now() - t0 < 10 * 40, 'faster than one by one')
+})
+
+test('N2 resolver: the whole step returns at its budget even when every call (DB included) hangs; never throws', async () => {
+  const { resolveStaleHolds } = await import('../api/_caps-lib.js')
+  const stripe = fakeStripe()
+  stripe.checkout.sessions.retrieve = hang
+  // Stripe hangs
+  let db = fakeDbF1({ toCheck: ['a', 'b', 'c', 'd', 'e'] })
+  let t0 = Date.now()
+  let out = await resolveStaleHolds(stripe, { base: 'https://db.test', key: 'k', fetchImpl: db }, { perCallMs: 5000, budgetMs: 150 })
+  assert.ok(Date.now() - t0 < 600)
+  assert.equal(db.rpc('fn_karmi_checkout_resolve').length, 0, 'nothing reported: every hold keeps counting')
+  // the DB call itself hangs
+  const dbHang = async () => hang()
+  t0 = Date.now()
+  out = await resolveStaleHolds(stripe, { base: 'https://db.test', key: 'k', fetchImpl: dbHang }, { budgetMs: 150 })
+  assert.ok(Date.now() - t0 < 600)
+  assert.equal(out.budgetHit, true)
+})
+
+test('N2 checkout: Stripe hanging never blocks a Gradient-only cart (≈1.5 s budget) and a capped cart still goes to reserve', async () => {
+  const stripe = fakeStripe()
+  stripe.checkout.sessions.retrieve = hang
+  // Gradient-only
+  let db = fakeDbF1({ toCheck: ['cs_a', 'cs_b', 'cs_c'] })
+  let h = createHandler({ stripe, env, fetchImpl: db, now: () => new Date('2026-11-25T12:00:00Z') })
+  let t0 = Date.now()
+  let r = await call(h, { items: [{ bc: G1, qty: 1 }] })
+  let ms = Date.now() - t0
+  assert.equal(r.status, 200)
+  assert.ok(ms >= 1000 && ms < 2500, `gradient-only checkout took ${ms} ms`)
+  assert.equal(db.rpc('fn_karmi_checkout_resolve').length, 0)
+  assert.equal(db.rpc('fn_karmi_checkout_reserve').length, 1)
+  // capped product: admission still decided by reserve (stale holds keep counting there = fail closed)
+  db = fakeDbF1({ toCheck: ['cs_a'], reserveReply: NON_GRADIENT_OK })
+  h = createHandler({ stripe, env, fetchImpl: db, now: () => new Date('2026-11-25T12:00:00Z') })
+  t0 = Date.now()
+  r = await call(h, { items: [{ bc: '6101', qty: 1 }] })
+  ms = Date.now() - t0
+  assert.equal(r.status, 200)
+  assert.ok(ms < 4000, `capped checkout took ${ms} ms`)
+  assert.equal(db.rpc('fn_karmi_checkout_reserve').length, 1)
+})
+
+test('N2 /api/stock: a hanging Stripe does not hang the storefront stock call', async () => {
+  process.env.OPS_SUPABASE_URL = 'https://db.test'
+  process.env.OPS_SUPABASE_SERVICE_KEY = 'k'
+  const { _setStripe } = await import('../api/stock.js')
+  const real = globalThis.fetch
+  const db = fakeDbF1({ toCheck: ['cs_a', 'cs_b'] })
+  try {
+    globalThis.fetch = db
+    const stripe = fakeStripe()
+    stripe.checkout.sessions.retrieve = hang
+    _setStripe(stripe)
+    let body
+    const res = { setHeader() {}, status() { return this }, json(b) { body = b; return this } }
+    const t0 = Date.now()
+    await stockHandler({ query: { bc: '6101' } }, res)
+    const ms = Date.now() - t0
+    assert.ok(ms < 4000, `stock call took ${ms} ms`)
+    assert.equal(body.ok, true, body.error)
+    assert.equal(body.sellable['6101'], 4)
+  } finally {
+    globalThis.fetch = real
+    _setStripe(undefined)
   }
 })

@@ -136,7 +136,8 @@ export default async function handler(req, res) {
       // A paid-but-unrecorded session must not show as free capacity, and an expired one must not block the page
       // forever when checkout.session.expired was missed (F1). Best effort.
       if (other.length) {
-        try { await resolveStaleHolds(getStripe(), { base, key }); } catch (e) { /* holds keep counting */ }
+        // N2: short per-call Stripe timeout, 3 at once, whole step within 3 s; unanswered holds keep counting.
+        try { await resolveStaleHolds(getStripe(), { base, key }, { max: 10, budgetMs: 3000 }); } catch (e) { /* holds keep counting */ }
       }
       const st = await capsStatus(other, { base, key });
       const d = st.ok && st.data && typeof st.data === 'object' ? st.data : null;
