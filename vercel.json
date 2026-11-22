@@ -4,6 +4,17 @@
       "memory": 256
     }
   },
+  "redirects": [
+    {
+      "source": "/:path((?!api/).*)",
+      "has": [{ "type": "host", "value": "karmilaven.com" }],
+      "destination": "https://www.karmilaven.com/:path",
+      "statusCode": 301
+    },
+    { "source": "/privacy", "destination": "/privacy.html", "statusCode": 301 },
+    { "source": "/terms", "destination": "/terms.html", "statusCode": 301 },
+    { "source": "/returns", "destination": "/shipping-returns.html", "statusCode": 301 }
+  ],
   "rewrites": [
     { "source": "/review", "destination": "/review.html" }
   ]
