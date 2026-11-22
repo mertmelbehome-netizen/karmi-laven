@@ -74,7 +74,7 @@ test('Gradient Edit unchanged: 5 = £12, 6 = £14.99; promo codes on; client nam
     assert.equal(p.allow_promotion_codes, true)
     assert.ok(p.line_items.every((l) => !/Diamond/.test(l.price_data.product_data.name)))
     assert.equal(p.line_items[0].price_data.product_data.name, `${G1} · ${GRADIENT[G1]}`)
-    assert.ok(p.after_expiration, 'recovery stays on when the DB says it is safe')
+    assert.deepEqual(p.after_expiration, { recovery: { enabled: true, allow_promotion_codes: true } }, 'Gradient-only: recovery ON')
     assert.equal(p.expires_at, undefined)
   }
 })
@@ -90,13 +90,19 @@ test('a new family is charged the WAT single price from the DB; mixed cart 3 Gra
   const line = p.line_items.find((l) => l.price_data.product_data.name.startsWith('6101'))
   assert.deepEqual([line.price_data.unit_amount, line.price_data.product_data.name], [599, '6101 · Stretch Charm — Rose'])
   assert.equal(p.allow_promotion_codes, false, 'no promo codes once a capped product is in the cart')
-  assert.equal(p.after_expiration, undefined, 'no recovery link that would skip the caps')
+  assert.deepEqual(p.after_expiration, { recovery: { enabled: false } }, 'capped product in the cart: recovery OFF')
   assert.ok(p.expires_at > Date.parse('2026-11-25T12:30:00Z') / 1000 && p.expires_at <= Date.parse('2026-11-25T12:31:00Z') / 1000)
   assert.ok(p.metadata.hold_ref)
   const res = db.rpc('fn_karmi_checkout_reserve')[0].body
   assert.deepEqual(res.p_items, [{ bc: '6101', qty: 1 }])
   assert.equal(res.p_gradient_units, 3)
   assert.equal(db.rpc('fn_karmi_checkout_attach')[0].body.p_session_id, 'cs_test_1')
+})
+
+test('recovery stays ON for Gradient-only carts even near the cut-off (no global switch-off)', async () => {
+  const { stripe, h } = make({ reserveReply: { ...OK_GRADIENT, short_session: true, recovery_ok: false } })
+  await call(h, { items: [{ bc: G1, qty: 1 }] })
+  assert.equal(stripe.created[0].after_expiration.recovery.enabled, true)
 })
 
 test('fail CLOSED: caps DB unreadable with a capped product in the cart → 503, Stripe never called', async () => {
@@ -124,7 +130,7 @@ test('Gradient-only cart with the DB down: fail open before 13 Dec, refused from
   let r = await call(m.h, { items: [{ bc: G1, qty: 2 }] })
   assert.equal(r.status, 200)
   assert.equal(total(m.stripe.created[0]), 550)
-  assert.equal(m.stripe.created[0].after_expiration, undefined)
+  assert.equal(m.stripe.created[0].after_expiration.recovery.enabled, true)
   m = make({ reserveReply: 'error', now: new Date('2026-12-13T00:00:00Z') })
   r = await call(m.h, { items: [{ bc: G1, qty: 2 }] })
   assert.equal(r.status, 503)

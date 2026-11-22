@@ -72,7 +72,7 @@ export function createHandler({
       // 2) Admission: Christmas cut-off + 13–15 Dec limit (all carts), caps/stock/WAT price (non-Gradient units).
       const ref = randomUUID();
       const rv = await reserve(ref, otherQty, gradientUnits, db);
-      let held = false, shortSession = false, recoveryOk = false;
+      let held = false, shortSession = false;
       const lineByBc = {};
       if (rv.ok && rv.data && typeof rv.data === 'object' && typeof rv.data.ok === 'boolean') {
         const d = rv.data;
@@ -83,7 +83,6 @@ export function createHandler({
         }
         held = true;
         shortSession = !!d.short_session;
-        recoveryOk = !!d.recovery_ok;
         for (const l of d.lines || []) lineByBc[l.bc] = l;
       } else {
         console.warn('checkout caps check failed:', rv.error || 'unexpected response');
@@ -135,8 +134,13 @@ export function createHandler({
         : { shipping_rate_data: { display_name: 'UK standard shipping', type: 'fixed_amount', fixed_amount: { amount: 149, currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } } ];
       const origin = req.headers.origin || 'https://karmilaven.com';
       // Promotion codes apply to the whole Stripe session, so they stay on ONLY for Gradient-Edit-only carts
-      // (plan §3.3 / K&D 3b). Recovery links re-create a session that skips every check above, so they are on only
-      // when the DB says no cut-off/limit is within reach and the cart has no capped product.
+      // (plan §3.3 / K&D 3b).
+      // Recovery links (command centre, 22 Nov): Stripe re-creates a recovered session ITSELF from after_expiration,
+      // and this hosted-Checkout integration has no server hook between that re-creation and payment (the first
+      // server event is checkout.session.completed, after the money is taken). So a recovered session cannot be
+      // re-validated before payment. Fallback: recovery OFF only for carts with a capped (non-Gradient) product;
+      // Gradient-only carts keep recovery ON as before (accepted residual: such a link can be paid after the
+      // cut-off or past the 13–15 Dec limit).
       const gradientOnly = !hasOther;
       const params = {
         mode: 'payment',
@@ -154,7 +158,9 @@ export function createHandler({
         cancel_url: `${origin}/?checkout=cancel`,
       };
       // Abandoned-checkout recovery: owner toggles "recovery emails" in the Stripe Dashboard.
-      if (recoveryOk && gradientOnly) params.after_expiration = { recovery: { enabled: true, allow_promotion_codes: true } };
+      params.after_expiration = gradientOnly
+        ? { recovery: { enabled: true, allow_promotion_codes: true } }
+        : { recovery: { enabled: false } };
       // A held checkout must not outlive its reservation (holds expire after 40 min; Stripe minimum is 30 min).
       if (shortSession) params.expires_at = Math.floor(now().getTime() / 1000) + 31 * 60;
 

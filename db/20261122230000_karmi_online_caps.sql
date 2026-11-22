@@ -248,7 +248,8 @@ $$;
 
 -- Christmas cut-off and the peak order/unit limit. p_add_* = what this checkout adds (status calls pass 0/0 and are
 -- told "full" when one more order/unit would not fit). Also says whether the Stripe session must be short (holds
--- matter / cut-off near) and whether Stripe recovery links are safe (a recovered session skips every check here).
+-- matter / cut-off near). recovery_ok is informational only: api/checkout.js keeps recovery ON for Gradient-only
+-- carts and OFF whenever a capped product is in the cart (command centre, 22 Nov).
 create or replace function public.fn_karmi__window(p_add_units int, p_add_orders int)
 returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
 declare w record; v_since timestamptz; v_orders int; v_units int; v_short boolean := false; v_recovery boolean := true;
