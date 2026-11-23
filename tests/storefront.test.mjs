@@ -76,7 +76,7 @@ test('flag OFF: the boot switch loads nothing (no extra request, page as before)
 
 test('flag ON: storefront css + js load; ?sf=families works only on localhost or when the server says preview', () => {
   const on = boot({ storefront: { families: true, sold_out: 'last', refresh_s: 60 }, ladders: LIVE })
-  assert.deepEqual(on.added, ['/css/storefront.css?v=pr2', '/js/storefront.js?v=pr2'])
+  assert.deepEqual(on.added, ['/css/storefront.css?v=pr3', '/js/storefront.js?v=pr3'])
   assert.equal(on.cfg.families, true); assert.equal(on.cfg.progress, false)
   assert.equal(boot({ storefront: { families: false, preview: true } }, 'https://karmi-laven-git-feat-x.vercel.app/?sf=families').cfg.families, true)
   // production (incl. prod's *.vercel.app alias): the server says preview:false -> ?sf= does nothing (Komuta 23 Nov)
@@ -84,13 +84,23 @@ test('flag ON: storefront css + js load; ?sf=families works only on localhost or
   assert.equal(boot({ storefront: { families: false } }, 'https://www.karmilaven.com/?sf=families').cfg, undefined)
   assert.equal(boot({}, 'http://127.0.0.1:8790/?sf=families').cfg.families, true)
   const prog = boot({ storefront: { families: false }, ladders: A })
-  assert.deepEqual(prog.added, ['/js/storefront.js?v=pr2'], 'progress line alone: js only, no new styles')
+  assert.deepEqual(prog.added, ['/js/storefront.js?v=pr3'], 'progress line alone: js only, no new styles')
   assert.equal(prog.cfg.progress, true)
 })
 
-test('index.html loads the storefront files ONLY through the boot switch', () => {
+test('index.html loads storefront.js + cards.json ONLY through the boot switch; storefront.css only as the static <head> link', () => {
   const outside = HTML.replace(/\/\*KL-SF-BOOT-START\*\/[\s\S]*?\/\*KL-SF-BOOT-END\*\//, '')
-  assert.ok(!/['"]\/(js\/storefront\.js|css\/storefront\.css|data\/cards\.json)/.test(outside))
+  assert.ok(!/['"]\/(js\/storefront\.js|data\/cards\.json)/.test(outside))
+  // CLS fix (18_cls_prepaint): the css is linked in <head> so the families layout exists before the first paint; it is
+  // inert without html.kl-v2 (every rule is scoped to html.kl-v2 or to kl-* elements that only the families view adds)
+  const links = [...outside.matchAll(/['"]\/css\/storefront\.css[^'"]*['"]/g)]
+  assert.equal(links.length, 1)
+  assert.ok(outside.indexOf('/css/storefront.css') < outside.indexOf('</head>'))
+  const css = readFileSync(new URL('../css/storefront.css', import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  for (const r of css.replace(/@media[^{]*\{/g, '').split('}')) {
+    const sel = r.split('{')[0].trim(); if (!sel || !r.includes('{')) continue
+    for (const one of sel.split(',')) assert.match(one.trim(), /^html\.kl-v2(?![\w-])|^\.kl-|^@/, 'unscoped rule: ' + one.trim())
+  }
 })
 
 // ---------- 2. storefront logic (numbers from the table only) ----------

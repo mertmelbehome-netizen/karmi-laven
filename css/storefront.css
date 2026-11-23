@@ -1,4 +1,4 @@
-/* Karmi Laven storefront PR-2 (loaded only when the storefront flag is on; see api/_storefront.js).
+/* Karmi Laven storefront PR-2 (linked statically in index.html <head> since the CLS fix; inert without html.kl-v2).
    Same visual language as the page (vitrin 01 §2): cream, hairlines, square corners, serif names. Every rule below is
    scoped to html.kl-v2 or to the new kl-* elements, so nothing here touches the page while the flag is off. */
 
@@ -80,6 +80,10 @@ html.kl-v2 .swatchbar{top:var(--kl-tb-h,54px)}
 /* hero: H1 + one short line (F3); the eyebrow and buttons are hidden by sfLayout */
 html.kl-v2 .hero-copy p{margin-bottom:0}
 html.kl-v2 .hero .cta[hidden], html.kl-v2 .hero-copy .k[hidden]{display:none}
+/* pre-paint (index.html KL-SF-LAYOUT runs while the page is parsed; this file is linked in <head>): the nodes sfLayout
+   moves out of the hero are never painted there first, so nothing jumps (CLS, morning_review/18_cls_prepaint) */
+html.kl-v2 .hero .launch, html.kl-v2 .hero .launchfee, html.kl-v2 .hero .kl-xmas-hero, html.kl-v2 .hero-copy .stars,
+html.kl-v2 .hero .cta, html.kl-v2 .hero-copy .k, html.kl-v2 body > .kl-trust{display:none}
 /* price, delivery line, Christmas notice, Melbe Home line, trust strip and company/VAT line: one block after the grids (F3) */
 .kl-info{text-align:center; padding-top:28px; padding-bottom:36px}
 .kl-info .launch{font-size:12.5px; letter-spacing:.06em; color:var(--soft)}
