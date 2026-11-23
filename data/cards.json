@@ -371,6 +371,72 @@
    "ai_image": true
   },
   {
+   "barcode": "6002",
+   "tab": "bracelets",
+   "family": "Stretch Bracelet",
+   "line": "Stretch Bracelet",
+   "name": "Lotus Pink",
+   "swatch": "#e9a9bf",
+   "photo": "/img/fam/6002.jpg",
+   "photo_qc": true,
+   "ai_image": true
+  },
+  {
+   "barcode": "6009",
+   "tab": "bracelets",
+   "family": "Stretch Bracelet",
+   "line": "Stretch Bracelet",
+   "name": "Baby Pink & Gold",
+   "swatch": "#f3cbd7",
+   "photo": "/img/fam/6009.jpg",
+   "photo_qc": true,
+   "ai_image": true
+  },
+  {
+   "barcode": "6011",
+   "tab": "bracelets",
+   "family": "Stretch Bracelet",
+   "line": "Stretch Bracelet",
+   "name": "Sky Blue",
+   "swatch": "#bbd8ef",
+   "photo": "/img/fam/6011.jpg",
+   "photo_qc": true,
+   "ai_image": true
+  },
+  {
+   "barcode": "6017",
+   "tab": "bracelets",
+   "family": "Stretch Bracelet",
+   "line": "Stretch Bracelet",
+   "name": "Turquoise Starfish",
+   "swatch": "#3fb6ad",
+   "photo": "/img/fam/6017.jpg",
+   "photo_qc": true,
+   "ai_image": true
+  },
+  {
+   "barcode": "6042",
+   "tab": "bracelets",
+   "family": "Stretch Bracelet",
+   "line": "Stretch Bracelet",
+   "name": "White",
+   "swatch": "#f2f0ea",
+   "photo": "/img/fam/6042.jpg",
+   "photo_qc": true,
+   "ai_image": true
+  },
+  {
+   "barcode": "6058",
+   "tab": "bracelets",
+   "family": "Stretch Bracelet",
+   "line": "Stretch Bracelet",
+   "name": "Clear & Gold",
+   "swatch": "#e8ecee",
+   "photo": "/img/fam/6058.jpg",
+   "photo_qc": true,
+   "ai_image": true
+  },
+  {
    "barcode": "80012",
    "tab": "bracelets",
    "family": "Bangle",
