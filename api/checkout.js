@@ -2,18 +2,22 @@ import Stripe from 'stripe';
 import { randomUUID } from 'crypto';
 import { fetchAvailable, shortages } from './_stock-lib.js';
 import { GRADIENT, isGradient } from './_gradient.js';
-import { priceUnits, freeShipping } from './_pricing.js';
+import { priceUnits, freeShipping, shippingFeeP, LADDERS } from './_pricing.js';
 import { reserve, attach, release, gradientFallback, resolveStaleHolds, MSG_UNAVAILABLE } from './_caps-lib.js';
 
 const clampN = n => Math.max(1, Math.min(99, parseInt(n) || 1));
+export const MSG_PRICING_UNAVAILABLE = 'Checkout is unavailable right now, please try again shortly.';
 
 // Prices are decided HERE, never by the browser (22 Nov 2026, owner decision 1):
-//   Gradient Edit (api/_gradient.js) -> £2.99 multi-buy ladder on the Gradient Edit count only;
+//   Gradient Edit (api/_gradient.js) -> the 'gradient' pool of the ladder table (ladders.json; today £2.99 1/2/3/5);
 //   any other product               -> its WAT till single price from the DB, admitted by fn_karmi_checkout_reserve
-//                                      (caps, stock, Christmas cut-off, 13–15 Dec limit; one locked transaction).
+//                                      (caps, stock, Christmas cut-off, 13–15 Dec limit; one locked transaction),
+//                                      on the ladder of its price pool when ladders.json has one, else n × single.
 // The client's `name` and any price it sends are ignored; Stripe line names come from the server.
+// `ladders` (23 Nov 2026): the validated table (api/_pricing.js LADDERS); null = invalid table -> 503, fail closed.
 export function createHandler({
   stripe,
+  ladders = LADDERS,
   env = () => ({ base: process.env.OPS_SUPABASE_URL, key: process.env.OPS_SUPABASE_SERVICE_KEY }),
   fetchImpl,
   now = () => new Date(),
@@ -48,6 +52,8 @@ export function createHandler({
       if (!units.length) return res.status(400).json({ error: 'empty cart' });
       if (units.length > 99) units.length = 99; // hard cap
       if (units.some(u => !u.bc)) return res.status(400).json({ error: 'missing_barcode' });
+      // No valid ladder table = no price we can stand behind: refuse before reserving anything (fail closed).
+      if (!ladders) return res.status(503).json({ error: 'checkout_unavailable', message: MSG_PRICING_UNAVAILABLE });
 
       const db = { ...env(), ...(fetchImpl ? { fetchImpl } : {}) };
       const cartQty = {};
@@ -111,7 +117,7 @@ export function createHandler({
         u.unitP = l.price_pence;
         u.name = String(l.name).slice(0, 60);
       }
-      const amount = priceUnits(units);
+      const amount = priceUnits(units, ladders);
       const totalQty = units.length;
 
       // Group into Stripe line items by (barcode, name, price). Line name "{bc} · {name}" is parsed by the webhook.
@@ -136,10 +142,10 @@ export function createHandler({
       const itemsCsv = bcList.map(x => `${x.bc}x${x.qty}`).join(',').slice(0, 480);
       const itemsNamed = bcList.map(x => `${x.bc} ${x.name} x${x.qty}`).join(' | ').slice(0, 480);
 
-      const freeShip = freeShipping(amount, totalQty);
+      const freeShip = freeShipping(amount, totalQty, ladders);
       const shipping_options = [ freeShip
         ? { shipping_rate_data: { display_name: 'Free UK shipping', type: 'fixed_amount', fixed_amount: { amount: 0, currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } }
-        : { shipping_rate_data: { display_name: 'UK standard shipping', type: 'fixed_amount', fixed_amount: { amount: 149, currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } } ];
+        : { shipping_rate_data: { display_name: 'UK standard shipping', type: 'fixed_amount', fixed_amount: { amount: shippingFeeP(amount, totalQty, ladders), currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } } ];
       const origin = req.headers.origin || 'https://karmilaven.com';
       // Promotion codes apply to the whole Stripe session, so they stay on ONLY for Gradient-Edit-only carts
       // (plan §3.3 / K&D 3b).

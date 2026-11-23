@@ -2,6 +2,12 @@
   "functions": {
     "api/stripe-webhook.js": {
       "memory": 256
+    },
+    "api/checkout.js": {
+      "includeFiles": "ladders.json"
+    },
+    "api/stock.js": {
+      "includeFiles": "ladders.json"
     }
   },
   "rewrites": [

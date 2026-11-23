@@ -17,7 +17,7 @@
 //
 // Service-role key stays server-side (Vercel env). Never shipped to the browser.
 //
-// Response: { ok:true, store:'WAT', stock:{ "<barcode>": <available_int>, ... }, ts:<iso> }
+// Response: { ok:true, store:'WAT', stock:{ "<barcode>": <available_int>, ... }, ts:<iso>, ladders:{...}|null }
 //
 // Non-Gradient products (22 Nov 2026, db/20261122230000_karmi_online_caps.sql): for every requested barcode that is
 // not in api/_gradient.js the response also carries
@@ -33,6 +33,14 @@ import { STORE, computeAvailable } from './_stock-lib.js';
 import { isGradient } from './_gradient.js';
 import Stripe from 'stripe';
 import { status as capsStatus, resolveStaleHolds } from './_caps-lib.js';
+import { publicLadders } from './_pricing.js';
+
+// `ladders` (23 Nov 2026, additive): the multi-buy table /api/checkout charges from (ladders.json via
+// api/_pricing.js publicLadders(): pools, bundles, tail, totals[q] per pool, shipping, rules, ui). null = the table did not
+// validate (checkout then refuses with 503). Every response carries it; existing fields are unchanged.
+let ladderView = publicLadders();
+/** Test hook: replace the served table view (null = invalid table). */
+export function _setLadders(view) { ladderView = view; }
 
 // Stripe client for the hold resolver only (F1): created on first use, never when the key is not set.
 let stripeClient;
@@ -52,7 +60,7 @@ export default async function handler(req, res) {
   if (!base || !key) {
     // Fail OPEN: if mis-configured, return empty stock map so the site shows all
     // products rather than hiding the catalogue. ok:false signals "no live data".
-    return res.status(200).json({ ok: false, store: STORE, stock: {}, error: 'ops supabase env not set' });
+    return res.status(200).json({ ok: false, store: STORE, stock: {}, error: 'ops supabase env not set', ladders: ladderView });
   }
 
   const H = { apikey: key, Authorization: `Bearer ${key}` };
@@ -154,9 +162,9 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.status(200).json({ ok: true, store: STORE, stock, sellable, price_pence, window, ts: new Date().toISOString() });
+    return res.status(200).json({ ok: true, store: STORE, stock, sellable, price_pence, window, ts: new Date().toISOString(), ladders: ladderView });
   } catch (e) {
     // Fail OPEN on any error: empty stock + ok:false → storefront shows all products.
-    return res.status(200).json({ ok: false, store: STORE, stock: {}, error: String(e.message || e) });
+    return res.status(200).json({ ok: false, store: STORE, stock: {}, error: String(e.message || e), ladders: ladderView });
   }
 }

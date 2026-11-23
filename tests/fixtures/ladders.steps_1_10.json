@@ -1,0 +1,54 @@
+{
+  "_doc": "TEST FIXTURE ONLY, not live. Only two steps per pool: 1 and 10 (\"from £1.60 each, available on bulk buy\"); every intermediate deal removed.",
+  "version": "fixture-steps_1_10-2026-11-23",
+  "rule": {
+    "monotonic": true,
+    "rounding": "integer-pence-floor-spread",
+    "max_units": 99
+  },
+  "shipping": {
+    "free_threshold_pence": 1200,
+    "below_threshold_fee_pence": 149,
+    "free_at_qty": {
+      "enabled": true,
+      "qty": 5
+    },
+    "derive_threshold": null
+  },
+  "rules": [],
+  "ui": {
+    "progress_line": true
+  },
+  "pools": {
+    "400": {
+      "single": 400,
+      "bundles": {
+        "10": 1600
+      }
+    },
+    "599": {
+      "single": 599,
+      "bundles": {
+        "10": 2990
+      }
+    },
+    "799": {
+      "single": 799,
+      "bundles": {
+        "10": 3990
+      }
+    },
+    "999": {
+      "single": 999,
+      "bundles": {
+        "10": 4990
+      }
+    },
+    "gradient": {
+      "single": 299,
+      "bundles": {
+        "10": 2400
+      }
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "_doc": "TEST FIXTURE ONLY, not live. Option A plus a 20 step per pool (a step added by table change only).",
+  "version": "fixture-steps_20-2026-11-23",
+  "rule": {
+    "monotonic": true,
+    "rounding": "integer-pence-floor-spread",
+    "max_units": 99
+  },
+  "shipping": {
+    "free_threshold_pence": 1200,
+    "below_threshold_fee_pence": 149,
+    "free_at_qty": {
+      "enabled": true,
+      "qty": 5
+    },
+    "derive_threshold": null
+  },
+  "rules": [],
+  "ui": {
+    "progress_line": true
+  },
+  "pools": {
+    "400": {
+      "single": 400,
+      "bundles": {
+        "3": 1200,
+        "5": 1200,
+        "10": 1600,
+        "20": 2800
+      }
+    },
+    "599": {
+      "single": 599,
+      "bundles": {
+        "3": 1198,
+        "4": 1597,
+        "5": 1997,
+        "20": 5380
+      },
+      "tail": {
+        "from": 6,
+        "each": 299
+      }
+    },
+    "799": {
+      "single": 799,
+      "bundles": {
+        "3": 1598,
+        "4": 2131,
+        "5": 2663,
+        "20": 7180
+      },
+      "tail": {
+        "from": 6,
+        "each": 399
+      }
+    },
+    "999": {
+      "single": 999,
+      "bundles": {
+        "3": 1998,
+        "4": 2664,
+        "5": 3330,
+        "20": 8980
+      },
+      "tail": {
+        "from": 6,
+        "each": 499
+      }
+    },
+    "gradient": {
+      "single": 299,
+      "bundles": {
+        "2": 550,
+        "3": 750,
+        "5": 1200,
+        "20": 4400
+      }
+    }
+  }
+}
