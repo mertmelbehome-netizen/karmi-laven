@@ -398,3 +398,15 @@ test('line labels match the real product (Komuta 23 Nov): 6159 Chip Bead Necklac
   assert.equal(by['6180'].line, 'Charm Necklace'); assert.equal(by['6170'].line, 'Charm Necklace')
   for (const c of cards) assert.doesNotMatch(c.line, /stone|onyx|quartz|crystal/i, c.barcode)
 })
+
+test('og-image.jpg exists (was 404) and is a 1200x630 JPEG; alt has no product or material claim', () => {
+  const buf = readFileSync(new URL('../og-image.jpg', import.meta.url))
+  assert.equal(buf[0], 0xff); assert.equal(buf[1], 0xd8)
+  let i = 2, w = 0, h = 0
+  while (i < buf.length) { if (buf[i] !== 0xff) { i++; continue } const m = buf[i + 1]; const len = buf.readUInt16BE(i + 2)
+    if (m >= 0xc0 && m <= 0xc3) { h = buf.readUInt16BE(i + 5); w = buf.readUInt16BE(i + 7); break } i += 2 + len }
+  assert.deepEqual([w, h], [1200, 630])
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  const alt = html.match(/<meta property="og:image:alt" content="([^"]*)">/)[1]
+  assert.doesNotMatch(alt, /crystal|glass|stone|hair/i)
+})
