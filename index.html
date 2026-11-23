@@ -1185,8 +1185,10 @@ function deliveryFor(subP, units){
 }
 function gbpP(p){ return '£'+(p/100).toFixed(2); }
 function gbpShort(p){ return p%100===0 ? '£'+(p/100) : gbpP(p); }
-function shipSentence(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with any '+SHIP.freeQty+'+ items':''); return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery, free on orders of '+gbpShort(SHIP.freeP)+'+'+(SHIP.freeQty?' (or '+SHIP.freeQty+'+ items)':''); }
-function cardShipText(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with any '+SHIP.freeQty+'+ items':''); return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery · free on orders of '+gbpShort(SHIP.freeP)+'+'+(SHIP.freeQty?' or '+SHIP.freeQty+'+ items':''); }
+function shipSentence(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with any '+SHIP.freeQty+'+ items'+klRingsNote():''); return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery, free on orders of '+gbpShort(SHIP.freeP)+'+'+(SHIP.freeQty?' (or '+SHIP.freeQty+'+ items)':''); }
+// K&D E1b (K-069): when a flat group (rings) is ON, every 'free with any 10+ items' claim says rings don't count; OFF = unchanged
+function klRingsNote(){ try{ return (typeof m1FlatKeys==='function' && m1FlatKeys().length) ? ' (rings not included)' : ''; }catch(e){ return ''; } }
+function cardShipText(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with any '+SHIP.freeQty+'+ items'+klRingsNote():''); return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery · free on orders of '+gbpShort(SHIP.freeP)+'+'+(SHIP.freeQty?' or '+SHIP.freeQty+'+ items':''); }
 function rollingText(subP, units){
   if(!(units>0)) return '';
   const d=deliveryFor(subP,units);

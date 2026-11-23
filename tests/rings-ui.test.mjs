@@ -211,7 +211,8 @@ test('N2: on the Rings tab the 10+ hero price / delivery block steps aside for t
   assert.match(CSS, /\.kl-dlv\[hidden\], \.kl-roff, \.kl-ringinfo\[hidden\]\{display:none !important\}/)
   // even with R enabled the page-wide texts (hero, meta, FAQ, JSON-LD, CTA) are the ladder-group texts (no ring auto pick-up)
   const on = page(publicLadders(ON)).m1Texts(), off = page(publicLadders(LADDERS)).m1Texts()
-  assert.equal(JSON.stringify({ ...on, count: on.count(15) }), JSON.stringify({ ...off, count: off.count(15) }))
+  // except the E1b note on every 'free with any 10+ items' claim
+  assert.equal(JSON.stringify({ ...on, count: on.count(15) }).replace(/ \(rings not included\)/g, ''), JSON.stringify({ ...off, count: off.count(15) }))
 })
 
 test('sub-chips: spec hashes and labels (no unverified material words), hash round trip incl. #rings-steel-chunky', () => {
@@ -224,4 +225,11 @@ test('sub-chips: spec hashes and labels (no unverified material words), hash rou
   assert.equal(core.sfSubOf('rings', 'Steel-look Ring'), 'steel'); assert.equal(core.sfSubOf('rings', 'Steel-look Chunky Ring'), 'steel-chunky')
   assert.equal(core.sfSubOf('rings', 'Statement Sparkle Ring'), 'sparkle')
   assert.match(SF, /id="klRSubs" role="tablist" aria-label="Ring styles"/)
+})
+
+test('E1b: "(rings not included)" on every 10+ free claim ONLY while a flat group (rings) is on', () => {
+  assert.match(HTML, /function klRingsNote\(\)\{ try\{ return \(typeof m1FlatKeys==='function' && m1FlatKeys\(\)\.length\) \? ' \(rings not included\)' : ''; \}catch\(e\)\{ return ''; \} \}/)
+  const on = page(publicLadders(ON)), off = page(publicLadders(LADDERS))
+  assert.match(on.shipSentence(), /free with any 10\+ items \(rings not included\)$/)
+  assert.doesNotMatch(off.shipSentence(), /rings/)
 })
