@@ -62,7 +62,12 @@ test('bag quantity box / + never go past the online limit', () => {
 
 test('markup: card button names the message (aria-describedby) and the message is a polite status, not hidden by a timer', () => {
   assert.match(HTML, /data-bc="\$\{d\.barcode\}" aria-describedby="lim-\$\{d\.barcode\}"/)
-  assert.match(HTML, /<div class="lim" id="lim-\$\{d\.barcode\}" role="status" aria-live="polite" hidden><\/div>/)
+  // K&D A1: the live region is never hidden (a region that appears and fills in one tick is often not announced)
+  assert.match(HTML, /<div class="lim" id="lim-\$\{d\.barcode\}" role="status" aria-live="polite"><\/div>/)
+  assert.match(HTML, /<div class="lim" id="cilim-\$\{i\}" role="status" aria-live="polite"><\/div>/)
+  assert.match(HTML, /\.lim:empty\{margin:0\}/)
+  // K&D A2: bag + at the limit returns without re-rendering (focus stays)
+  assert.match(HTML, /if\(delta>0 && atLimit\(c\.bc\)\) return;/)
   assert.ok(!/lim[^\n]{0,120}setTimeout\([^)]*hidden\s*=\s*true/.test(HTML), 'no timed hide')
   assert.match(HTML, /\.lim\{font-size:12px;[^}]*color:var\(--ink\)/)
 })

@@ -160,6 +160,7 @@ nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
 .cbody .add[aria-disabled="true"], .ci-q button[aria-disabled="true"]{opacity:.5; cursor:not-allowed}
 .cbody .add[aria-disabled="true"]:hover{background:none; color:var(--ink); border-color:var(--hair)}
 .lim{font-size:12px; line-height:1.4; color:var(--ink); margin-top:8px; text-align:left}
+.lim:empty{margin:0}
 
 /* STORY */
 .story{margin-top:40px; padding:clamp(50px,7vw,90px) 0; text-align:center; border-top:1px solid var(--hair)}
@@ -822,7 +823,7 @@ function card(d,i){
       <div class="fee" data-kl="cardship">${cardShipText()}</div>
       <div class="ship24">Ships within 1–2 business days; delivery usually 2–5 business days after dispatch</div>
       <button class="add" data-kl-add data-bc="${d.barcode}" aria-describedby="lim-${d.barcode}" onclick="addToCart('${d.barcode}')"${lad?'':' disabled'}>${lad?'Add to bag — '+pt:NA_TXT}</button>
-      <div class="lim" id="lim-${d.barcode}" role="status" aria-live="polite" hidden></div>
+      <div class="lim" id="lim-${d.barcode}" role="status" aria-live="polite"></div>
     </div>`;
   return el;
 }
@@ -1191,7 +1192,7 @@ function syncLimits(){
     const bc=b.dataset.bc, at=atLimit(bc), m=document.getElementById('lim-'+bc);
     if(b.disabled) return;
     b.setAttribute('aria-disabled', at ? 'true' : 'false');
-    if(m){ const txt=at ? limitText(bc) : ''; if(m.textContent!==txt) m.textContent=txt; m.hidden=!at; }
+    if(m){ const txt=at ? limitText(bc) : ''; if(m.textContent!==txt) m.textContent=txt; }   // K&D A1: region stays un-hidden, only the text changes (announced)
   });
 }
 function addToCart(bc){
@@ -1206,7 +1207,7 @@ function addToCart(bc){
 }
 function capQty(bc,q){ const a=limitOf(bc); return (a>0 && a!==Infinity) ? Math.min(q,a) : q; }
 function setQty(i,v){const c=cart[i]; if(!c)return; c.qty=capQty(c.bc,Math.max(1,Math.min(99,parseInt(v)||1))); save();updateBag();renderCart();}
-function changeQty(i,delta){const c=cart[i]; if(!c)return; if(delta>0 && atLimit(c.bc)){ renderCart(); return; } c.qty+=delta; if(c.qty<=0)cart.splice(i,1); save();updateBag();renderCart();}
+function changeQty(i,delta){const c=cart[i]; if(!c)return; if(delta>0 && atLimit(c.bc)) return;   // K&D A2: no re-render, focus stays on +; the line message + describedby are already there c.qty+=delta; if(c.qty<=0)cart.splice(i,1); save();updateBag();renderCart();}
 function removeItem(i){cart.splice(i,1);save();updateBag();renderCart();}
 function subtotal(){return cartTotal(cart);}
 function hasFreeShip(){return deliveryFor(Math.round(subtotal()*100), totalQty()).free;}
@@ -1222,8 +1223,9 @@ function renderCart(){
       <input type="number" inputmode="numeric" min="1" value="${c.qty}" onchange="setQty(${i},this.value)" aria-label="Quantity">
       <button onclick="changeQty(${i},1)" aria-label="Add one more" aria-describedby="cilim-${i}" aria-disabled="${atLimit(c.bc)?'true':'false'}">+</button>
       <button class="ci-x" onclick="removeItem(${i})">Remove</button></div>
-      <div class="lim" id="cilim-${i}" role="status" aria-live="polite"${atLimit(c.bc)?'':' hidden'}>${atLimit(c.bc)?limitText(c.bc):''}</div></div></div>`;
+      <div class="lim" id="cilim-${i}" role="status" aria-live="polite"></div></div></div>`;
   }).join('');
+  setTimeout(()=>cart.forEach((c,i)=>{ const m=document.getElementById('cilim-'+i); if(m){ const t=atLimit(c.bc)?limitText(c.bc):''; if(m.textContent!==t) m.textContent=t; } }),50);   // K&D A1
   if(m1On()){ m1Foot(); return; }
   const q=totalQty(), s=subtotal(), lq=ladderQty(cart), saved=Math.max(0,Math.round((lq*PRICE-bestPrice(lq))*100)/100), free=hasFreeShip();   // savings: Gradient Edit units only
   document.getElementById('cartSub').textContent='£'+s.toFixed(2);
