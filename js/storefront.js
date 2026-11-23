@@ -157,7 +157,7 @@
     $$('.story, section.faq').forEach(function (e) { e.setAttribute('data-kl-gonly', ''); });
     $$('.gtknow .faq').forEach(function (e) {
       var q = e.querySelector('.faq-q'); if (!q) return;
-      if (/bracelets made/i.test(q.textContent) || q.hasAttribute('data-kl-m1')) e.setAttribute('data-kl-gonly', '');
+      if (/bracelets made/i.test(q.textContent)) e.setAttribute('data-kl-gonly', '');   // the 10+ price FAQ is group-wide: every tab
       else if (/online only/i.test(q.textContent)) { var a = e.querySelector('.faq-a'); if (a) a.innerHTML = 'No — Karmi Laven is part of <b>Melbe Home UK Ltd</b>, an established UK retailer with physical shops in Watford and Guildford. karmilaven.com is our online home.'; }
     });
     var ft = $('footer .ftag'); if (ft) ft.textContent = 'Colour, worn softly';

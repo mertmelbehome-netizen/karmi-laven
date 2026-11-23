@@ -454,12 +454,12 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 .sw.sold-out{display:none !important}
 .hide{display:none}
 </style>
-<meta name="description" content="Karmi Laven bracelets — 15 gradient shades, £8 each · £2.40 each when you buy any 10 or more items (mix any shades). Faceted beads, shipped in 2–5 days. £1.49 UK delivery · free with any 10+ items.">
+<meta name="description" content="Karmi Laven bracelets, necklaces and hair pieces — £5, £8 or £13 each · 70% off every item when you buy any 10+ items (£1.50, £2.40 or £3.90 each). Shipped in 2–5 days. £1.49 UK delivery · free with any 10+ items.">
 <link rel="canonical" href="https://www.karmilaven.com/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Karmi Laven">
 <meta property="og:url" content="https://www.karmilaven.com/">
-<meta property="og:title" content="Karmi Laven — The Gradient Edit · Bracelets · £8 each">
+<meta property="og:title" content="Karmi Laven — Bracelets, Necklaces &amp; Hair · from £5 each">
 <meta property="og:description" content="15 faceted bead shades. Champagne to cobalt — find your colour. £1.49 UK delivery · free with any 10+ items.">
 <meta property="og:image" content="https://www.karmilaven.com/og-image.jpg">
 <meta property="og:image:width" content="1200">
@@ -467,7 +467,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 <meta property="og:image:alt" content="Karmi Laven bracelets gradient collection">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@karmilaven">
-<meta name="twitter:title" content="Karmi Laven — Bracelets · £8 each">
+<meta name="twitter:title" content="Karmi Laven — Bracelets, Necklaces &amp; Hair · from £5 each">
 <meta name="twitter:description" content="15 faceted bead shades. Find your colour. £1.49 UK delivery · free with any 10+ items.">
 <meta name="twitter:image" content="https://www.karmilaven.com/og-image.jpg">
 </head>
@@ -594,7 +594,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 
       <div class="faq">
         <p class="faq-q" data-kl-m1="faqq">How does 70% off when you buy any 10+ items work?</p>
-        <p class="faq-a" data-kl-m1="faqa">Every bracelet is <b>£8 each</b>. Put <b>any 10 or more items</b> in your bag (mix any shades) and you get <b>70% off every item</b>: <b>£2.40 each</b>, with free UK delivery. Under 10 items, UK delivery is £1.49. The 10+ price is applied automatically in your bag; promo codes can’t be added to it.</p>
+        <p class="faq-a" data-kl-m1="faqa">Prices are <b>£5, £8 or £13</b> per piece depending on the line (shown on each item). Put <b>any 10 or more items</b> in your bag (any mix) and you get <b>70% off every item</b>: <b>£1.50, £2.40 or £3.90 each</b>, with free UK delivery. Under 10 items, UK delivery is £1.49. The 10+ price is applied automatically in your bag; promo codes can’t be added to it.</p>
       </div>
 
       <div class="faq">
@@ -1032,6 +1032,9 @@ function m1GroupsPct(groups){ if(!groups.length) return null; const ps=groups.ma
 // groups sold on this page: the Gradient group + every sellable online_group /api/stock served (window.klGroupList)
 function m1PageGroups(){ const t=m1T(), ks=new Set([t.gradient_group]); try{ ((typeof window!=='undefined'&&typeof window.klGroupList==='function')?window.klGroupList():[]).forEach(k=>ks.add(k)); }catch(e){}
   return [...ks].filter(k=>k&&t.groups[k]).map(k=>t.groups[k]); }
+// every group in the served table, cheapest first (price FAQ / JSON-LD range: same text on every tab and for crawlers)
+function m1AllGroups(){ const t=m1T(); return Object.keys(t.groups).map(k=>t.groups[k]).sort((a,b)=>a.single-b.single); }
+function m1OrList(xs){ xs=[...new Set(xs)]; return xs.length<2?(xs[0]||''):xs.slice(0,-1).join(', ')+' or '+xs[xs.length-1]; }
 function m1CartTotalP(lines){ return m1Summary(lines).charged_pence; }
 // Cart texts = engine progress() lines (+ an "e.g." product name from THIS cart). progress below the threshold;
 // applied + promo from it (promotion codes and recovery links are off then: api/checkout.js).
@@ -1082,6 +1085,7 @@ function m1Texts(){
   const p=m1Pct(gr), tt=m1TierText(gr);
   // ad line (K-046): one percentage for every group sold on the page; 'from' = the lowest 10+ price among them
   const pg=m1PageGroups(), pp=m1GroupsPct(pg), lo=Math.min(...pg.map(g=>g.tier_each));
+  const ag=m1AllGroups(), ap=m1GroupsPct(ag);
   const ad=pp!==null ? 'Buy '+from+'+, get '+pp+'% off · from '+gbpP(lo)+' each · free UK delivery' : null;
   return {
     hero: s,
@@ -1097,7 +1101,10 @@ function m1Texts(){
     cta: 'Mix any shades · '+s+' each · '+tt+' · <span data-kl="ship">'+shipSentence()+'</span>',
     each: '<b>'+s+'</b> each · '+(p!==null?p+'% off when you buy any '+from+'+ items ('+e+' each)':e+' each when you buy any '+from+' or more items')+' <span class="dl" data-kl="fee1">'+fee+'</span>',
     faqq: p!==null ? 'How does '+p+'% off when you buy any '+from+'+ items work?' : 'How does the '+from+'+ price work?',
-    faqa: 'Every bracelet is <b>'+s+' each</b>. Put <b>any '+from+' or more items</b> in your bag (mix any shades) and '+(p!==null?'you get <b>'+p+'% off every item</b>: <b>'+e+' each</b>':'every item is <b>'+e+' each</b>')+', with free UK delivery. Under '+from+' items, UK delivery is '+gbpP(SHIP.feeP)+'. The '+from+'+ price is applied automatically in your bag; promo codes can’t be added to it.',
+    // group-wide (families live 23 Nov): a bag of £5 / £8 / £13 pieces must not read as 'every bracelet £8' (Komuta)
+    faqa: (ag.length>1
+      ? 'Prices are <b>'+m1OrList(ag.map(g=>gbpShort(g.single)))+'</b> per piece depending on the line (shown on each item). Put <b>any '+from+' or more items</b> in your bag (any mix) and '+(ap!==null?'you get <b>'+ap+'% off every item</b>: <b>'+m1OrList(ag.map(g=>gbpShort(g.tier_each)))+' each</b>':'every item is <b>'+m1OrList(ag.map(g=>gbpShort(g.tier_each)))+' each</b>')
+      : 'Every bracelet is <b>'+s+' each</b>. Put <b>any '+from+' or more items</b> in your bag (mix any shades) and '+(p!==null?'you get <b>'+p+'% off every item</b>: <b>'+e+' each</b>':'every item is <b>'+e+' each</b>'))+', with free UK delivery. Under '+from+' items, UK delivery is '+gbpP(SHIP.feeP)+'. The '+from+'+ price is applied automatically in your bag; promo codes can’t be added to it.',
     count: (n)=>n+' shades · '+s+' each · '+tt,
   };
 }
@@ -1133,9 +1140,9 @@ function m1ApplyMeta(T){
   document.querySelectorAll('meta[name="description"],meta[property="og:description"],meta[name="twitter:description"],meta[property="og:title"],meta[name="twitter:title"]').forEach(m=>{
     m.setAttribute('content', m.getAttribute('content').replace(/from £\d+\.\d\d/, T.meta)); });
   document.querySelectorAll('script[type="application/ld+json"]').forEach(sc=>{ try{ const j=JSON.parse(sc.textContent); if(!j.offers) return;
-    const t=m1T(), gr=t.groups[t.gradient_group], p=(gr.single/100).toFixed(2);
+    const ag=m1AllGroups(), p=(ag[0].single/100).toFixed(2), hi=(ag[ag.length-1].single/100).toFixed(2);
     if(j.description) j.description=j.description.replace(/from £\d+\.\d\d/, T.meta);
-    if('lowPrice' in j.offers) j.offers.lowPrice=p; if('highPrice' in j.offers) j.offers.highPrice=p; if('price' in j.offers) j.offers.price=p;
+    if('lowPrice' in j.offers) j.offers.lowPrice=p; if('highPrice' in j.offers) j.offers.highPrice=hi; if('price' in j.offers) j.offers.price=p;
     const sd=j.offers.shippingDetails; if(sd&&sd.shippingRate) sd.shippingRate.value=(SHIP.feeP/100).toFixed(2); if(sd&&sd.description) sd.description=ship;
     sc.textContent=JSON.stringify(j); }catch(e){} });
 }
@@ -1476,9 +1483,9 @@ var SHOW_REVIEWS = false;
 {
   "@context": "https://schema.org/",
   "@type": "ProductCollection",
-  "name": "Karmi Laven Bracelets",
+  "name": "Karmi Laven Bracelets, Necklaces & Hair",
   "url": "https://www.karmilaven.com/",
-  "description": "Faceted bead bracelets in 15 gradient shades, £8 each or £2.40 each when you buy any 10 or more items.",
+  "description": "Bracelets, necklaces and hair pieces, £5, £8 or £13 each, or £1.50, £2.40 or £3.90 each when you buy any 10 or more items.",
   "brand": {
     "@type": "Brand",
     "name": "Karmi Laven"
@@ -1486,8 +1493,8 @@ var SHOW_REVIEWS = false;
   "offers": {
     "@type": "AggregateOffer",
     "priceCurrency": "GBP",
-    "lowPrice": "8.00",
-    "highPrice": "8.00",
+    "lowPrice": "5.00",
+    "highPrice": "13.00",
     "shippingDetails": {
       "@type": "OfferShippingDetails",
       "shippingRate": { "@type": "MonetaryAmount", "value": "1.49", "currency": "GBP" },
