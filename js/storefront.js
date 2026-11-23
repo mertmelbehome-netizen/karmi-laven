@@ -87,7 +87,7 @@
     // Gradient: index.html LADDER_TYPES (the two DB types of the Gradient Edit) told apart by the word Cobra; regexes, so
     // no DB type name sits in this file as a string (K-08 wording test)
     gradient: [{ k: 'classic', label: 'Gradient', re: /^(?!.*\bcobra\b).*\bbracelet$/i }, { k: 'cobra', label: 'Gradient Cobra', re: /\bcobra bracelet$/i }],
-    bracelets: [{ k: 'stretch', label: 'Stretch', re: /^stretch bracelet$/i }, { k: 'charm', label: 'Stretch Charm', re: /^stretch charm bracelet$/i },
+    bracelets: [{ k: 'stretch', label: 'Stretch', re: /\bstretch bracelet$/i }, { k: 'charm', label: 'Stretch Charm', re: /^stretch charm bracelet$/i },
       { k: 'bangle', label: 'Bangle', re: /^bangle$/i }, { k: 'double', label: 'Stretch Double', re: /^stretch double bracelet$/i },
       { k: 'sparkle', label: 'Sparkle Line', re: /^sparkle line$/i }]
   };

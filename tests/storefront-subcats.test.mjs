@@ -17,7 +17,7 @@ const LADDER = JSON.parse(HTML.match(/const LADDER_TYPES=(\[[^\]]*\])/)[1].repla
 const BAD = /\blux\b|crystal|diamond|\bstone\b/i
 
 test('sub-category from the product line: every bracelet card maps; 0624 (family Stretch Double) is a Stretch Bracelet', () => {
-  const want = { 'Stretch Bracelet': 'stretch', 'Stretch Charm Bracelet': 'charm', Bangle: 'bangle', 'Stretch Double Bracelet': 'double', 'Sparkle Line': 'sparkle' }
+  const want = { 'Stretch Bracelet': 'stretch', 'Cube Bead Stretch Bracelet': 'stretch', 'Stretch Charm Bracelet': 'charm', Bangle: 'bangle', 'Stretch Double Bracelet': 'double', 'Sparkle Line': 'sparkle' }
   for (const c of CARDS.filter((x) => x.tab === 'bracelets')) assert.equal(core.sfSubOf('bracelets', c.line), want[c.line], c.barcode + ' ' + c.line)
   assert.equal(core.sfSubOf('bracelets', CARDS.find((c) => c.barcode === '0624').line), 'stretch')
   assert.equal(core.sfSubOf('bracelets', 'Charm Necklace'), null)
