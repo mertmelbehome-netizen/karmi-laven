@@ -306,7 +306,7 @@ test('return-visit CLS: the Gradient grid paints the remembered sold-out set; a 
   // the last answer's sold-out Gradient barcodes are remembered right after applyAll (every successful answer)
   assert.match(HTML, /hook\(\); applyAll\(\);\r?\n      try\{ localStorage\.setItem\('kl_sold', JSON\.stringify\(\{ t: Date\.now\(\), s: \(window\.DATA\|\|\[\]\)\.map\(function\(d\)\{return String\(d\.barcode\);\}\)\.filter\(function\(bc\)\{ return ladder\(bc\) && isSold\(bc\); \}\) \}\)\); \}catch\(e\)\{\}/)
   // every render before the first answer applies the memory, never after it
-  assert.match(HTML, /function render\(list\)\{\r?\n  grid\.innerHTML=''; list\.forEach\(\(d,i\)=>grid\.appendChild\(card\(d,i\)\)\); if\(typeof syncLimits==='function'\) syncLimits\(\);\r?\n  klPreSold\(\);/)
+  assert.match(HTML, /function render\(list\)\{\r?\n  list=klPhotoFirst\(list\);\r?\n  grid\.innerHTML=''; list\.forEach\(\(d,i\)=>grid\.appendChild\(card\(d,i\)\)\); if\(typeof syncLimits==='function'\) syncLimits\(\);\r?\n  klPreSold\(\);/)
   const pre = HTML.match(/const KL_SOLD_MEM=[\s\S]*?\r?\nfunction klPreSold\(\)\{[\s\S]*?\r?\n\}\r?\n/)[0]
   assert.match(pre, /Date\.now\(\)-Number\(m\.t\)<7\*864e5/, 'memory older than 7 days is ignored')
   assert.match(pre, /if\(window\.__klStockSettled\|\|\(window\.klStockReady&&window\.klStockReady\(\)\)\) return;/)
@@ -446,4 +446,13 @@ test('one line label = one family (so one online price group): no shared name ac
   const fam = {}
   for (const c of cards) (fam[c.line] = fam[c.line] || new Set()).add(c.family)
   for (const [line, s] of Object.entries(fam)) assert.equal(s.size, 1, `${line}: ${[...s].join(', ')}`)
+})
+
+test('photo first: real photos / passed renders before colour tiles on every tab, stable otherwise (Komuta 23 Nov)', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  const fn = new Function(html.match(/function klPhotoFirst\(list\)\{[^\n]*\}/)[0] + '; return klPhotoFirst;')()
+  const L = [{ b: 1, img: '/img/tone/1.svg' }, { b: 2, img: '/img/gradient/2.jpg' }, { b: 3, img: '/img/tone/3.svg' }, { b: 4, img: '/img/gradient/4.jpg' }]
+  assert.deepEqual(fn(L).map((d) => d.b), [2, 4, 1, 3])
+  assert.match(html, /function render\(list\)\{\r?\n  list=klPhotoFirst\(list\);/)
+  assert.match(SF, /SF_ORDER\[a\.s\] - SF_ORDER\[b\.s\] \|\| \(a\.c\.photo \? 0 : 1\) - \(b\.c\.photo \? 0 : 1\) \|\| a\.i - b\.i/)
 })

@@ -375,7 +375,8 @@
       .filter(function (x) { return x.s !== 'hidden' && (x.s !== 'soldout' || CFG.sold_out !== 'hide'); });
     $('#klEmpty').hidden = has;
     if (!has) { g.innerHTML = ''; $('#klFamCount').textContent = ''; return; }
-    list.sort(function (a, b) { return SF_ORDER[a.s] - SF_ORDER[b.s]; });
+    list.forEach(function (x, i) { x.i = i; });   // stable: state, then real photo before colour tile (Komuta 23 Nov), then original order
+    list.sort(function (a, b) { return SF_ORDER[a.s] - SF_ORDER[b.s] || (a.c.photo ? 0 : 1) - (b.c.photo ? 0 : 1) || a.i - b.i; });
     var avail = list.filter(function (x) { return x.s === 'sellable' || x.s === 'single'; }).length;
     $('#klFamCount').textContent = list.length + ' pieces · ' + avail + ' available now';
     g.innerHTML = list.map(function (x) { return famCardHTML(x.c, x.s); }).join('');
