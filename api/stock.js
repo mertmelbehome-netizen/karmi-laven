@@ -154,9 +154,14 @@ export default async function handler(req, res) {
           // (command centre 23 Nov); price_pence is then the group single (display only; checkout charges priceUnits).
           if (groupMode) {
             const g = typeof it.online_group === 'string' ? it.online_group : (ladderView.family_groups || {})[it.family];
+            const flat = typeof g === 'string' && ladderView.flat_groups && Object.prototype.hasOwnProperty.call(ladderView.flat_groups, g)
+              ? ladderView.flat_groups[g] : null; // K-069 rings: served only when enabled (else R = not sold, as before)
             if (typeof g === 'string' && ladderView.groups[g]) {
               online_group[bc] = g;
               price_pence[bc] = Number.isInteger(it.price_pence) && it.price_pence > 0 ? it.price_pence : ladderView.groups[g].single;
+            } else if (flat) {
+              online_group[bc] = g;
+              price_pence[bc] = flat.each; // flat price: what checkout charges, whatever the till price
             } else sellable[bc] = 0;
             continue;
           }

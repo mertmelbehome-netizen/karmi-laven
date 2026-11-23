@@ -49,5 +49,17 @@
     "stretch_double": "C",
     "necklace_lux_stone": "C",
     "diamond": "C"
+  },
+  "_doc_flat_groups": "K-069 (23 Nov 2026): rings = their own category, £4 each, min 5 per order, NOT on the 10+ ladder; rings count toward neither the 10+ price nor free delivery. SHIPS DARK: enabled false = left out of the loaded table, /api/stock and every page text. Turn on = enabled true + DB karmi_online_products.online_group 'R' on ring products. See api/_pricing.js loadFlatGroups.",
+  "flat_groups": {
+    "R": {
+      "label": "Rings",
+      "unit_name": "ring",
+      "each": 400,
+      "min_qty": 5,
+      "counts_to_tier": false,
+      "counts_to_free_shipping": false,
+      "enabled": false
+    }
   }
 }
