@@ -143,7 +143,7 @@ test('M1 texts (S1): card/modal price, delivery, static swaps; no %, strike-thro
   assert.equal(T.hero, '£8')
   assert.equal(T.count(38), '38 shades · £8 each · £2.40 each when you buy any 10 or more items')
   assert.match(T.cta, /£8 each · £2\.40 each when you buy any 10 or more items · <span data-kl="ship">£1\.49 UK delivery · free with any 10\+ items<\/span>/)
-  assert.match(T.each, /data-kl="fee1">\+ £1\.49 UK delivery</)
+  assert.match(T.each, /data-kl="fee1">\+ £1\.49 UK delivery · free with any 10\+ items</)
   const all = [T.hero, T.cta, T.each, T.faqq, T.faqa, p.m1PriceText(G1), p.shipSentence(), p.cardShipText(), p.m1Lines([{ bc: G1, qty: 9 }]).progress].join(' | ')
   assert.doesNotMatch(all, /%|<s>|<del>|\bsave|saving|was £|instead of/i)
   // §5.21: every "free with 10+" names the fee

@@ -70,7 +70,7 @@ test('#2 card: "£8 each · 70% off when you buy any 10+ items (£2.40 each)" - 
   const T = p.m1Texts()
   assert.equal(T.count(38), '38 shades · £8 each · 70% off when you buy any 10+ items (£2.40 each)')
   assert.equal(T.meta, '£8 each · 70% off when you buy any 10+ items (£2.40 each)')
-  assert.match(T.each, /<b>£8<\/b> each · 70% off when you buy any 10\+ items \(£2\.40 each\) <span class="dl" data-kl="fee1">\+ £1\.49 UK delivery<\/span>/)
+  assert.match(T.each, /<b>£8<\/b> each · 70% off when you buy any 10\+ items \(£2\.40 each\) <span class="dl" data-kl="fee1">\+ £1\.49 UK delivery · free with any 10\+ items<\/span>/)
   assert.equal(T.faqq, 'How does 70% off when you buy any 10+ items work?')
   // group-wide since families went live (23 Nov): never 'every bracelet £8' next to £5 / £13 pieces
   assert.match(T.faqa, /^Prices are <b>£5, £8 or £13<\/b> per piece depending on the line \(shown on each item\)\. Put <b>any 10 or more items<\/b> in your bag \(any mix\) and you get <b>70% off every item<\/b>: <b>£1\.50, £2\.40 or £3\.90 each<\/b>, with free UK delivery\. Under 10 items, UK delivery is £1\.49/)

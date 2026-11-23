@@ -7,32 +7,64 @@ html.kl-v2{--soft:#766d5e; --accent:#8a5f58; --gold-text:#7d5f2a}
 /* overflow-x:hidden on html+body turns body into the scroll box and kills position:sticky (prototype fix D2, V-07) */
 html.kl-v2, html.kl-v2 body{overflow-x:clip}
 
-/* ---- category tabs (K-01): sticky, scrolls sideways inside itself on 390 px (V-09), 44 px targets (V-08) ---- */
-.kl-tabbar{position:sticky; top:0; z-index:21; background:rgba(250,247,241,.96); backdrop-filter:blur(12px);
-  border-top:1px solid var(--hair); border-bottom:1px solid var(--hair); margin-top:18px}
-.kl-tabs{display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; max-width:1200px; margin:0 auto; padding:0 26px; justify-content:center}
+/* ---- category chips (K-01; nav fix 23 Nov, 15_nav_findability F1/F2/F4/F6): directly under the logo/Bag row, sticky
+   top:0 from page load, <= 56 px tall (44 px chips + 2 x 4 px + hairlines). The page's global nav{padding:26px 0 22px}
+   also hit this <nav> (that was the 98 px bar): reset here. ---- */
+.kl-tabbar{position:sticky; top:0; z-index:21; padding:0; margin:0; text-align:left; background:rgba(250,247,241,.97); backdrop-filter:blur(12px);
+  border-top:1px solid var(--hair); border-bottom:1px solid var(--hair)}
+.kl-tabs{display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; max-width:1200px; margin:0 auto; padding:4px 26px; justify-content:center}
 .kl-tabs::-webkit-scrollbar{display:none}
-.kl-tabs [role=tab]{flex:0 0 auto; min-height:48px; padding:0 14px; background:none; border:0; border-bottom:2px solid transparent;
-  font-family:'Jost'; font-weight:400; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--soft); cursor:pointer; white-space:nowrap}
-.kl-tabs [role=tab][aria-selected=true]{color:var(--ink); border-bottom-color:var(--ink)}
-.kl-tabs [role=tab] .n{font-size:11px; letter-spacing:.04em; margin-left:2px}
-.kl-tabs [role=tab]:focus-visible{outline:2px solid var(--ink); outline-offset:-4px}
-html.kl-v2 .swatchbar{top:50px}
-@media(max-width:860px){.kl-tabs{justify-content:flex-start; padding:0 16px}}
-/* the row scrolls sideways (only the row, never the page); a fade + chevron on the side that has more (set by
-   storefront.js tabScroll from the row's scroll position); the selected tab is scrolled into view */
+.kl-tabs [role=tab]{flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:44px; padding:0 18px;
+  background:transparent; border:1px solid #9a8f7e; border-radius:0; font-family:'Jost'; font-weight:500; font-size:13.5px; letter-spacing:.04em;
+  text-transform:none; color:var(--ink); cursor:pointer; white-space:nowrap; transition:background-color .2s, color .2s, border-color .2s}
+.kl-tabs [role=tab][hidden]{display:none}
+.kl-tabs [role=tab]:hover{border-color:var(--ink)}
+/* active = filled ink chip with cream text (F6) */
+.kl-tabs [role=tab][aria-selected=true]{background:var(--ink); border-color:var(--ink); color:#faf7f1}
+.kl-tabs [role=tab] .n{font-size:11.5px; font-weight:400; letter-spacing:.02em; opacity:.75}
+.kl-tabs [role=tab]:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
+/* the colour bar sticks UNDER the chip bar (top = measured chip-bar height, storefront.js tabScroll), never beneath it */
+html.kl-v2 .swatchbar{top:var(--kl-tb-h,54px)}
+@media(max-width:860px){.kl-tabs{justify-content:flex-start; padding:4px 16px}}
+/* the row scrolls sideways only if it still overflows (only the row, never the page); a fade + chevron on the side that
+   has more (storefront.js tabScroll); the selected chip is scrolled into view */
 .kl-tabs{position:relative; overscroll-behavior-x:contain}
 .kl-tabbar::before, .kl-tabbar::after{position:absolute; top:0; bottom:0; width:44px; pointer-events:none; opacity:0;
   transition:opacity .2s; z-index:1; display:flex; align-items:center; font-size:22px; line-height:1; color:var(--ink)}
-.kl-tabbar::before{content:"\2039"; left:0; justify-content:flex-start; padding-left:5px;
+.kl-tabbar::before{content:"9"; left:0; justify-content:flex-start; padding-left:5px;
   background:linear-gradient(90deg, rgba(250,247,241,1) 40%, rgba(250,247,241,0))}
-.kl-tabbar::after{content:"\203A"; right:0; justify-content:flex-end; padding-right:5px;
+.kl-tabbar::after{content:"A"; right:0; justify-content:flex-end; padding-right:5px;
   background:linear-gradient(270deg, rgba(250,247,241,1) 40%, rgba(250,247,241,0))}
 .kl-tabbar.kl-more-l::before, .kl-tabbar.kl-more-r::after{opacity:1}
-@media(max-width:560px){
-  .kl-tabs{gap:2px}
-  .kl-tabs [role=tab]{padding:0 10px; letter-spacing:.1em; min-width:44px}
+@media(max-width:840px){
+  /* phone/tablet: one sticky row only (the chips); the colour bar + bundle chip scroll with the page (F2) */
+  html.kl-v2 .swatchbar{position:relative; top:auto}
+  /* hero: H1 + line first, photo after it and capped (F5) */
+  html.kl-v2 .hero-img{order:0}
+  html.kl-v2 .hero-img img{aspect-ratio:auto; height:42vh}
 }
+@media(max-width:560px){
+  /* all 4 chips in one 390 px row: short labels, counts dropped, chips share the row (F4) */
+  .kl-tabs{gap:6px; padding:4px 12px}
+  .kl-tabs [role=tab]{flex:1 1 auto; padding:0 10px; font-size:13px; letter-spacing:.01em; min-width:44px}
+  .kl-tabs [role=tab] .n{display:none}
+  /* logo row a little tighter so the chips sit on the first screen (F1) */
+  html.kl-v2 body > nav:not(.kl-tabbar){padding:16px 0 12px}
+}
+/* hero: H1 + one short line (F3); the eyebrow and buttons are hidden by sfLayout */
+html.kl-v2 .hero-copy p{margin-bottom:0}
+html.kl-v2 .hero .cta[hidden], html.kl-v2 .hero-copy .k[hidden]{display:none}
+/* price, delivery line, Christmas notice, Melbe Home line, trust strip and company/VAT line: one block after the grids (F3) */
+.kl-info{text-align:center; padding-top:28px; padding-bottom:36px}
+.kl-info .launch{font-size:12.5px; letter-spacing:.06em; color:var(--soft)}
+.kl-info .launch .p{font-family:'Cormorant Garamond'; font-size:21px; color:var(--ink); font-weight:500; margin-left:4px}
+.kl-info .launch .p .m1t{font-family:'Jost'; font-size:13px}
+.kl-info .launch .lbl{display:inline-block; font-size:9.5px; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--accent); border:1px solid var(--hair); border-radius:100px; padding:3px 9px; margin-left:9px; vertical-align:middle}
+.kl-info .launchfee{margin-top:6px; font-size:12.5px; letter-spacing:.03em; color:var(--ink)}
+.kl-info .kl-xmas-hero{margin:8px auto 0}
+.kl-info .stars{justify-content:center; margin:14px 0 18px}
+.kl-info > .wrap{padding:0}
 /* K-045: a referee-passed AI-styled render is labelled in real text under the image (12 px, #6b6457 = 5.5:1 on the page) */
 .kl-ai{font-size:12px; line-height:1.3; color:#6b6457; letter-spacing:.02em; margin:0 0 6px}
 /* Gradient-only copy (story band, bracelet FAQs) is hidden on the other tabs (storefront.js renderTabs) */
@@ -119,7 +151,7 @@ html.kl-v2 .faq-a a{color:var(--gold-text) !important; text-decoration:underline
 /* headings: no single-word last lines */
 html.kl-v2 .col-head h2, html.kl-v2 .cbody .nm, html.kl-v2 .cart-trustline, html.kl-v2 .kl-empty .es{text-wrap:balance}
 /* the sticky tab bar never covers a focused card or a scrolled-to anchor */
-html.kl-v2{scroll-padding-top:60px}
+html.kl-v2{scroll-padding-top:calc(var(--kl-tb-h,54px) + 8px)}
 /* card: AI label is fine print (block, under the photo); line row keeps its colour dot on the text when it wraps */
 html.kl-v2 .kl-ai{display:block}
 html.kl-v2 .kl-card .sub{display:block; text-wrap:balance}

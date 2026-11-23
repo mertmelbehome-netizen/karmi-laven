@@ -50,7 +50,7 @@
   if (!W || !W.document) return;
   var doc = W.document;
   var CSS = '.kl-xmas{font-size:12px;line-height:1.55;color:#5c554a;font-weight:400;letter-spacing:.01em}'
-    + '.hero .kl-xmas-hero{margin-top:6px;max-width:440px}'
+    + '.hero .kl-xmas-hero,#klInfo .kl-xmas-hero{margin-top:6px;max-width:440px}'
     + '.kl-xmas-bag{margin:-6px 0 14px}'
     + '.kl-xmas-faq .faq-a{color:#5c554a}';
 
@@ -71,7 +71,8 @@
     if (!long) { ['klXmasHero', 'klXmasBag', 'klXmasFaq', 'klXmasShip'].forEach(drop); return; }
     style();
     // (b) next to the delivery line (hero "+ £x UK delivery …")
-    line('klXmasHero', 'kl-xmas kl-xmas-hero', 'div', short, doc.querySelector('.hero .launchfee'));
+    // (families view: storefront.js sfLayout moves that delivery line into #klInfo under the product grids; the notice follows it)
+    line('klXmasHero', 'kl-xmas kl-xmas-hero', 'div', short, doc.querySelector('.hero .launchfee') || doc.querySelector('#klInfo .launchfee'));
     // (c) under the bag totals
     line('klXmasBag', 'kl-xmas kl-xmas-bag', 'div', short, doc.getElementById('cartPre'));
     // (a) index.html "Good to know" FAQ: right after "When will my order arrive?"

@@ -546,7 +546,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
   <div class="row">
     <div class="it"><b>15</b> shades</div>
     <div class="it"><b>4mm</b> faceted beads</div>
-    <div class="it" data-kl-m1="each"><b>£8</b> each · 70% off when you buy any 10+ items (£2.40 each) <span class="dl" data-kl="fee1">+ £1.49 UK delivery</span></div>
+    <div class="it" data-kl-m1="each"><b>£8</b> each · 70% off when you buy any 10+ items (£2.40 each) <span class="dl" data-kl="fee1">+ £1.49 UK delivery · free with any 10+ items</span></div>
   </div>
 </section>
 
@@ -689,7 +689,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 </aside>
 
 <div class="stickybar" id="stickybar">
-  <div class="sp" id="stickyInfo" aria-live="polite">Each <b>£8.00</b><span class="dl" data-kl="fee1">+ £1.49 UK delivery</span></div>
+  <div class="sp" id="stickyInfo" aria-live="polite">Each <b>£8.00</b><span class="dl" data-kl="fee1">+ £1.49 UK delivery · free with any 10+ items</span></div>
   <button class="sbtn" id="stickyBtn" onclick="openBundle()">Build your bundle</button>
   <button class="sbtn" id="stickyCart" onclick="openCart()" style="display:none;background:var(--accent);color:#fff;max-width:160px">View bag &middot; <span id="stickyN">0</span></button>
 </div>
@@ -1081,7 +1081,7 @@ function m1PriceHtml(bc){ const t=m1T(), g=m1Group(bc); if(!g) return '';
 function m1Texts(){
   const t=m1T(); if(!t) return null; const gr=t.groups[t.gradient_group]; if(!gr) return null;
   const from=t.cart_qty_tier.from, s=gbpShort(gr.single), e=gbpShort(gr.tier_each);
-  const fee=SHIP.feeP?'+ '+gbpP(SHIP.feeP)+' UK delivery':'Free UK delivery';
+  const fee=cardShipText();   // CMA209: the fee AND the 10+ free condition wherever a price shows
   const p=m1Pct(gr), tt=m1TierText(gr);
   // ad line (K-046): one percentage for every group sold on the page; 'from' = the lowest 10+ price among them
   const pg=m1PageGroups(), pp=m1GroupsPct(pg), lo=Math.min(...pg.map(g=>g.tier_each));
@@ -1174,7 +1174,7 @@ function addedLines(bc,n){ const out=cart.map(c=>({bc:c.bc,qty:c.qty})); const f
 function applyShipTexts(){
   document.querySelectorAll('[data-kl="ship"]').forEach(e=>{e.textContent=shipSentence();});
   document.querySelectorAll('[data-kl="cardship"]').forEach(e=>{e.textContent=cardShipText();});
-  document.querySelectorAll('[data-kl="fee1"]').forEach(e=>{e.textContent=SHIP.feeP?'+ '+gbpP(SHIP.feeP)+' UK delivery':'Free UK delivery';});
+  document.querySelectorAll('[data-kl="fee1"]').forEach(e=>{e.textContent=cardShipText();});   // CMA209: fee + 10+ condition
   document.querySelectorAll('[data-kl-q]').forEach(e=>{const q=Number(e.getAttribute('data-kl-q')); if(q>0) e.textContent=gbpP(gradTotalP(q));});
 }
 // Called by the live-stock loader with /api/stock ladders: a later ladders.json change updates every text by itself.
@@ -1205,7 +1205,7 @@ function updateBag(){
       // measurement hooks for the CMA209 check (total = items + delivery), no visual change
       inf.setAttribute('data-kl-total',''); inf.dataset.klItemsP=subP; inf.dataset.klShipP=d.feeP; inf.dataset.klTotalP=d.totalP; }
     else { inf.removeAttribute('data-kl-total'); }
-    if(!hasItems) inf.innerHTML='Each <b>'+(m1On()?priceTxt(colours[0]&&colours[0].bc):'£'+PRICE.toFixed(2))+'</b><span class="dl" data-kl="fee1">'+(SHIP.feeP?'+ '+gbpP(SHIP.feeP)+' UK delivery':'Free UK delivery')+'</span>';
+    if(!hasItems) inf.innerHTML='Each <b>'+(m1On()?priceTxt(colours[0]&&colours[0].bc):'£'+PRICE.toFixed(2))+'</b><span class="dl" data-kl="fee1">'+cardShipText()+'</span>';
   }
   const bar=document.getElementById('stickybar'); if(bar) bar.classList.toggle('has',hasItems);
   document.body.classList.toggle('has-bar',hasItems); document.documentElement.classList.toggle('has-bar',hasItems);
