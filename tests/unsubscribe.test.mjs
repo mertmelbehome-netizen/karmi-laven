@@ -52,6 +52,7 @@ const make = (o = {}) => {
   return { db, log, h }
 }
 const get = async (h, query, url) => { const res = fakeRes(); await h({ method: 'GET', headers: {}, query, url }, res); return res }
+const form = async (h, query, body = { confirm: '1' }) => { const res = fakeRes(); await h({ method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, query, body }, res); return res }
 const post = async (h, query, body = 'List-Unsubscribe=One-Click') => { const res = fakeRes(); await h({ method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, query, body }, res); return res }
 
 // ---------- token ----------
@@ -105,9 +106,26 @@ test('unsubscribe URL + headers: exact format, no email in them', () => {
 
 // ---------- endpoint ----------
 
-test('GET valid link → 200 confirmation page + one upsert with source "unsubscribe"', async () => {
+test('GET valid link → confirm page with a button, WRITES NOTHING (mail scanners pre-open links; Komuta 23 Nov)', async () => {
   const { db, h, log } = make()
-  const r = await get(h, { h: H, t: T })
+  for (let i = 0; i < 3; i++) {
+    const r = await get(h, { h: H, t: T })
+    assert.equal(r.statusCode, 200)
+    assert.match(r.headers['content-type'], /text\/html/)
+    assert.match(r.body, /Unsubscribe from Karmi Laven emails\?/)
+    assert.match(r.body, /<form method="post"><input type="hidden" name="confirm" value="1"><button type="submit"[^>]*>Confirm unsubscribe<\/button><\/form>/)
+    assert.doesNotMatch(r.body, /<form[^>]*action=/, 'posts back to its own URL: the hash is never written into the page')
+    assert.ok(!r.body.includes(H) && !r.body.includes(T))
+    assert.doesNotMatch(r.body, /<script|googletagmanager|gtag|fbq|pixel|<img/i)
+    assert.match(r.headers['content-security-policy'], /form-action 'self'/)
+  }
+  assert.equal(db.calls.length, 0, 'GET never writes')
+  assert.equal(log.lines.length, 0)
+})
+
+test("the button (form POST) → 200 'You are unsubscribed' page + one upsert with source unsubscribe", async () => {
+  const { db, h, log } = make()
+  const r = await form(h, { h: H, t: T })
   assert.equal(r.statusCode, 200)
   assert.match(r.headers['content-type'], /text\/html/)
   assert.match(r.body, /You're unsubscribed from Karmi Laven emails\./)
@@ -131,16 +149,17 @@ test('GET valid link → 200 confirmation page + one upsert with source "unsubsc
 
 test('second click is idempotent: still 200, still one row', async () => {
   const { db, h } = make()
-  assert.equal((await get(h, { h: H, t: T })).statusCode, 200)
-  assert.equal((await get(h, { h: H, t: T })).statusCode, 200)
+  assert.equal((await form(h, { h: H, t: T })).statusCode, 200)
+  assert.equal((await form(h, { h: H, t: T })).statusCode, 200)
   assert.equal((await post(h, { h: H, t: T })).statusCode, 200)
+  assert.equal((await form(h, { h: H, t: T }, 'confirm=1')).statusCode, 200, 'string body too')
   assert.equal(db.rows.size, 1)
   assert.equal(db.rows.get(H).source, 'unsubscribe')
 })
 
 test('PostgREST 409 on the duplicate is treated as success', async () => {
   const { h } = make({ status: 409 })
-  assert.equal((await get(h, { h: H, t: T })).statusCode, 200)
+  assert.equal((await form(h, { h: H, t: T })).statusCode, 200)
 })
 
 test('invalid / missing token → 400 plain page, nothing written', async () => {
@@ -153,6 +172,10 @@ test('invalid / missing token → 400 plain page, nothing written', async () => 
   }
   const p = await post(h, { h: H, t: 'f'.repeat(32) })
   assert.equal(p.statusCode, 400)
+  assert.equal(p.body, 'Invalid unsubscribe link')
+  const f = await form(h, { h: H, t: 'f'.repeat(32) })
+  assert.equal(f.statusCode, 400)
+  assert.match(f.body, /This unsubscribe link isn't valid/)
   assert.equal(db.calls.length, 0)
 })
 
@@ -160,7 +183,8 @@ test('h / t are read from req.url when req.query is absent', async () => {
   const { db, h } = make()
   const r = await get(h, undefined, `/api/unsubscribe?h=${H}&t=${T}`)
   assert.equal(r.statusCode, 200)
-  assert.equal(db.rows.size, 1)
+  assert.match(r.body, /Confirm unsubscribe/)
+  assert.equal(db.rows.size, 0)
 })
 
 test('POST one-click (RFC 8058) → 200 text and the row', async () => {
@@ -168,13 +192,16 @@ test('POST one-click (RFC 8058) → 200 text and the row', async () => {
   const r = await post(h, { h: H, t: T })
   assert.equal(r.statusCode, 200)
   assert.match(r.headers['content-type'], /text\/plain/)
+  // Vercel parses a urlencoded body into an object; a Buffer body works too
+  assert.equal((await post(h, { h: H, t: T }, { 'List-Unsubscribe': 'One-Click' })).body, 'Unsubscribed')
+  assert.equal((await post(h, { h: H, t: T }, Buffer.from('List-Unsubscribe=One-Click'))).body, 'Unsubscribed')
   assert.equal(r.body, 'Unsubscribed')
   assert.equal(db.rows.get(H).source, 'unsubscribe')
 })
 
 test('DB error → 500, logs the status only (no email, no hash); missing config → 500, no write', async () => {
   const { h, log } = make({ status: 500 })
-  const r = await get(h, { h: H, t: T })
+  const r = await form(h, { h: H, t: T })
   assert.equal(r.statusCode, 500)
   assert.match(r.body, /hello@karmilaven\.com/)
   assert.equal(log.lines.length, 1)
