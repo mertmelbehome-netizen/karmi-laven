@@ -14,6 +14,8 @@ const MIG3 = readFileSync(new URL('../db/20261123120000_karmi_online_caps_n_item
 const ROLLBACK3 = readFileSync(new URL('../db/20261123120000_karmi_online_caps_n_items_ROLLBACK.sql', import.meta.url), 'utf8')
 const MIG4 = readFileSync(new URL('../db/20261123150000_karmi_online_caps_k_items.sql', import.meta.url), 'utf8')
 const ROLLBACK4 = readFileSync(new URL('../db/20261123150000_karmi_online_caps_k_items_ROLLBACK.sql', import.meta.url), 'utf8')
+const MIG5 = readFileSync(new URL('../db/20261124004000_karmi_reselect_hold.sql', import.meta.url), 'utf8')
+const ROLLBACK5 = readFileSync(new URL('../db/20261124004000_karmi_reselect_hold_ROLLBACK.sql', import.meta.url), 'utf8')
 
 const STUB = `
 create role anon; create role authenticated; create role service_role;
@@ -234,6 +236,37 @@ test('reselect: priced + cap >= 3 + WAT stockroom > 0, ranked by 28-day WAT+GUI 
   assert.equal(n, 2)
   const { rows } = await db.query(`select product_id from karmi_online_products where listed order by product_id`)
   assert.deepEqual(rows.map((r) => r.product_id).sort(), [p2, p3].sort())
+})
+
+test('reselect hold (23 Nov 2026, 0624 / K-068): a komuta-hold row is never re-listed; guard matches the live body; rollback restores', async () => {
+  const db = await fresh()
+  // the body this repo installs is the live body read on 23 Nov (the migration's md5 guard would refuse otherwise)
+  const { rows: [{ m }] } = await db.query(`select md5(replace(prosrc, chr(13), '')) m from pg_proc where proname = 'fn_karmi_online_reselect'`)
+  assert.equal(m, '616db4f08a4838fa3a3e7ce44495d80a')
+  await db.exec(MIG5)
+  await db.exec(MIG5) // re-run is accepted (guard knows its own body)
+  await db.exec(`update karmi_online_caps set max_products = 2 where family = 'stretch_double'`)
+  const cat = 'Stretch Double Bracelet'
+  const held = await product(db, { category: cat, barcodes: ['H624'] })
+  const p2 = await product(db, { category: cat, barcodes: ['E2'] })
+  const p3 = await product(db, { category: cat, barcodes: ['E3'] })
+  for (const p of [held, p2, p3]) await configure(db, p, { family: 'stretch_double', listed: false })
+  await db.query(`update karmi_online_products set set_by = 'komuta hold 0624 name/price (K-068) 2026-11-23' where product_id = $1`, [held])
+  // the held product sells the most: without the hold it would be listed first
+  await db.exec(`insert into pos_daily_item_sales values ('WAT', current_date - 1, 'H624', 99), ('WAT', current_date - 1, 'E2', 5), ('WAT', current_date - 1, 'E3', 3)`)
+  const { rows: [{ n }] } = await db.query(`select fn_karmi_online_reselect('stretch_double') n`)
+  assert.equal(n, 2)
+  const { rows } = await db.query(`select product_id, listed, set_by from karmi_online_products order by product_id`)
+  const by = Object.fromEntries(rows.map((r) => [r.product_id, r]))
+  assert.equal(by[held].listed, false)
+  assert.match(by[held].set_by, /^komuta hold/, 'the hold note is kept')
+  assert.equal(by[p2].listed, true)
+  assert.equal(by[p3].listed, true)
+  // rollback: the old body (no hold check) is back and would list the held product again
+  await db.exec(ROLLBACK5)
+  await db.query(`select fn_karmi_online_reselect('stretch_double')`)
+  const { rows: [{ listed }] } = await db.query(`select listed from karmi_online_products where product_id = $1`, [held])
+  assert.equal(listed, true, 'without the hold check the reselect lists it (why the hold exists)')
 })
 
 test('Christmas: after the cut-off every checkout is refused with the configured message (Gradient too)', async () => {
