@@ -23,7 +23,8 @@
 // proves it charges exactly what the old hard-coded DENOMS code charged (golden + legacy comparison).
 // index.html still mirrors the Gradient ladder between /*KL-PRICING-START*/ and /*KL-PRICING-END*/; the tests keep the
 // page = this table. /api/stock serves publicLadders() as `ladders` so the page can read the table (PR-2).
-import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 export const RULE_ROUNDING = 'integer-pence-floor-spread';
 const MAX_UNITS_LIMIT = 999;
@@ -137,10 +138,13 @@ export function loadLadders(raw) {
   }
 }
 
-// The deployed table. createRequire keeps the JSON a static dependency the Vercel bundler traces.
+// The deployed table: <project root>/ladders.json. Read with fs from process.cwd(), NOT import.meta /
+// createRequire: Vercel compiles api/*.js to CommonJS (no "type": "module"), where import.meta is a
+// load-time SyntaxError (preview 16f6c32: FUNCTION_INVOCATION_FAILED). vercel.json includeFiles puts the
+// file in the checkout + stock bundles; locally npm test runs from the repo root.
 const loaded = (() => {
   let raw;
-  try { raw = createRequire(import.meta.url)('../ladders.json'); } catch (e) { return { ok: false, error: `ladders.json unreadable: ${e.message}` }; }
+  try { raw = JSON.parse(readFileSync(join(process.cwd(), 'ladders.json'), 'utf8')); } catch (e) { return { ok: false, error: `ladders.json unreadable: ${e.message}` }; }
   return loadLadders(raw);
 })();
 export const LADDERS = loaded.ok ? loaded.table : null;
