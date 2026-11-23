@@ -302,7 +302,7 @@ test('pre-paint: <head> sets html.kl-v2 (default ON, remembered answer) and link
 
 test('pre-paint: the layout runs right after the hero and is finished right after the Gradient panel (no later move)', () => {
   assert.match(HTML, /<\/header>\r?\n<script>[\s\S]*?\/\*KL-SF-LAYOUT-START\*\//)
-  assert.match(HTML, /<\/main>\r?\n<script>[^\n]*\r?\ntry\{ if\(window\.__klSfPre&&window\.klSfL\)\{ klSfL\.sfLayout\(document, null, klSfL\.vis\); klSfL\.sfBundleChip\(document\); \} \}catch\(e\)\{\}<\/script>/)
+  assert.match(HTML, /<\/main>\r?\n<script>[^\n]*\r?\ntry\{ if\(window\.__klSfPre&&window\.klSfL\)\{ klSfL\.sfLayout\(document, null, klSfL\.vis\); klSfL\.sfBundleChip\(document\); klSfL\.sfGradSubs\(document\); \} \}catch\(e\)\{\}<\/script>/)
   // part 1 sees only the page up to the hero; part 2 the whole first screen: same result as one call
   const doc = pageDoc()
   const pal = doc.querySelector('#palette'), fam = doc.querySelector('#klFam'), tw = doc.querySelector('.trustband').parentNode, sb = doc.querySelector('.swatchbar')
@@ -347,7 +347,7 @@ test('pre-paint css: nodes waiting to move out of the hero are never painted the
   // storefront.js binds the pre-built bar instead of building a second one, and keeps the pre-built bundle chip
   assert.match(SF, /var nav = \$\('nav\.kl-tabbar'\) \|\| KL\.sfBar\(document, \['gradient'\], null, 'gradient'\);/)
   assert.match(SF, /KL\.sfBundleChip\(document\);/)
-  assert.match(SF, /localStorage\.setItem\('kl_sf_tabs', JSON\.stringify\(\{ v: vis, n: seen \}\)\)/)
+  assert.match(SF, /localStorage\.setItem\('kl_sf_tabs', JSON\.stringify\(\{ v: vis, n: seen,/)
 })
 
 test('unfaithful Gradient renders withdrawn: 1266 1267 1269 1271 1272 1302 1310 show a colour tile, never the render', () => {

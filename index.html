@@ -529,7 +529,7 @@ var SFL_TABS = ['gradient', 'bracelets', 'necklaces', 'hair'];
 var SFL_CHIP = { gradient: 'Gradient', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair' };   // = storefront.js SF_CHIP (test-checked)
 /** The chip bar (storefront.js binds it). vis = tabs shown (the Gradient Edit always), n = counts, sel = selected tab. */
 function sfBar(doc, vis, n, sel) {
-  vis = vis || ['gradient']; n = n || {}; if (SFL_TABS.indexOf(sel) < 0 || (sel !== 'gradient' && vis.indexOf(sel) < 0)) sel = 'gradient';
+  vis = vis || ['gradient']; n = n || {}; sel = String(sel || '').split('-')[0]; if (SFL_TABS.indexOf(sel) < 0 || (sel !== 'gradient' && vis.indexOf(sel) < 0)) sel = 'gradient';
   var nav = doc.createElement('nav'); nav.className = 'kl-tabbar'; nav.setAttribute('aria-label', 'Shop by category');
   nav.innerHTML = '<div class="kl-tabs" role="tablist" aria-label="Categories">' + SFL_TABS.map(function (t) {
     var v = t === 'gradient' || vis.indexOf(t) >= 0;
@@ -581,6 +581,7 @@ function sfUnlayout(doc) {
   if (info && info.parentNode) info.parentNode.removeChild(info); doc.__klInfo = null;
   var bar = q('nav.kl-tabbar'); if (bar && bar.parentNode) bar.parentNode.removeChild(bar);
   var ch = q('#swatchbar .kl-bundlechip'); if (ch && ch.parentNode) ch.parentNode.removeChild(ch);
+  var gsr = q('#klGSubs'); if (gsr && gsr.parentNode) gsr.parentNode.removeChild(gsr);
   var k = q('.hero-copy .k'); if (k) k.hidden = false;
   var cta = q('.hero .cta'); if (cta) cta.hidden = false;
   var p = q('.hero-copy p');
@@ -596,6 +597,26 @@ function sfBundleChip(doc) {
   var chip = doc.createElement('button'); chip.type = 'button'; chip.className = 'sw kl-bundlechip'; chip.textContent = 'Build your bundle';
   chip.setAttribute('aria-haspopup', 'dialog'); chip.onclick = function () { if (typeof openBundle === 'function') openBundle(); };
   sbi.insertBefore(chip, sbi.firstChild);
+}
+/** The Gradient Edit's two styles as sub-chips, first in the colour chip row (after the bundle chip): no extra row, so
+ *  the phone first screen and CLS are unchanged. Labels = storefront.js SF_SUBS.gradient (test-checked): never
+ *  Lux / crystal. gs = last visit's sub-counts (storefront.js renderTabs), {} = none on sale; storefront.js keeps them. */
+var SFL_GSUBS = [['all', 'All'], ['classic', 'Gradient'], ['cobra', 'Gradient Cobra']];
+function sfGradSubs(doc, gs) {
+  var sbi = doc.getElementById('swatchbar'); if (!sbi || doc.getElementById('klGSubs')) return;
+  var sel = String(((doc.defaultView || (typeof window !== 'undefined' ? window : {})).location || {}).hash || '').replace(/^#/, '');
+  sel = sel.indexOf('gradient-') === 0 ? sel.slice(9) : 'all';
+  var row = doc.createElement('div'); row.className = 'kl-subs kl-gsubs'; row.id = 'klGSubs';
+  row.setAttribute('role', 'tablist'); row.setAttribute('aria-label', 'Gradient styles');
+  var on = function (k) { return !gs || k === 'all' || gs[k] > 0; }, nv = SFL_GSUBS.filter(function (x) { return x[0] !== 'all' && on(x[0]); }).length;
+  if (nv < 2) { row.hidden = true; sel = 'all'; }
+  if (!on(sel)) sel = 'all';
+  row.innerHTML = SFL_GSUBS.map(function (x) {
+    var n = gs && gs[x[0]] != null ? String(gs[x[0]]).replace(/\D/g, '') : '';
+    return '<button type="button" role="tab" class="kl-sub" id="klsub-gradient-' + x[0] + '" data-subtab="gradient" data-sub="' + x[0] + '" aria-controls="grid" aria-selected="' + (x[0] === sel) + '" tabindex="' + (x[0] === sel ? 0 : -1) + '"' + (on(x[0]) ? '' : ' hidden') + '>' + x[1] + ' <span class="n">' + n + '</span></button>';
+  }).join('');
+  var ch = sbi.querySelector('.kl-bundlechip');
+  sbi.insertBefore(row, ch ? ch.nextSibling : sbi.firstChild);
 }
 /** Hero line names only the categories on sale now (visible tabs): no 'hair pieces' while the Hair tab is hidden;
  *  it comes back by itself when a hair card is sellable again (Komuta 23 Nov). */
@@ -626,7 +647,7 @@ function sfMetaCats(doc, hair) {
   // the chips last shown (storefront.js renderTabs remembers them): the pre-paint bar matches what the visitor will see
   var m = {}; try { m = JSON.parse(localStorage.getItem('kl_sf_tabs') || '{}') || {}; } catch (e) {}
   var vis = Array.isArray(m.v) ? m.v.filter(function (t) { return SFL_TABS.indexOf(t) >= 0; }) : ['gradient', 'bracelets', 'necklaces'];
-  window.klSfL = { sfBar: sfBar, sfLayout: sfLayout, sfUnlayout: sfUnlayout, sfBundleChip: sfBundleChip, sfHeroLine: sfHeroLine, sfMetaCats: sfMetaCats, vis: vis };
+  window.klSfL = { sfBar: sfBar, sfLayout: sfLayout, sfUnlayout: sfUnlayout, sfBundleChip: sfBundleChip, sfGradSubs: function (d) { sfGradSubs(d, m.gs); }, sfHeroLine: sfHeroLine, sfMetaCats: sfMetaCats, vis: vis };
   if (window.__klSfPre) { try { sfLayout(document, sfBar(document, vis, m.n, location.hash.slice(1)), vis); } catch (e) {} }
 })();
 </script>
@@ -664,7 +685,7 @@ function sfMetaCats(doc, hair) {
   <div class="grid" id="grid"></div>
 </main>
 <script>/* families view, pre-paint part 2 (see above): trust + company/VAT line into #klInfo, #klInfo after the grid, bundle chip */
-try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vis); klSfL.sfBundleChip(document); } }catch(e){}</script>
+try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vis); klSfL.sfBundleChip(document); klSfL.sfGradSubs(document); } }catch(e){}</script>
 
 <section class="story">
   <div class="lg">Karmi Laven</div>

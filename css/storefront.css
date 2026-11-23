@@ -217,3 +217,31 @@ html.kl-v2 .cb-btn{min-height:44px}
   html.kl-v2 .kl-card .pr .m1t, html.kl-v2 #grid .card .pr .m1t{font-size:14px}
   html.kl-v2 .cbody .sub{letter-spacing:.14em; font-size:10.5px}
 }
+
+/* ---- sub-categories (owner 23 Nov): a second-level chip row. Bracelets: at the top of the panel, scrolls with the
+   page (never a second sticky row on phones). Gradient Edit: first in the colour chip row (no new row at all).
+   Outlined chips (the main row is filled), 44 px targets, the row alone scrolls sideways at 390 px. ---- */
+.kl-subs{display:flex; gap:6px; align-items:center}
+.kl-subs[hidden], .kl-sub[hidden]{display:none}
+html.kl-v2 #klBSubs{overflow-x:auto; scrollbar-width:none; overscroll-behavior-x:contain; margin:0 0 14px; padding:0 0 2px}
+html.kl-v2 #klBSubs::-webkit-scrollbar{display:none}
+.kl-gsubs{flex:0 0 auto; padding-right:16px; border-right:1px solid var(--hair)}
+.kl-sub{flex:0 0 auto; display:inline-flex; align-items:center; gap:5px; min-height:44px; padding:0 14px; background:transparent;
+  border:1px solid var(--hair); border-radius:0; font-family:'Jost'; font-weight:400; font-size:13px; letter-spacing:.03em;
+  color:var(--ink); cursor:pointer; white-space:nowrap; transition:border-color .2s, box-shadow .2s}
+.kl-sub:hover{border-color:#9a8f7e}
+.kl-sub[aria-selected=true]{border-color:var(--ink); box-shadow:inset 0 -2px 0 var(--ink); font-weight:500}
+.kl-sub .n{font-size:11.5px; opacity:.75}
+.kl-sub:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
+@media(max-width:560px){
+  html.kl-v2 #klBSubs{margin:0 -16px 8px; padding:0 16px}
+  .kl-sub{padding:0 11px; font-size:12.5px}
+  /* with the sub-chip row on, the chips carry the counts on phones: the panel count + delivery line stay for screen
+     readers only (first screen, V-01; every priced card still shows its own delivery line, CMA209) */
+  html.kl-v2 #klFam:has(#klBSubs:not([hidden])) .col-head .c, html.kl-v2 #klFam:has(#klBSubs:not([hidden])) .kl-dlv{position:absolute; width:1px; height:1px; margin:-1px; padding:0;
+    overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
+}
+/* a short sub-category (Bangle: 2 pieces) never pulls the info block / footer up into the first screen: the open
+   panel is at least one screen tall under the chip bar (cold deep link #bracelets-bangle CLS 0.156 -> measured in
+   morning_review/26_bracelet_subcats) */
+html.kl-v2 #klFam:not([hidden]){min-height:calc(100vh - var(--kl-tb-h,54px))}
