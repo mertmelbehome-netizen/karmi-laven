@@ -99,7 +99,10 @@
       media = '<div class="kl-tone" style="background-color:' + sfEsc(c.swatch) + '" role="img" aria-label="Colour tile, not a photo"></div>';
       body = '<p class="kl-stt">Photo coming</p><p class="kl-why">Colour tile is a guide only. Coming soon.</p>';
     } else {
-      media = '<div class="imgwrap"><img src="' + sfEsc(c.photo) + '" width="400" height="500" loading="lazy" alt="' + sfEsc(c.name + ', ' + c.line) + '"></div>';
+      media = c.photo
+        ? '<div class="imgwrap"><img src="' + sfEsc(c.photo) + '" width="400" height="500" loading="lazy" alt="' + sfEsc(c.name + ', ' + c.line) + '"></div>'
+        : '<div class="kl-tone" style="background-color:' + sfEsc(c.swatch) + '" role="img" aria-label="' + sfEsc(c.name) + ' colour tile, not a photo"></div>';
+      if (!c.photo) body = '<p class="kl-stt">Photo coming</p><p class="kl-why">Colour tile is a guide only.</p>';
       if (st === 'sellable' || st === 'single') {
         if (st === 'sellable' && b) body += '<p class="kl-from">from ' + sfMoney(b.each) + ' each when you buy ' + b.n + '</p>';
         body += '<button type="button" class="add" data-kl-add data-bc="' + sfEsc(c.barcode) + '"' + (o.dis || o.full ? ' disabled aria-disabled="true"' : '') + '>' + sfAddText(p, o.full, o.dis) + '</button>';
@@ -145,7 +148,8 @@
   function inBag(bc) { var f = cart.find(function (c) { return c.bc === bc; }); return f ? f.qty : 0; }
   function famState(c) {
     var p = priceP(c.barcode), key = sfPoolKey(L(), false, p);
-    return sfState({ priceP: p, photoOk: !!(c.photo && c.photo_qc), sellable: window.klAvail ? window.klAvail(c.barcode) : 0,
+    return sfState({ priceP: p, photoOk: !!(c.photo && c.photo_qc) || c.tile_sellable === true,   // G9 exception (Komuta 23 Nov): colour tile, still sellable
+      sellable: window.klAvail ? window.klAvail(c.barcode) : 0,
       stock: window.klStockQty ? window.klStockQty(c.barcode) : 0, badge: !!sfFromBadge(L(), key) });
   }
   function poolLabel(key, bc) {

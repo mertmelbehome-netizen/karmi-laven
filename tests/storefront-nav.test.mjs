@@ -358,3 +358,43 @@ test('unfaithful Gradient renders withdrawn: 1266 1267 1269 1271 1272 1302 1310 
   }
   assert.match(html, /colour tile, not a photo/)
 })
+
+test('render audit 2 (23 Nov): hero = 1268 (2-referee PASS; 1074 unverifiable), 1470 render withdrawn (flower charm differs)', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  assert.match(html, /<img id="heroImg" src="\/img\/gradient\/1268\.jpg"/)
+  assert.match(html, /const hero=DATA\.find\(d=>d\.barcode==='1268'\)\|\|DATA\[0\];/)
+  const cards = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url), 'utf8')).cards
+  const c = cards.find((x) => x.barcode === '1470')
+  assert.equal(c.photo, null); assert.equal(c.photo_qc, false)
+  assert.ok(!existsSync(new URL('../img/fam/1470.jpg', import.meta.url)))
+})
+
+test('G9 exception: 1470 stays sellable as a colour tile; modal + bag thumbnail alt follow the product (K&D #64 N2/N3)', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  const cards = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url), 'utf8')).cards
+  const c = cards.find((x) => x.barcode === '1470')
+  assert.equal(c.tile_sellable, true)
+  assert.match(SF, /photoOk: !!\(c\.photo && c\.photo_qc\) \|\| c\.tile_sellable === true,/)
+  assert.match(SF, /aria-label="' \+ sfEsc\(c\.name\) \+ ' colour tile, not a photo"/)
+  assert.doesNotMatch(html, /<img id="mImg" alt="product">[\s\S]*?mi\.alt=undefined/)
+  assert.match(html, /mi\.alt=imgAlt\(d\);/)
+  assert.match(html, /<img src="\$\{d\.img\}" alt="\$\{imgAlt\(d\)\}">/)
+  const imgAlt = new Function(html.match(/function imgAlt\(d\)\{[^\n]*\}/)[0] + '; return imgAlt;')()
+  assert.equal(imgAlt({ img: '/img/tone/1267.svg', color_en: 'Baby Pink' }), 'Baby Pink colour tile, not a photo')
+  assert.equal(imgAlt({ img: '', color_en: 'Pink Blossom', family: true }), 'Pink Blossom colour tile, not a photo')
+  assert.equal(imgAlt({ img: '/img/gradient/1268.jpg', color_en: 'Ice Blue' }), 'Ice Blue bracelet, worn')
+})
+
+test('famState still passes live sellable qty (guards against a comment swallowing the sellable: key)', () => {
+  const fn = SF.match(/function famState\(c\) \{[\s\S]*?\n  \}/)[0]
+  assert.match(fn, /\r?\n\s+sellable: window\.klAvail \? window\.klAvail\(c\.barcode\) : 0,/)
+})
+
+test('line labels match the real product (Komuta 23 Nov): 6159 Chip Bead Necklace (no charm), 0624 Stretch Bracelet (single strand)', () => {
+  const cards = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url), 'utf8')).cards
+  const by = Object.fromEntries(cards.map((c) => [c.barcode, c]))
+  assert.equal(by['6159'].line, 'Chip Bead Necklace')
+  assert.equal(by['0624'].line, 'Stretch Bracelet')
+  assert.equal(by['6180'].line, 'Charm Necklace'); assert.equal(by['6170'].line, 'Charm Necklace')
+  for (const c of cards) assert.doesNotMatch(c.line, /stone|onyx|quartz|crystal/i, c.barcode)
+})

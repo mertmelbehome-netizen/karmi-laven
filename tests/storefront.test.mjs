@@ -241,7 +241,7 @@ test('performance: index.html has no embedded base64 images (was 4.28 MB) and st
     assert.ok(existsSync(new URL('..' + p, import.meta.url)), p)
     assert.ok(existsSync(new URL('..' + p.replace('/img/gradient/', '/img/gradient/w480/'), import.meta.url)), 'card-size variant ' + p)
   }
-  assert.ok(/<img id="heroImg" src="\/img\/gradient\/1074\.jpg" fetchpriority="high"/.test(HTML), 'hero (LCP) image requested from the HTML, not after JS')
+  assert.ok(/<img id="heroImg" src="\/img\/gradient\/1268\.jpg" fetchpriority="high"/.test(HTML), 'hero (LCP) image requested from the HTML, not after JS')
 })
 
 test('Vercel CJS guard: no import.meta in api/*.js; ladders.json (+ ladders-preview/*.json, M1 preview) are the only JSON files the functions read', () => {
