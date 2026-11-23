@@ -1,0 +1,484 @@
+{
+ "_doc": "Live state of the 42 O&W card styles in the ops DB, read 2026-11-23 (read-only SELECT) for tests/families-db.test.mjs. family/listed/unit_cap null = no karmi_online_products row. wat_price_pence = fn_karmi__wat_price_pence rule (72 h). other_listed = listed rows per family that are NOT cards.",
+ "cards": [
+  {
+   "bc": "2023",
+   "group": "B",
+   "category": "Stretch Charm Bracelet",
+   "family": "stretch_charm",
+   "listed": true,
+   "unit_cap": 7,
+   "wat_price_pence": 599,
+   "wat_stockroom": 60
+  },
+  {
+   "bc": "2040",
+   "group": "B",
+   "category": "Stretch Charm Bracelet",
+   "family": "stretch_charm",
+   "listed": true,
+   "unit_cap": 10,
+   "wat_price_pence": 599,
+   "wat_stockroom": 65
+  },
+  {
+   "bc": "1468",
+   "group": "B",
+   "category": "Stretch Charm Bracelet",
+   "family": "stretch_charm",
+   "listed": true,
+   "unit_cap": 10,
+   "wat_price_pence": 599,
+   "wat_stockroom": 45
+  },
+  {
+   "bc": "1470",
+   "group": "B",
+   "category": "Stretch Charm Bracelet",
+   "family": "stretch_charm",
+   "listed": true,
+   "unit_cap": 10,
+   "wat_price_pence": 599,
+   "wat_stockroom": 120
+  },
+  {
+   "bc": "1472",
+   "group": "B",
+   "category": "Stretch Charm Bracelet",
+   "family": "stretch_charm",
+   "listed": false,
+   "unit_cap": 10,
+   "wat_price_pence": 599,
+   "wat_stockroom": 60
+  },
+  {
+   "bc": "1474",
+   "group": "B",
+   "category": "Stretch Charm Bracelet",
+   "family": "stretch_charm",
+   "listed": true,
+   "unit_cap": 10,
+   "wat_price_pence": 599,
+   "wat_stockroom": 75
+  },
+  {
+   "bc": "1477",
+   "group": "B",
+   "category": "Stretch Charm Bracelet",
+   "family": "stretch_charm",
+   "listed": true,
+   "unit_cap": 10,
+   "wat_price_pence": 599,
+   "wat_stockroom": 50
+  },
+  {
+   "bc": "2000",
+   "group": "B",
+   "category": "Stretch Charm Bracelet",
+   "family": null,
+   "listed": null,
+   "unit_cap": null,
+   "wat_price_pence": 599,
+   "wat_stockroom": 45
+  },
+  {
+   "bc": "1849",
+   "group": "B",
+   "category": "Hair Clips",
+   "family": "hair",
+   "listed": true,
+   "unit_cap": 8,
+   "wat_price_pence": 400,
+   "wat_stockroom": 181
+  },
+  {
+   "bc": "1850",
+   "group": "B",
+   "category": "Hair Clips",
+   "family": "hair",
+   "listed": true,
+   "unit_cap": 8,
+   "wat_price_pence": 400,
+   "wat_stockroom": 183
+  },
+  {
+   "bc": "1854",
+   "group": "B",
+   "category": "Hair Clips",
+   "family": "hair",
+   "listed": true,
+   "unit_cap": 8,
+   "wat_price_pence": 400,
+   "wat_stockroom": 183
+  },
+  {
+   "bc": "1859",
+   "group": "B",
+   "category": "Hair Clips",
+   "family": "hair",
+   "listed": true,
+   "unit_cap": 7,
+   "wat_price_pence": 400,
+   "wat_stockroom": 180
+  },
+  {
+   "bc": "1863",
+   "group": "B",
+   "category": "Hair Clips",
+   "family": "hair",
+   "listed": true,
+   "unit_cap": 8,
+   "wat_price_pence": 400,
+   "wat_stockroom": 181
+  },
+  {
+   "bc": "1864",
+   "group": "B",
+   "category": "Hair Clips",
+   "family": "hair",
+   "listed": true,
+   "unit_cap": 8,
+   "wat_price_pence": 400,
+   "wat_stockroom": 182
+  },
+  {
+   "bc": "1865",
+   "group": "B",
+   "category": "Hair Clips",
+   "family": "hair",
+   "listed": true,
+   "unit_cap": 8,
+   "wat_price_pence": 400,
+   "wat_stockroom": 181
+  },
+  {
+   "bc": "7058",
+   "group": "B",
+   "category": "Necklace Lux",
+   "family": null,
+   "listed": null,
+   "unit_cap": null,
+   "wat_price_pence": 799,
+   "wat_stockroom": 72
+  },
+  {
+   "bc": "7056",
+   "group": "B",
+   "category": "Necklace Lux",
+   "family": null,
+   "listed": null,
+   "unit_cap": null,
+   "wat_price_pence": 799,
+   "wat_stockroom": 72
+  },
+  {
+   "bc": "6095",
+   "group": "B",
+   "category": "Necklace Lux",
+   "family": null,
+   "listed": null,
+   "unit_cap": null,
+   "wat_price_pence": 799,
+   "wat_stockroom": 60
+  },
+  {
+   "bc": "6091",
+   "group": "B",
+   "category": "Necklace Lux",
+   "family": null,
+   "listed": null,
+   "unit_cap": null,
+   "wat_price_pence": 799,
+   "wat_stockroom": 72
+  },
+  {
+   "bc": "6159",
+   "group": "C",
+   "category": "Necklace Lux Stone",
+   "family": "necklace_lux_stone",
+   "listed": true,
+   "unit_cap": 10,
+   "wat_price_pence": 999,
+   "wat_stockroom": 42
+  },
+  {
+   "bc": "6170",
+   "group": "C",
+   "category": "Necklace Lux Stone",
+   "family": "necklace_lux_stone",
+   "listed": true,
+   "unit_cap": 10,
+   "wat_price_pence": 999,
+   "wat_stockroom": 54
+  },
+  {
+   "bc": "6180",
+   "group": "C",
+   "category": "Necklace Lux Stone",
+   "family": "necklace_lux_stone",
+   "listed": true,
+   "unit_cap": 10,
+   "wat_price_pence": 999,
+   "wat_stockroom": 54
+  },
+  {
+   "bc": "0624",
+   "group": "C",
+   "category": "Stretch Double Bracelet",
+   "family": "stretch_double",
+   "listed": true,
+   "unit_cap": 7,
+   "wat_price_pence": 999,
+   "wat_stockroom": 15
+  },
+  {
+   "bc": "80012",
+   "group": "C",
+   "category": "Bangle Bracelet",
+   "family": null,
+   "listed": null,
+   "unit_cap": null,
+   "wat_price_pence": 999,
+   "wat_stockroom": 46
+  },
+  {
+   "bc": "80043",
+   "group": "C",
+   "category": "Bangle Bracelet",
+   "family": null,
+   "listed": null,
+   "unit_cap": null,
+   "wat_price_pence": 999,
+   "wat_stockroom": 46
+  },
+  {
+   "bc": "03010002",
+   "group": "C",
+   "category": "Hair Claws",
+   "family": "hair",
+   "listed": false,
+   "unit_cap": 10,
+   "wat_price_pence": 799,
+   "wat_stockroom": 40
+  },
+  {
+   "bc": "03010009",
+   "group": "C",
+   "category": "Hair Claws",
+   "family": "hair",
+   "listed": false,
+   "unit_cap": 10,
+   "wat_price_pence": 799,
+   "wat_stockroom": 37
+  },
+  {
+   "bc": "03010013",
+   "group": "C",
+   "category": "Hair Claws",
+   "family": "hair",
+   "listed": true,
+   "unit_cap": 10,
+   "wat_price_pence": 799,
+   "wat_stockroom": 38
+  },
+  {
+   "bc": "03010025",
+   "group": "C",
+   "category": "Hair Claws",
+   "family": "hair",
+   "listed": false,
+   "unit_cap": 10,
+   "wat_price_pence": 799,
+   "wat_stockroom": 37
+  },
+  {
+   "bc": "03010035",
+   "group": "C",
+   "category": "Hair Claws",
+   "family": "hair",
+   "listed": false,
+   "unit_cap": 10,
+   "wat_price_pence": 799,
+   "wat_stockroom": 39
+  },
+  {
+   "bc": "81004",
+   "group": "C",
+   "category": "Diamond Bracelet",
+   "family": "diamond",
+   "listed": false,
+   "unit_cap": 10,
+   "wat_price_pence": 999,
+   "wat_stockroom": 36
+  },
+  {
+   "bc": "81006",
+   "group": "C",
+   "category": "Diamond Bracelet",
+   "family": "diamond",
+   "listed": false,
+   "unit_cap": 10,
+   "wat_price_pence": 999,
+   "wat_stockroom": 36
+  },
+  {
+   "bc": "81009",
+   "group": "C",
+   "category": "Diamond Bracelet",
+   "family": "diamond",
+   "listed": false,
+   "unit_cap": 10,
+   "wat_price_pence": 999,
+   "wat_stockroom": 36
+  },
+  {
+   "bc": "81013",
+   "group": "C",
+   "category": "Diamond Bracelet",
+   "family": "diamond",
+   "listed": false,
+   "unit_cap": 10,
+   "wat_price_pence": 999,
+   "wat_stockroom": 36
+  },
+  {
+   "bc": "81014",
+   "group": "C",
+   "category": "Diamond Bracelet",
+   "family": "diamond",
+   "listed": false,
+   "unit_cap": 10,
+   "wat_price_pence": 999,
+   "wat_stockroom": 36
+  },
+  {
+   "bc": "6002",
+   "group": "A",
+   "category": "Stretch Bracelet",
+   "family": null,
+   "listed": null,
+   "unit_cap": null,
+   "wat_price_pence": 300,
+   "wat_stockroom": 173
+  },
+  {
+   "bc": "6008",
+   "group": "A",
+   "category": "Stretch Bracelet",
+   "family": null,
+   "listed": null,
+   "unit_cap": null,
+   "wat_price_pence": 300,
+   "wat_stockroom": 160
+  },
+  {
+   "bc": "6009",
+   "group": "A",
+   "category": "Stretch Bracelet",
+   "family": null,
+   "listed": null,
+   "unit_cap": null,
+   "wat_price_pence": 300,
+   "wat_stockroom": 180
+  },
+  {
+   "bc": "6011",
+   "group": "A",
+   "category": "Stretch Bracelet",
+   "family": null,
+   "listed": null,
+   "unit_cap": null,
+   "wat_price_pence": 300,
+   "wat_stockroom": 190
+  },
+  {
+   "bc": "6017",
+   "group": "A",
+   "category": "Stretch Bracelet",
+   "family": null,
+   "listed": null,
+   "unit_cap": null,
+   "wat_price_pence": 300,
+   "wat_stockroom": 70
+  },
+  {
+   "bc": "6042",
+   "group": "A",
+   "category": "Stretch Bracelet",
+   "family": null,
+   "listed": null,
+   "unit_cap": null,
+   "wat_price_pence": 300,
+   "wat_stockroom": 50
+  },
+  {
+   "bc": "6058",
+   "group": "A",
+   "category": "Stretch Bracelet",
+   "family": null,
+   "listed": null,
+   "unit_cap": null,
+   "wat_price_pence": 300,
+   "wat_stockroom": 150
+  }
+ ],
+ "other_listed": {
+  "hair": 8,
+  "stretch_charm": 24,
+  "necklace_lux_stone": 17,
+  "stretch_double": 11
+ },
+ "caps": [
+  {
+   "family": "diamond",
+   "enabled": false,
+   "max_units": 356,
+   "max_products": 0,
+   "display_label": "Sparkle Line Bracelet",
+   "category_names": [
+    "Diamond Bracelet"
+   ]
+  },
+  {
+   "family": "hair",
+   "enabled": false,
+   "max_units": 485,
+   "max_products": 16,
+   "display_label": "Hair Accessory",
+   "category_names": [
+    "Hair Clips",
+    "Hair Claws"
+   ]
+  },
+  {
+   "family": "necklace_lux_stone",
+   "enabled": false,
+   "max_units": 149,
+   "max_products": 20,
+   "display_label": "Charm Necklace",
+   "category_names": [
+    "Necklace Lux Stone"
+   ]
+  },
+  {
+   "family": "stretch_charm",
+   "enabled": false,
+   "max_units": 547,
+   "max_products": 30,
+   "display_label": "Stretch Charm Bracelet",
+   "category_names": [
+    "Stretch Charm Bracelet"
+   ]
+  },
+  {
+   "family": "stretch_double",
+   "enabled": false,
+   "max_units": 92,
+   "max_products": 14,
+   "display_label": "Stretch Double Bracelet",
+   "category_names": [
+    "Stretch Double Bracelet"
+   ]
+  }
+ ]
+}
