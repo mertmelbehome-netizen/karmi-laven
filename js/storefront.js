@@ -286,6 +286,7 @@
     return vs;
   }
   function renderTabs() {
+    document.documentElement.setAttribute('data-kl-tab', tab);   // phone CSS: family tabs use a one-line hero price (V-01)
     var vis = sfVisibleTabs(FAM, famState), seen = {};
     SF_TABS.forEach(function (t) {
       var b = $('#kltab-' + t); if (!b) return;
@@ -304,6 +305,8 @@
     $('#klFam').hidden = isG;
     $$('[data-kl-gonly]').forEach(function (e) { e.classList.toggle('kl-goff', !isG); });
     var hp = $('.hero-copy p'); if (hp && hp.parentNode) hp.textContent = sfHeroLine(vis);
+    // hero price block: the lowest 10+ price + singles of the groups on sale (index.html klHeroPriceApply)
+    try { if (typeof window.klHeroPriceApply === 'function') window.klHeroPriceApply(); } catch (e) {}
     sfMetaCats(document, vis.indexOf('hair') >= 0);
     tabScroll(true); syncSticky(); syncHero();
     // only the open tab's cards are in the page (no hidden duplicate buttons / texts)
@@ -517,6 +520,7 @@
     if (typeof window.klRefreshStock !== 'function') return Promise.resolve(false);
     return window.klRefreshStock(famBcs()).then(function (ok) {
       stockErr = !ok;
+      if (ok && FAM.length) window.__klGroupsKnown = true;   // hero price: from now on only the groups on sale (index.html klHeroPriceApply)
       try { if (CFG.families) { decorateGradient(); renderTabs(); } renderCart(); updateBag(); } catch (e) {}
       return ok;
     });

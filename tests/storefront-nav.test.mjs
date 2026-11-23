@@ -95,8 +95,10 @@ test('F1: the chip bar comes right after the logo/Bag row and BEFORE the hero', 
 test('F3: hero keeps H1 + one short line (<= 15 words); eyebrow and buttons hidden; nothing is deleted', () => {
   const doc = pageDoc(); sfLayout(doc, tabbar())
   const hc = doc.querySelector('.hero-copy')
-  const shown = hc.children.filter((e) => e.tagName !== '#TEXT' && !e.hidden && !e.classes.includes('spectrum'))
-  assert.deepEqual(shown.map((e) => e.tagName), ['H1', 'P'])
+  const all = hc.children.filter((e) => e.tagName !== '#TEXT' && !e.hidden && !e.classes.includes('spectrum'))
+  // + the hero price block right under the line (25_hero_price; its own rules: tests/hero-price.test.mjs)
+  assert.deepEqual(all.map((e) => e.tagName + (e.classes.includes('kl-hp') ? '.kl-hp' : '')), ['H1', 'P', 'DIV.kl-hp'])
+  const shown = all.filter((e) => !e.classes.includes('kl-hp'))
   const words = shown.map((e) => e.textContent).join(' ').split(/\s+/).filter(Boolean)
   assert.ok(words.length <= 15, words.join(' '))
   assert.ok(doc.querySelector('.hero-copy .k').hidden, 'dead eyebrow hidden (F7)')
@@ -281,7 +283,7 @@ test('strict scarcity: a failed refresh or an answer older than one refresh peri
 // ---------- CLS fix (morning_review/18_cls_prepaint): the families layout exists BEFORE the first paint ----------
 test('pre-paint: <head> sets html.kl-v2 (default ON, remembered answer) and links storefront.css statically', () => {
   const head = HTML.slice(0, HTML.indexOf('</head>'))
-  assert.match(head, /<link href="\/css\/storefront\.css\?v=pr3" rel="stylesheet">/)
+  assert.match(head, /<link href="\/css\/storefront\.css\?v=pr4" rel="stylesheet">/)
   const pre = head.match(/\/\*KL-SF-PRE-START\*\/([\s\S]*?)\/\*KL-SF-PRE-END\*\//)[1]
   const run = (stored) => {
     const cls = new Set(), window = {}

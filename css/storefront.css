@@ -77,6 +77,48 @@ html.kl-v2 .swatchbar{top:var(--kl-tb-h,54px)}
   /* 375x812: announce bar 60 -> 44 px so the first full card ends above the sticky bar (Komuta 23 Nov: overlap 0 at 812 + 844) */
   html.kl-v2 .announce{padding:7px 10px; font-size:10.5px; letter-spacing:.1em; line-height:1.4}
 }
+/* ---- hero price block (25_hero_price/BENCHMARK.md rules HP-1..HP-6): big lowest 10+ price, its condition on the same
+   line (>= 1/2.5 of the big size, never small print), singles smaller under it, delivery last. Families view only; the
+   old page keeps its own hero price line (.launch). Text: index.html sfHeroPrice (from the served table). */
+.kl-hp{display:none}
+html.kl-v2 .kl-hp{display:block; margin:14px 0 4px; color:var(--ink); font-family:'Jost',sans-serif; font-weight:400}
+html.kl-v2 .kl-hp[hidden]{display:none}
+.kl-hp-l1{display:flex; flex-wrap:wrap; align-items:baseline; column-gap:10px; row-gap:0; line-height:1.05}
+.kl-hp-from{font-size:20px; font-weight:400}
+.kl-hp-big{font-size:64px; font-weight:500; letter-spacing:-.02em; line-height:1; white-space:nowrap}
+.kl-hp-big small{font-size:22px; font-weight:400; letter-spacing:0; margin-left:2px}
+.kl-hp-cond{font-size:22px; font-weight:500}
+.kl-hp-single{font-size:16px; margin-top:10px; letter-spacing:.01em}
+.kl-hp-dlv{font-size:14px; margin-top:4px; letter-spacing:.01em}
+@media(min-width:841px){
+  /* desktop: H1 on one line and the price block takes its place (cards stay on the first screen) */
+  html.kl-v2 .hero h1{font-size:clamp(34px,3.2vw,46px)}
+  html.kl-v2 .hero h1 br{display:none}
+  html.kl-v2 .hero-copy p{font-size:15px}
+  html.kl-v2 .hero-copy .spectrum{display:none}
+}
+@media(max-width:560px){
+  /* phone (compact, the task's fallback): one line big price + condition, one small line singles. The delivery line is
+     the announce bar at the top of the same first screen ('£1.49 UK delivery · free with any 10+ items'). */
+  html.kl-v2 .kl-hp{margin:0; padding:6px 16px 4px}
+  .kl-hp-l1{column-gap:6px; flex-wrap:nowrap; white-space:nowrap}
+  .kl-hp-from{font-size:13px}
+  .kl-hp-big{font-size:32px}
+  .kl-hp-big small{font-size:14px; margin-left:1px}
+  .kl-hp-cond{font-size:14px}
+  .kl-hp-single{font-size:13px; line-height:1.3; margin-top:2px}
+  .kl-hp-dlv{display:none}
+  /* family tabs (Bracelets / Necklaces / Hair) with their sub-chip row: one-line hero price; every card right below shows its
+     single price + the same 10+ condition, so the first full card stays above the sticky bar (V-01, 375x812) */
+  html.kl-v2[data-kl-tab]:not([data-kl-tab="gradient"]) .kl-hp-single{display:none}
+  html.kl-v2[data-kl-tab]:not([data-kl-tab="gradient"]) #klFam{padding-top:0}
+  html.kl-v2[data-kl-tab]:not([data-kl-tab="gradient"]) #klFam .col-head{margin-bottom:0}
+  html.kl-v2 #klFam [role=tablist]{margin-bottom:4px}
+  /* the Gradient count line repeated the price ('38 shades · £8 each · 70% off ...'): the hero block and every card carry
+     it now, so on phones it gives its two lines back to the first card (V-01) */
+  html.kl-v2 #palette .col-head .c{display:none}
+  html.kl-v2 #palette .col-head{margin:0}
+}
 /* hero: H1 + one short line (F3); the eyebrow and buttons are hidden by sfLayout */
 html.kl-v2 .hero-copy p{margin-bottom:0}
 html.kl-v2 .hero .cta[hidden], html.kl-v2 .hero-copy .k[hidden]{display:none}
