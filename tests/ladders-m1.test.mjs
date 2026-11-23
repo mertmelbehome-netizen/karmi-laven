@@ -17,7 +17,9 @@ import stockHandler from '../api/stock.js'
 import { GRADIENT } from '../api/_gradient.js'
 
 const json = (p) => JSON.parse(readFileSync(new URL(p, import.meta.url), 'utf8'))
-const RAW = json('../ladders-preview/M1_mert_list.json')
+const RAW_PCT = json('../ladders-preview/M1_mert_list.json')   // ui.percent_claim 70 (K-046)
+// S1 = the same prices with NO percentage claim: the existing two-price wording must still hold (fallback path)
+const RAW = structuredClone(RAW_PCT); RAW.ui = { ...RAW.ui, percent_claim: null }
 const loaded = loadLadders(RAW)
 assert.ok(loaded.ok, loaded.error)
 const M1 = loaded.table

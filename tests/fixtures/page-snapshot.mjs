@@ -26,7 +26,7 @@ export function pageFns(html, { ladders = null, extra = [], livePrices = {}, gro
   const window = { klPrice: (bc) => (bc in livePrices ? livePrices[bc] : null), klGroup: (bc) => groups[bc] || null, klLadders: ladders }
   const b = blocks(html)
   const names = ['cartTotal', 'deliveryFor', 'rollingText', 'shipSentence', 'cardShipText', 'applyLadderShipping', 'gradTotalP', 'unitPrice', 'isLadder', 'bestPrice', 'SHIP']
-  const m1Names = b.m1 ? ['m1On', 'm1T', 'm1Group', 'm1Summary', 'm1Lines', 'm1PriceText', 'm1Texts', 'm1CartTotalP'] : []
+  const m1Names = b.m1 ? ['m1On', 'm1T', 'm1Group', 'm1Summary', 'm1Lines', 'm1PriceText', 'm1PriceHtml', 'm1TierHint', 'm1Texts', 'm1CartTotalP'] : []
   return new Function('BY', 'LADDER_TYPES', 'PRICE', 'window', `${b.pricing}\n${b.delivery}\n${b.m1}\n; return { ${[...names, ...m1Names].join(', ')} };`)(
     BY, LADDER_TYPES, PRICE, window)
 }

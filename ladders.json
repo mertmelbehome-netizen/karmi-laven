@@ -1,20 +1,53 @@
 {
-  "_doc": "Karmi Laven multi-buy price ladders + shipping: the ONE table the server charges from (api/_pricing.js) and /api/stock serves as `ladders`. Pool key = 'gradient' (The Gradient Edit barcodes, api/_gradient.js) or a single price in pence as a string (every product whose WAT till single price equals it shares that pool, whatever its family). A product whose price has no pool here gets NO multi-buy: n x its single price. All amounts are integer pence. Change prices/steps/shipping here only; see docs/LADDERS.md. THIS DEFAULT = the live behaviour on 23 Nov 2026 (Gradient 1/2/3/5; no family multi-buy; free UK shipping from £12.00 or 5+ items, else £1.49; no cart rules; no new bag progress line).",
-  "version": "live-2026-11-23",
+  "_doc": "Karmi Laven online prices + shipping: the ONE table the server charges from (api/_pricing.js) and /api/stock serves as `ladders`. Mode cart_qty_groups (M1, Mert's list 23 Nov 2026, K-046): every product belongs to a group with an ONLINE single price and a 10+ price; with 10+ units in the cart (all groups counted together) every unit pays its group's 10+ price; 1-9 units pay the single price (no intermediate steps, no cap). Gradient Edit = group B (8.00, 10+ 2.40). Delivery 1.49, free with 10+ units (no spend threshold). Non-Gradient products need DB karmi_online_products.online_group (else family_groups). Previous table: tests/fixtures/ladders.live-2026-11-23.json. See docs/LADDERS.md, docs/GO_LIVE_M1.md.",
+  "version": "M1-2026-11-25",
+  "mode": "cart_qty_groups",
   "rule": {
-    "monotonic": true,
+    "monotonic": false,
+    "monotonic_exception": "cart_qty_threshold",
     "rounding": "integer-pence-floor-spread",
     "max_units": 99
   },
+  "cart_qty_tier": {
+    "from": 10,
+    "counts": "all_units"
+  },
   "shipping": {
-    "free_threshold_pence": 1200,
+    "free_threshold_pence": null,
     "below_threshold_fee_pence": 149,
-    "free_at_qty": { "enabled": true, "qty": 5 },
+    "free_at_qty": {
+      "enabled": true,
+      "qty": 10
+    },
     "derive_threshold": null
   },
   "rules": [],
-  "ui": { "progress_line": false },
-  "pools": {
-    "gradient": { "single": 299, "bundles": { "2": 550, "3": 750, "5": 1200 } }
+  "ui": {
+    "progress_line": false,
+    "percent_claim": 70
+  },
+  "groups": {
+    "A": {
+      "label": "Stretch Bracelet",
+      "single": 500,
+      "tier_each": 150
+    },
+    "B": {
+      "label": "Gradient Edit, Stretch Charm, Hair Clips, Necklace Lux",
+      "single": 800,
+      "tier_each": 240
+    },
+    "C": {
+      "label": "Sparkle Line, Hair Claws, Charm Necklace, Stretch Double, Bangle",
+      "single": 1300,
+      "tier_each": 390
+    }
+  },
+  "gradient_group": "B",
+  "family_groups": {
+    "stretch_charm": "B",
+    "stretch_double": "C",
+    "necklace_lux_stone": "C",
+    "diamond": "C"
   }
 }
