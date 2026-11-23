@@ -44,6 +44,8 @@ function page({ extra = [], livePrices = {}, ladders = null } = {}) {
   return new Function('BY', 'LADDER_TYPES', 'PRICE', 'window', `${PRICING}\n${DELIVERY}\n; return { cartTotal, deliveryFor, rollingText, shipSentence, cardShipText, applyLadderShipping, gradTotalP, SHIP };`)(
     BY, LADDER_TYPES, PRICE, window)
 }
+/** page() after /api/stock answered with the frozen pools table (its shipping block applied, as on the live page). */
+function poolsPage(opts = {}) { const L = publicLadders(LADDERS); const p = page({ ...opts, ladders: L }); assert.equal(p.applyLadderShipping(L), true); return p }
 const G = Object.keys(GRADIENT)[0]
 const bag = (p, lines) => { const units = lines.reduce((a, c) => a + c.qty, 0); return p.rollingText(Math.round(p.cartTotal(lines) * 100), units) }
 
@@ -92,7 +94,7 @@ test('static delivery texts carry ladders.json numbers (fails if ladders.json sh
 
 // ---------- 3. rolling total (§5.14 / §5.18) ----------
 test('rolling total from the first item: 0 / 1 / 4 / 5 / 6 Gradient Edit bracelets', () => {
-  const p = page()
+  const p = poolsPage()
   assert.equal(bag(p, []), '')
   assert.equal(bag(p, [{ bc: G, qty: 1 }]), 'Bag £4.48 inc. £1.49 delivery')
   assert.equal(bag(p, [{ bc: G, qty: 4 }]), 'Bag £11.98 inc. £1.49 delivery') // 4 = £10.49 (3 for £7.50 + £2.99)
@@ -102,7 +104,7 @@ test('rolling total from the first item: 0 / 1 / 4 / 5 / 6 Gradient Edit bracele
 
 test('§5.14: a £11.96 basket carries the FULL £1.49; £12.00 is free (non-Gradient prices, under 5 items)', () => {
   const extra = [{ barcode: 'X299', type: 'Other', color_en: 'X' }, { barcode: 'X600', type: 'Other', color_en: 'Y' }, { barcode: 'X1199', type: 'Other', color_en: 'Z' }]
-  const p = page({ extra, livePrices: { X299: 2.99, X600: 6.0, X1199: 11.99 } })
+  const p = poolsPage({ extra, livePrices: { X299: 2.99, X600: 6.0, X1199: 11.99 } })
   assert.equal(bag(p, [{ bc: 'X299', qty: 4 }]), 'Bag £13.45 inc. £1.49 delivery') // £11.96 + £1.49
   assert.equal(bag(p, [{ bc: 'X600', qty: 2 }]), 'Bag £12.00 · free UK delivery')
   assert.equal(bag(p, [{ bc: 'X1199', qty: 1 }]), 'Bag £13.48 inc. £1.49 delivery') // 1p under: full fee, never partial
@@ -112,7 +114,7 @@ test('§5.14: a £11.96 basket carries the FULL £1.49; £12.00 is free (non-Gra
 })
 
 test('rolling total = what the server charges (subtotal + shippingFeeP), penny-exact, 0..£30 × 1..8 units', () => {
-  const p = page()
+  const p = poolsPage()
   for (let amt = 0; amt <= 3000; amt++) for (let u = 1; u <= 8; u++) {
     const d = p.deliveryFor(amt, u)
     if (d.feeP !== shippingFeeP(amt, u) || d.totalP !== amt + shippingFeeP(amt, u)) assert.fail(`amt ${amt} units ${u}: page ${d.feeP}, server ${shippingFeeP(amt, u)}`)
@@ -143,14 +145,14 @@ test('runtime: /api/stock ladders change the fee, threshold, free-at-qty and lad
   // live table through /api/stock = today's numbers
   const live = page({ ladders: publicLadders(LADDERS) })
   assert.equal(live.applyLadderShipping(publicLadders(LADDERS)), true)
-  assert.equal(live.shipSentence(), '£1.49 UK delivery, free from £12 (or 5 items)')
-  assert.equal(live.cardShipText(), '+ £1.49 UK delivery · free from £12 or 5 items')
+  assert.equal(live.shipSentence(), '£1.49 UK delivery, free on orders of £12+ (or 5+ items)')
+  assert.equal(live.cardShipText(), '+ £1.49 UK delivery · free on orders of £12+ or 5+ items')
   assert.equal(live.gradTotalP(6), 1499)
   // a different table (fixture shipping_30: free from £30, £6.49 below, no qty rule)
   const t30 = fx('shipping_30')
   const p = page({ ladders: t30 })
   assert.equal(p.applyLadderShipping(t30), true)
-  assert.equal(p.shipSentence(), '£6.49 UK delivery, free from £30')
+  assert.equal(p.shipSentence(), '£6.49 UK delivery, free on orders of £30+')
   assert.equal(p.rollingText(1200, 5), 'Bag £18.49 inc. £6.49 delivery')
   assert.equal(p.rollingText(3000, 1), 'Bag £30.00 · free UK delivery')
   assert.equal(p.gradTotalP(6), t30.pools.gradient.totals[6])
@@ -158,7 +160,7 @@ test('runtime: /api/stock ladders change the fee, threshold, free-at-qty and lad
   const q = page()
   assert.equal(q.applyLadderShipping({ shipping: { free_threshold_pence: 'x' } }), false)
   assert.equal(q.applyLadderShipping(null), false)
-  assert.equal(q.shipSentence(), '£1.49 UK delivery, free from £12 (or 5 items)')
+  assert.equal(q.shipSentence(), '£1.49 UK delivery · free with 10+ items', 'fallback = M1 ladders.json shipping')
 })
 
 

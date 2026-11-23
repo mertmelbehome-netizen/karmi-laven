@@ -30,7 +30,7 @@
 // STORE, the safety buffer (ONLINE_STOCKROOM_BUFFER) and the maths live in ./_stock-lib.js, shared with /api/checkout
 // (server-side stock check, 21 Nov 2026), so the storefront and checkout never disagree.
 import { STORE, computeAvailable } from './_stock-lib.js';
-import { isGradient } from './_gradient.js';
+import { isGradient, GRADIENT } from './_gradient.js';
 import Stripe from 'stripe';
 import { status as capsStatus, resolveStaleHolds } from './_caps-lib.js';
 import { publicLadders, previewLadders } from './_pricing.js';
@@ -78,65 +78,39 @@ export default async function handler(req, res) {
   const q = (path) => fetch(`${base}/rest/v1/${path}`, { headers: H });
 
   try {
-    // 1) Which barcodes to report? The caller may pass ?bc=a,b,c (the storefront does);
-    //    otherwise we resolve everything that has WAT stockroom stock (via join, avoids
-    //    building an oversized URL with 1500+ product_id UUIDs).
-    const want = (req.query?.bc || '')
+    // 1) Which barcodes to report? The storefront always passes ?bc=a,b,c (its DATA barcodes, plus family barcodes
+    //    when the families flag is on). WITHOUT ?bc= the response is the storefront's own default list = the Gradient
+    //    Edit barcodes (api/_gradient.js = index.html DATA), nothing more. Before the M1 cleanup PR (K&D #40) a call
+    //    without ?bc= returned WAT stockroom counts for every WAT product (~2,000) to anyone ("admin/debug"); no page,
+    //    script or ops job used that dump (grep C:\Agents for "api/stock", 23 Nov 2026), so it is gone, not hidden.
+    //    tests/stock-nobc.test.mjs.
+    const asked = (req.query?.bc || '')
       .split(',').map((s) => s.trim()).filter(Boolean).slice(0, 200);
+    const want = asked.length ? asked : Object.keys(GRADIENT);
 
-    // 2) barcode → product_id  AND  product_id → stockroom_count
-    //
-    // Two strategies depending on whether caller supplied ?bc= filters:
-    //
-    //   A) ?bc= supplied (normal storefront call): fetch product_barcodes for those
-    //      barcodes only (small list), then fetch stock_levels for those product_ids.
-    //      We must keep the bc filter small enough that the product_id in() list is
-    //      well under HTTP query-string limits.
-    //
-    //   B) No ?bc= filter (admin/debug): use a PostgREST join to pull WAT stock_levels
-    //      with embedded products→product_barcodes in a single request, avoiding the
-    //      giant in() URL that causes a 400 error at ~1500 products.
-
+    // 2) barcode -> product_id (product_barcodes, karmi barcodes are multi-barcode) AND product_id -> stockroom_count.
+    //    The bc list is small (<= 200), so the product_id in() list stays well under HTTP query-string limits.
     const bcToPid = {};
     const slMap   = {};
 
-    if (want.length) {
-      // --- Strategy A: filtered by barcode ---
-      const pbRes = await q(
-        `product_barcodes?select=barcode,product_id&barcode=in.(${want.map(encodeURIComponent).join(',')})&limit=500`
-      );
-      if (!pbRes.ok) throw new Error(`product_barcodes ${pbRes.status}`);
-      const pb = await pbRes.json();
-      const pids = new Set();
-      for (const r of pb) { bcToPid[r.barcode] = r.product_id; pids.add(r.product_id); }
+    const pbRes = await q(
+      `product_barcodes?select=barcode,product_id&barcode=in.(${want.map(encodeURIComponent).join(',')})&limit=500`
+    );
+    if (!pbRes.ok) throw new Error(`product_barcodes ${pbRes.status}`);
+    const pb = await pbRes.json();
+    const pids = new Set();
+    for (const r of pb) { bcToPid[r.barcode] = r.product_id; pids.add(r.product_id); }
 
-      if (pids.size) {
-        // Fetch stockroom_count only — display_count is excluded by design.
-        // Online orders ship from the WAT stockroom; display stock is on the shop floor.
-        const pidList = [...pids].join(',');
-        const slRes = await q(
-          `stock_levels?product_id=in.(${pidList})&store_id=eq.${STORE}&select=product_id,stockroom_count`
-        );
-        if (!slRes.ok) throw new Error(`stock_levels ${slRes.status}`);
-        for (const r of await slRes.json()) {
-          slMap[r.product_id] = r.stockroom_count || 0;
-        }
-      }
-    } else {
-      // --- Strategy B: no bc filter — use join to avoid oversized URL ---
-      // stock_levels → products (FK) → product_barcodes (FK)
-      // Returns { product_id, stockroom_count, products: { product_barcodes: [{barcode}] } }
-      // Limit 2000 covers all WAT rows; stock_levels is bounded per-store.
+    if (pids.size) {
+      // Fetch stockroom_count only — display_count is excluded by design.
+      // Online orders ship from the WAT stockroom; display stock is on the shop floor.
+      const pidList = [...pids].join(',');
       const slRes = await q(
-        `stock_levels?store_id=eq.${STORE}&select=product_id,stockroom_count,products(product_barcodes(barcode))&limit=2000`
+        `stock_levels?product_id=in.(${pidList})&store_id=eq.${STORE}&select=product_id,stockroom_count`
       );
-      if (!slRes.ok) throw new Error(`stock_levels(join) ${slRes.status}`);
+      if (!slRes.ok) throw new Error(`stock_levels ${slRes.status}`);
       for (const r of await slRes.json()) {
         slMap[r.product_id] = r.stockroom_count || 0;
-        const barcodes = r.products?.product_barcodes ?? [];
-        for (const b of barcodes) {
-          if (b.barcode) bcToPid[b.barcode] = r.product_id;
-        }
       }
     }
 
@@ -144,13 +118,13 @@ export default async function handler(req, res) {
     let orders = [];
     const ooRes = await q(`online_orders?status=eq.paid&store_id=eq.${STORE}&select=items&limit=5000`);
     if (ooRes.ok) orders = await ooRes.json(); // holds failure is non-fatal — better to slightly over-show than hide everything
-    const stock = computeAvailable(want.length ? want : Object.keys(bcToPid), bcToPid, slMap, orders);
+    const stock = computeAvailable(want, bcToPid, slMap, orders);
 
-    // 5) non-Gradient barcodes: caps + WAT price + Christmas window (only on the storefront's ?bc= call)
+    // 5) non-Gradient barcodes: caps + WAT price + Christmas window (only for barcodes the caller asked for)
     const sellable = {}, price_pence = {}, online_group = {};
     const groupMode = !!(ladderView && ladderView.mode === 'cart_qty_groups');
     let window = null;
-    if (want.length) {
+    if (asked.length) {
       const other = want.filter((bc) => !isGradient(bc));
       for (const bc of other) delete stock[bc]; // barcode-level maths does not apply to capped products
       // A paid-but-unrecorded session must not show as free capacity, and an expired one must not block the page

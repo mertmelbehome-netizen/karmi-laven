@@ -63,7 +63,7 @@
     for (var k = 1; q + k <= M; k++) {
       if (P(q + k) - P(q) < k * eff) {
         var n = q + k;
-        while (n + 1 <= M && P(n + 1) === P(n)) n++;   // same total for more pieces: name the real step (3..5 all £12 -> 5)
+        while (n + 1 <= M && P(n + 1) === P(n)) n++;   // same total for more pieces: name the real step (3..5 same total -> 5)
         var t = P(n); k = n - q;
         return label + ': add ' + k + ' more, ' + n + ' for ' + sfMoney(t) + (t % n ? '' : ' (' + sfMoney(t / n) + ' each)') + '.';
       }
