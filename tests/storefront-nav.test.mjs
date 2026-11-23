@@ -260,3 +260,18 @@ test('no false scarcity: "Only N left" comes from LIVE stock only (API down -> n
   assert.match(html, /if\(stk\)\{ stk\.textContent = \(typeof q==='number' && q>0 && q<=LOWMAX\) \? \('Only '\+q\+' left'\) : ''; \}/)
   assert.doesNotMatch(html, /stk\.textContent\|\|''/)
 })
+
+test('strict scarcity: a failed refresh or an answer older than one refresh period clears every "Only N left"', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  const fn = html.match(/async function fetchLiveStock\(extra\)\{[\s\S]*?\n  \}\r?\n/)[0]
+  assert.match(fn, /if\(!res\.ok\)\{ clearScarcity\(\); return false; \}/)
+  assert.match(fn, /if\(!data \|\| !data\.ok \|\| !data\.stock\)\{ clearScarcity\(\);/)
+  assert.match(fn, /LIVE_TS=Date\.now\(\);/)
+  assert.match(fn, /console\.warn\('\[karmi-stock\][^\n]*\r?\n\s*clearScarcity\(\);/)
+  assert.match(html, /setInterval\(function\(\)\{ if\(LIVE_TS && Date\.now\(\)-LIVE_TS>scarcityMaxAgeMs\(\)\) clearScarcity\(\); \}, 5000\);/)
+  // clearScarcity empties only the scarcity text
+  const src = html.match(/function clearScarcity\(\)\{[^\n]*\}/)[0]
+  const els = [{ textContent: 'Only 3 left' }, { textContent: 'Ships in 1–2 business days' }, { textContent: '' }]
+  new Function('document', `${src}; clearScarcity();`)({ querySelectorAll: () => els })
+  assert.deepEqual(els.map((e) => e.textContent), ['', 'Ships in 1–2 business days', ''])
+})

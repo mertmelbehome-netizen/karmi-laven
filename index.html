@@ -1568,6 +1568,14 @@ function cookieChoice(accepted){
 (function(){
   var ENDPOINT='/api/stock';
   var LIVEQTY={};            // barcode -> available qty (live)
+  // strict scarcity rule (Komuta 23 Nov): an "Only N left" number is never older than one refresh period. LIVE_TS =
+  // time of the last successful live stock answer; a failed refresh, or no fresh answer within refresh_s + 5 s,
+  // clears every number (the label goes empty; buying is still checked against live stock at checkout).
+  var LIVE_TS=0;
+  function scarcityMaxAgeMs(){ var r=(window.klSF&&Number(window.klSF.refresh_s))||60; return Math.max(15,r)*1000+5000; }
+  function clearScarcity(){ document.querySelectorAll('.stk').forEach(function(e){ if(/^Only \d+ left$/.test(e.textContent)) e.textContent=''; }); }
+  window.klClearScarcity=clearScarcity;
+  setInterval(function(){ if(LIVE_TS && Date.now()-LIVE_TS>scarcityMaxAgeMs()) clearScarcity(); }, 5000);
   var SOLD=new Set();        // barcodes with available<=0
   var loaded=false;
   var LOWMAX=6;              // "Only N left" threshold — from real stock ONLY, never from an online cap
@@ -1661,13 +1669,14 @@ function cookieChoice(accepted){
       var tid=setTimeout(function(){ctrl.abort();},5000);
       var res=await fetch(url,{signal:ctrl.signal});
       clearTimeout(tid);
-      if(!res.ok) return false;
+      if(!res.ok){ clearScarcity(); return false; }
       var data=await res.json();
       // delivery fee / threshold / ladder totals for the display texts (served even when stock is unavailable)
       try{ if(data && data.ladders && typeof window.klApplyLadders==='function') window.klApplyLadders(data.ladders); }catch(e){}
       try{ if(data && data.christmas && typeof window.klXmasApply==='function') window.klXmasApply(data.christmas); }catch(e){}   // Christmas last-order notice (js/christmas.js); no field = no notice
-      if(!data || !data.ok || !data.stock){ boot(data); return false; }   // fail open: leave all shown
+      if(!data || !data.ok || !data.stock){ clearScarcity(); boot(data); return false; }   // fail open: leave all shown (but no stale scarcity number)
       if(Array.isArray(extra)) extra.forEach(function(bc){ bc=String(bc); if(!window.isLadder||!window.isLadder(bc)){ SELLABLE[bc]=0; delete PRICEP[bc]; } });   // a refresh without caps data = not sellable (fail closed)
+      LIVE_TS=Date.now();
       Object.keys(data.stock).forEach(function(bc){
         var q=Number(data.stock[bc]); LIVEQTY[bc]=q;
         if(!(q>0)) SOLD.add(String(bc)); else SOLD.delete(String(bc));
@@ -1682,6 +1691,7 @@ function cookieChoice(accepted){
       return true;
     }catch(e){
       console.warn('[karmi-stock] live stock unavailable, showing all shades',e&&e.message);
+      clearScarcity();
       return false;
     }
   }
