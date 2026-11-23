@@ -94,7 +94,10 @@ test('K-045/K-056: the referee-passed renders only (Karmi 08 A + L2 + 11 Showabl
   const { statSync } = await import('node:fs')
   const CARDS = JSON.parse(read('../data/cards.json')).cards
   // hair clips 1849-1865 + claws 0301xxxx withdrawn 23 Nov (owner: on-model renders do not sit right; tests/hair-no-onmodel)
-  const SHOW = '2023 2040 1468 1472 1474 1477 0624 6159 6170 6180 2000 6008 80012 80043 7058 7056 6095 6091 81004 81006 81009 81013 81014 6002 6009 6011 6017 6042 6058'.split(' ')
+  // G12 colour audit 23 Nov (Komuta, morning_review/35_live_fam_G12): ΔE2000 >10 renders withdrawn -> measured-colour tile, still sellable
+  const G12_OUT = '1477 0624 6017 6095 7056 2023 7058 6091 81009 6042 6009 2000 6170 6008 1474 80043'.split(' ')
+  const SHOW = '2040 1468 1472 6159 6180 80012 81004 81006 81013 81014 6002 6011 6058'.split(' ')
+  for (const b of G12_OUT) { const c = CARDS.find((x) => x.barcode === b); assert.ok(c, b); assert.equal(c.photo, null, b); assert.equal(c.photo_qc, false, b); assert.equal(c.tile_sellable, true, b); assert.ok(!c.ai_image, b); assert.match(c.swatch, /^#[0-9a-f]{6}$/, b) }
   assert.ok(!CARDS.some((c) => c.barcode === '6093'), '6093 failed the referees')
   assert.deepEqual(CARDS.filter((c) => c.photo_qc).map((c) => c.barcode).sort(), [...SHOW].sort())
   for (const c of CARDS.filter((x) => x.photo_qc)) {
