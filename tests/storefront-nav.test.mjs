@@ -358,3 +358,13 @@ test('unfaithful Gradient renders withdrawn: 1266 1267 1269 1271 1272 1302 1310 
   }
   assert.match(html, /colour tile, not a photo/)
 })
+
+test('render audit 2 (23 Nov): hero = 1268 (2-referee PASS; 1074 unverifiable), 1470 render withdrawn (flower charm differs)', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  assert.match(html, /<img id="heroImg" src="\/img\/gradient\/1268\.jpg"/)
+  assert.match(html, /const hero=DATA\.find\(d=>d\.barcode==='1268'\)\|\|DATA\[0\];/)
+  const cards = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url), 'utf8')).cards
+  const c = cards.find((x) => x.barcode === '1470')
+  assert.equal(c.photo, null); assert.equal(c.photo_qc, false)
+  assert.ok(!existsSync(new URL('../img/fam/1470.jpg', import.meta.url)))
+})

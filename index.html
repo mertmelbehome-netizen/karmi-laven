@@ -511,8 +511,8 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
     <div class="spectrum fadein d4" id="spectrum"></div>
   </div>
   <div class="hero-img fadein d2">
-    <img id="heroImg" src="/img/gradient/1074.jpg" fetchpriority="high" decoding="async" alt="Karmi Laven gradient bracelet, worn">
-    <div class="cap"><div class="n" id="heroName">Champagne</div><div class="s">The Gradient Edit</div></div>
+    <img id="heroImg" src="/img/gradient/1268.jpg" fetchpriority="high" decoding="async" alt="Karmi Laven gradient bracelet, worn">
+    <div class="cap"><div class="n" id="heroName">Ice Blue</div><div class="s">The Gradient Edit</div></div>
   </div>
 </header>
 <script>
@@ -916,7 +916,8 @@ function firePurchaseIfSuccess(){
 window.DATA=DATA;   // expose for the live-stock skin (barcode matching)
 const grid=document.getElementById('grid'), swatchbar=document.getElementById('swatchbar'), countEl=document.getElementById('count');
 document.getElementById('spectrum').style.background='linear-gradient(90deg,'+DATA.map(d=>d.swatch).join(',')+')';
-const hero=DATA[0]; document.getElementById('heroImg').src=hero.img; document.getElementById('heroName').textContent=hero.color_en;
+// hero = 1268 Ice Blue: the only Gradient render that passed 2 independent referees (23 Nov); 1074 has no real photo to verify
+const hero=DATA.find(d=>d.barcode==='1268')||DATA[0]; document.getElementById('heroImg').src=hero.img; document.getElementById('heroName').textContent=hero.color_en;
 
 const seen=new Set(), colours=[];
 DATA.filter(d=>LADDER_TYPES.indexOf(d.type)>=0).forEach(d=>{if(!seen.has(d.color_en)){seen.add(d.color_en);colours.push({name:d.color_en,hex:d.swatch,bc:d.barcode,img:d.img});}});
