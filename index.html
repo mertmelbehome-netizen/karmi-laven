@@ -1638,21 +1638,21 @@ applyShipTexts(); render(DATA); updateBag(); renderCart(); firePurchaseIfSuccess
 
 <!-- EMAIL CAPTURE POPUP -->
 <div class="klpop-ovl" id="klpopOvl" onclick="closeEmailPopup()"></div>
-<div class="klpop" id="klpop" role="dialog" aria-modal="true" aria-label="Get early access">
+<div class="klpop" id="klpop" role="dialog" aria-modal="true" aria-label="New-drop alerts">
   <button class="klpop-close" onclick="closeEmailPopup()" aria-label="Close">&#x2715;</button>
   <div class="klpop-gem">&#x1F48E;</div>
-  <div class="klpop-title">Get early access &amp;<br>new-drop alerts</div>
-  <div class="klpop-sub">Join the Karmi Laven list for first access to new colours,<br>limited editions, and exclusive multi-buy offers.</div>
+  <div class="klpop-title">New-drop alerts</div>
+  <div class="klpop-sub">Join the Karmi Laven list to hear first<br>when new colours and styles arrive.</div>
   <div class="klpop-form">
     <input class="klpop-input" id="klpopEmail" type="email" placeholder="Your email address" autocomplete="email">
     <button class="klpop-submit" id="klpopBtn" onclick="submitEmailPopup()">Notify Me</button>
   </div>
   <button class="klpop-skip" onclick="closeEmailPopup()">No thanks</button>
-  <div class="klpop-consent" style="font-size:11px;opacity:.6;margin-top:8px;line-height:1.4">Join for launches &amp; offers. We&#x2019;ll only email about new drops &amp; deals &#x2014; unsubscribe anytime.</div>
+  <div class="klpop-consent" style="font-size:11px;opacity:.6;margin-top:8px;line-height:1.4">Join for launches &amp; offers. We&#x2019;ll only email about new drops &amp; deals &#x2014; unsubscribe anytime. &#xB7; <a href="/privacy.html" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Privacy</a></div>
   <div class="klpop-thanks" id="klpopThanks">Thank you &#x2014; you are on the list!</div>
 </div>
 <script>
-/* EMAIL POPUP: exit-intent + 20s delay, 7-day freq cap → /api/subscribe (in-house Supabase capture) */
+/* EMAIL POPUP: desktop exit-intent; touch 50% scroll or 30 s; 7-day freq cap → /api/subscribe (in-house Supabase capture) */
 (function(){
   var KEY='klpop_shown', INTERVAL=7*24*3600*1000;
   function canShow(){ try{ var t=parseInt(localStorage.getItem(KEY)||'0'); return Date.now()-t>INTERVAL; }catch(e){return true;} }
@@ -1696,10 +1696,26 @@ applyShipTexts(); render(DATA); updateBag(); renderCart(); firePurchaseIfSuccess
     });
   };
   var fired=false;
-  function fire(){ if(fired) return; fired=true; setTimeout(openEmailPopup, 500); }
+  // Never cover an open product modal / bag / bundle drawer (they share #ovl): wait until it is closed.
+  // Also wait while the cookie banner is showing, so the two never stack (K&D N3, 23 Nov).
+  function busy(){ var o=document.getElementById('ovl'), cb=document.getElementById('cookie-banner');
+    return !!((o && o.classList.contains('open')) || (cb && cb.classList.contains('visible'))); }
+  function show(){ if(busy()){ setTimeout(show, 4000); return; } openEmailPopup(); }
+  function fire(){ if(fired || !canShow()) return; fired=true; setTimeout(show, 500); }
+  // Desktop: exit-intent (pointer leaves through the top edge) or tab hidden.
   document.addEventListener('mouseleave',function(e){ if(e.clientY<=0) fire(); });
-  // Popup deferred to exit-intent only (removed 20s auto-timer) so it never interrupts the impulse-buy moment
   document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden') fire(); });
+  // Mobile/touch (23 Nov 2026): there is no exit-intent on a phone, so the popup never showed there.
+  // Trigger at 50% page scroll or after 30 s, whichever comes first. Same 7-day cap, same consent text.
+  var touch=false; try{ touch=window.matchMedia('(hover: none), (pointer: coarse)').matches; }catch(e){}
+  if(touch && canShow()){
+    var t=setTimeout(fire, 30000);
+    var onScroll=function(){
+      var h=document.documentElement.scrollHeight-window.innerHeight;
+      if(h>0 && window.scrollY/h>=0.5){ window.removeEventListener('scroll',onScroll); clearTimeout(t); fire(); }
+    };
+    window.addEventListener('scroll',onScroll,{passive:true});
+  }
 })();
 </script>
 
