@@ -1290,11 +1290,11 @@ function m1Lines(lines){
     // K&D 70%-off list #3: one "£y each instead of £x" per group in the bag, x = that group's CURRENT single price
     out.applied = s.pct_off!==null
       ? 'Instant '+s.pct_off+'% off applied: '+lg.map(g=>gbpP(g.tier_each)+' each instead of '+gbpShort(g.single)).join(' · ')
-      : s.tier_from+'+ price applied: '+(each.length===1?gbpP(each[0])+' each':'every item at its '+s.tier_from+'+ price');
+      : s.tier_from+'+ price applied: '+(each.length===1?gbpP(each[0])+' each':'every'+klRingsNote()+' item at its '+s.tier_from+'+ price');
     out.promo='Promo codes can’t be used with the '+s.tier_from+'+ price.';
   } else if(s.unlock_total_pence!==null){
     const freeToo=s.unlock_shipping_pence===0&&s.shipping_pence>0, fd=freeToo?' with free delivery':'';
-    const pf=s.pct_off!==null?' for '+s.pct_off+'% off every item':'';
+    const pf=s.pct_off!==null?' for '+s.pct_off+'% off every'+klRingsNote()+' item':'';
     if(pf){   // = engine progress() with ui.percent_claim
       const eg=s.unlock_lowers_total&&s.to_unlock>1?m1Example(lines, s.unlock_group):null;
       out.progress = !s.unlock_lowers_total ? 'Add '+s.to_unlock+' more'+nr+pf+' (from '+gbpP(s.unlock_tier_each_pence)+' each)'+(freeToo?' and free UK delivery':'')
@@ -1347,8 +1347,8 @@ function m1Texts(){
     faqq: p!==null ? 'How does '+p+'% off when you buy any '+from+'+'+N+' items work?' : 'How does the '+from+'+ price work?',
     // group-wide (families live 23 Nov): a bag of £5 / £8 / £13 pieces must not read as 'every bracelet £8' (Komuta)
     faqa: (ag.length>1
-      ? 'Prices are <b>'+m1OrList(ag.map(g=>gbpShort(g.single)))+'</b> per piece depending on the line (shown on each item). Put <b>any '+from+' or more'+N+' items</b> in your bag (any mix) and '+(ap!==null?'you get <b>'+ap+'% off every item</b>: <b>'+m1OrList(ag.map(g=>gbpShort(g.tier_each)))+' each</b>':'every item is <b>'+m1OrList(ag.map(g=>gbpShort(g.tier_each)))+' each</b>')
-      : 'Every bracelet is <b>'+s+' each</b>. Put <b>any '+from+' or more'+N+' items</b> in your bag (mix any shades) and '+(p!==null?'you get <b>'+p+'% off every item</b>: <b>'+e+' each</b>':'every item is <b>'+e+' each</b>'))+', with free UK delivery. Under '+from+N+' items, UK delivery is '+gbpP(SHIP.feeP)+'. The '+from+'+ price is applied automatically in your bag; promo codes can’t be added to it.',
+      ? 'Prices are <b>'+m1OrList(ag.map(g=>gbpShort(g.single)))+'</b> per piece depending on the line (shown on each item). Put <b>any '+from+' or more'+N+' items</b> in your bag (any mix) and '+(ap!==null?'you get <b>'+ap+'% off every'+klRingsNote()+' item</b>: <b>'+m1OrList(ag.map(g=>gbpShort(g.tier_each)))+' each</b>':'every item is <b>'+m1OrList(ag.map(g=>gbpShort(g.tier_each)))+' each</b>')
+      : 'Every bracelet is <b>'+s+' each</b>. Put <b>any '+from+' or more'+N+' items</b> in your bag (mix any shades) and '+(p!==null?'you get <b>'+p+'% off every'+klRingsNote()+' item</b>: <b>'+e+' each</b>':'every item is <b>'+e+' each</b>'))+', with free UK delivery. Under '+from+N+' items, UK delivery is '+gbpP(SHIP.feeP)+'. The '+from+'+ price is applied automatically in your bag; promo codes can’t be added to it.',
     count: (n)=>n+' shades · '+s+' each · '+tt,
   };
 }
@@ -1414,7 +1414,7 @@ function m1Foot(){
   document.getElementById('shipFill').style.width=Math.min(100, (R?s.tier_units:q)/s.tier_from*100)+'%';
   const box=document.getElementById('cartM1'), t=m1T(), gr=t.groups[t.gradient_group];
   if(L.applied){ box.innerHTML='<span class="m1on">✓ '+L.applied+'</span><span class="m1promo">'+L.promo+'</span>'; box.hidden=false; }
-  else if(q&&gr&&s.tier_units!==0){ box.textContent='Now '+gbpShort(gr.single)+' each · '+(m1Pct(gr)!==null?m1Pct(gr)+'% off every item when your bag has '+s.tier_from+'+'+ni+' items ('+gbpShort(gr.tier_each)+' each)':gbpShort(gr.tier_each)+' each when your bag has '+s.tier_from+' or more'+ni+' items'); box.hidden=false; }
+  else if(q&&gr&&s.tier_units!==0){ box.textContent='Now '+gbpShort(gr.single)+' each · '+(m1Pct(gr)!==null?m1Pct(gr)+'% off every'+klRingsNote()+' item when your bag has '+s.tier_from+'+'+ni+' items ('+gbpShort(gr.tier_each)+' each)':gbpShort(gr.tier_each)+' each when your bag has '+s.tier_from+' or more'+ni+' items'); box.hidden=false; }
   else { box.innerHTML=''; box.hidden=true; }
   document.getElementById('cartPre').textContent=itemWord(q)+' · ships within 1–2 business days';
   // CTSI §20 (K&D): the same 'Add N more' line again right above Secure Checkout, the last screen before payment.

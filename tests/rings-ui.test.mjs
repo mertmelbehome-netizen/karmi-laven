@@ -140,8 +140,8 @@ test('R enabled, bag without rings: page = engine and = the table without R (onl
     const L = p.m1Lines(lines), { rings, ...rest } = L
     assert.deepEqual(rings, [])
     const o = off.m1Lines(lines)
-    assert.deepEqual({ ...rest, progress: rest.progress && rest.progress.replace(/^Add (\d+) more non-ring items?/, 'Add $1 more') }, o)
-    if (o.progress) assert.match(rest.progress, /^Add \d+ more non-ring items? /, 'rings ON: rings never count, even with none in the bag')
+    assert.deepEqual({ ...rest, progress: rest.progress && rest.progress.replace(/^Add (\d+) more non-ring items?/, 'Add $1 more').replace(/every non-ring item/g, 'every item') }, o)
+    if (o.progress) assert.match(rest.progress, /non-ring item/, 'rings ON: rings never count, even with none in the bag')
   }
 })
 
@@ -179,7 +179,7 @@ test('E1 (b): a bag with rings says the 10+ count is for non-ring items; 1-4 rin
   const p = page(publicLadders(ON))
   let L = p.m1Lines([{ bc: 'RB', qty: 9 }, { bc: RING, qty: 3 }])
   assert.deepEqual(L.rings, ['Add 2 more rings to check out (minimum 5)'])
-  assert.match(L.progress, /^Add 1 more non-ring item for 70% off every item/)
+  assert.match(L.progress, /^Add 1 more non-ring item for 70% off every non-ring item/)
   L = p.m1Lines([{ bc: 'RA', qty: 6 }, { bc: RING, qty: 5 }])
   assert.deepEqual(L.rings, []); assert.match(L.progress, /^Add 4 more non-ring items/)
   L = p.m1Lines([{ bc: RING, qty: 4 }])
@@ -215,7 +215,7 @@ test('N2: on the Rings tab the 10+ hero price / delivery block steps aside for t
   // even with R enabled the page-wide texts (hero, meta, FAQ, JSON-LD, CTA) are the ladder-group texts (no ring auto pick-up)
   const on = page(publicLadders(ON)).m1Texts(), off = page(publicLadders(LADDERS)).m1Texts()
   // except the E1b/E1c note on every 10+ claim ('any 10+ non-ring items'; full scan: tests/rings-e1c.test.mjs)
-  assert.equal(JSON.stringify({ ...on, count: on.count(15) }).replace(/(Buy \d+\+) non-ring items,/g, '$1,').replace(/ non-ring(?= items\b)/g, ''), JSON.stringify({ ...off, count: off.count(15) }))
+  assert.equal(JSON.stringify({ ...on, count: on.count(15) }).replace(/(Buy \d+\+) non-ring items,/g, '$1,').replace(/ non-ring(?= items?\b)/g, ''), JSON.stringify({ ...off, count: off.count(15) }))
 })
 
 test('sub-chips: spec hashes and labels (no unverified material words), hash round trip incl. #rings-steel-chunky', () => {

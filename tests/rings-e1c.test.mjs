@@ -140,8 +140,8 @@ test('rings ON: every produced string with a 10+ / 10 or more / any mix claim sa
   assert.match(r.hero[1], /<span class="kl-hp-cond">for any 10\+ non-ring items<\/span>/)
   const nine = r.bags[3].foot   // 9 B, no ring in the bag: the bag still says rings don't count
   assert.equal(nine[1][1], '<span class="note">£1.49 UK delivery · free with any 10+ non-ring items</span>')
-  assert.equal(nine[4][0], 'Now £8 each · 70% off every item when your bag has 10+ non-ring items (£2.40 each)')
-  assert.match(r.bags[10].lines.progress, /^Add 1 more non-ring item for 70% off every item/)
+  assert.equal(nine[4][0], 'Now £8 each · 70% off every non-ring item when your bag has 10+ non-ring items (£2.40 each)')
+  assert.match(r.bags[10].lines.progress, /^Add 1 more non-ring item for 70% off every non-ring item/)
   assert.match(r.bags[11].lines.progress, /^Add 4 more non-ring items /)
   assert.match(r.meta[0], /70% off every item when you buy any 10\+ non-ring items .* free with any 10\+ non-ring items\.$/)
 })
