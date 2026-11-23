@@ -1,0 +1,37 @@
+{
+  "_doc": "Gifts tab (families view, growth plan W49-A2). The ONE place the gift picks are defined: ordered sections of barcodes, an optional heading per section (never above the first section; a heading never names a price, a discount, a date or a giveaway). Every price text on the tab comes from the served table (/api/stock ladders) through the cards themselves. Rule: only existing, referee-passed, sellable pieces: data/cards.json cards with a QC-passed photo (photo + photo_qc true; no colour tiles, no rings, no hair), and Gradient Edit pieces with a referee-passed photo (1268 Ice Blue: the only Gradient render that passed 2 referees, morning_review/19_live_gradient_audit; ai_image true = the card says 'AI-styled image'). A pick that is not sellable right now is simply not shown; with fewer than 4 sellable picks the Gifts chip is hidden. tests/storefront-gifts.test.mjs checks all of this.",
+  "sections": [
+    {
+      "items": [
+        "6180",
+        "6170",
+        "6159",
+        "7058",
+        "7056",
+        "6095",
+        "6091"
+      ]
+    },
+    {
+      "heading": "Bracelets to stack",
+      "items": [
+        "2023",
+        "2040",
+        "1468",
+        "1472",
+        "1474",
+        "1477",
+        "2000"
+      ]
+    },
+    {
+      "heading": "The Gradient Edit",
+      "items": [
+        {
+          "bc": "1268",
+          "ai_image": true
+        }
+      ]
+    }
+  ]
+}
