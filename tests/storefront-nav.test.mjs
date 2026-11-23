@@ -389,3 +389,12 @@ test('famState still passes live sellable qty (guards against a comment swallowi
   const fn = SF.match(/function famState\(c\) \{[\s\S]*?\n  \}/)[0]
   assert.match(fn, /\r?\n\s+sellable: window\.klAvail \? window\.klAvail\(c\.barcode\) : 0,/)
 })
+
+test('line labels match the real product (Komuta 23 Nov): 6159 Chip Bead Necklace (no charm), 0624 Stretch Bracelet (single strand)', () => {
+  const cards = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url), 'utf8')).cards
+  const by = Object.fromEntries(cards.map((c) => [c.barcode, c]))
+  assert.equal(by['6159'].line, 'Chip Bead Necklace')
+  assert.equal(by['0624'].line, 'Stretch Bracelet')
+  assert.equal(by['6180'].line, 'Charm Necklace'); assert.equal(by['6170'].line, 'Charm Necklace')
+  for (const c of cards) assert.doesNotMatch(c.line, /stone|onyx|quartz|crystal/i, c.barcode)
+})
