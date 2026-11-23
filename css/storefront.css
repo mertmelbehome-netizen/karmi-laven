@@ -156,6 +156,11 @@ html.kl-v2 .klpop-skip{min-height:44px; padding:0 8px}
 html.kl-v2 .imgwrap .new, html.kl-v2 .imgwrap .zoom{display:none}
 html.kl-v2 .imgwrap .stk:not(:empty){font-size:14px; letter-spacing:.06em; text-transform:none; color:var(--ink); text-shadow:none;
   background:rgba(255,254,251,.95); padding:3px 8px}
+@media(max-width:560px){
+  /* one line, small, never more than the photo width (Komuta 23 Nov) */
+  html.kl-v2 .imgwrap .stk:not(:empty){font-size:10.5px; letter-spacing:.02em; padding:2px 6px; left:8px; bottom:8px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:calc(100% - 16px)}
+}
 html.kl-v2 .sold-out-badge{font-size:14px; letter-spacing:.06em; text-transform:none; background:#34302a; color:#faf7f1; backdrop-filter:none}
 
 /* ---- motion: respect the visitor's setting (V-25) ---- */

@@ -213,3 +213,10 @@ test('phone: first screen shows the chips + at least one full card (hero photo o
   assert.match(m[1], /html\.kl-v2 \.hero h1, html\.kl-v2 #palette \.col-head h2, html\.kl-v2 #klFam \.col-head h2\{position:absolute; width:1px; height:1px;/)
   assert.doesNotMatch(m[1], /\.hero h1\{display:none|col-head h2\{display:none/, 'titles stay for screen readers')
 })
+
+test('phone: card ship label is one short line (no 3-line block over the photo)', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  const css = readFileSync(new URL('../css/storefront.css', import.meta.url), 'utf8')
+  assert.match(html, /matchMedia\('\(max-width:560px\)'\)\.matches\) return 'Ships in 1–2 business days';/)
+  assert.match(css, /@media\(max-width:560px\)\{[\s\S]*?\.imgwrap \.stk:not\(:empty\)\{[^}]*white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:calc\(100% - 16px\)\}/)
+})

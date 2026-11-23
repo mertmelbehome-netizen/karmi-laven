@@ -808,6 +808,8 @@ function stockTxt(d){
   const t=d.total||0; if(!t) return '';
   if(t<=6) return 'Only '+t+' left';
   const st=Object.keys(d.stock||{}).map(s=>STORENAMES[s]||s);
+  // phone (<=560px): one short line on the photo (Komuta 23 Nov: the 3-line label covered a third of the card photo)
+  if(typeof matchMedia==='function' && matchMedia('(max-width:560px)').matches) return 'Ships in 1–2 business days';
   return 'Ships within 1–2 business days'+(st.length?' · '+st[0]:'');
 }
 function priceTxt(bc){ const p=unitPrice(bc); return p?('£'+p.toFixed(2)):''; }
