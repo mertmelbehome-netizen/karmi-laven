@@ -109,7 +109,7 @@
       }
     }
     return '<article class="card in kl-card' + (st === 'soldout' ? ' kl-soldout' : '') + '" data-kl-card data-kl-state="' + st + '"' + (st === 'photo' ? ' data-kl-photo="pending"' : '') + ' data-bc="' + sfEsc(c.barcode) + '">'
-      + media + '<div class="cbody">' + (c.ai_image && st !== 'photo' ? '<p class="kl-ai">AI-styled image</p>' : '') + '<h3 class="nm">' + sfEsc(c.name) + '</h3><div class="sub"><span class="d" style="background:' + sfEsc(c.swatch) + '" aria-hidden="true"></span>' + sfEsc(c.line) + '</div>'
+      + media + '<div class="cbody">' + (c.ai_image && st !== 'photo' ? '<small class="kl-ai">AI-styled image</small>' : '') + '<h3 class="nm">' + sfEsc(c.name) + '</h3><div class="sub"><span class="d" style="background:' + sfEsc(c.swatch) + '" aria-hidden="true"></span>' + sfEsc(c.line) + '</div>'
       + (p ? '<div class="pr">' + o.line.html + '</div><div class="fee" data-kl="cardship">' + sfEsc(o.ship || '') + '</div>' : '') + body + '</div></article>';
   }
   /** Mobile sticky bar with an empty bag, per tab. Gradient Edit: null = keep the page's own bar ("Each £8.00" +
@@ -150,7 +150,7 @@
   function buildShell() {
     document.documentElement.classList.add('kl-v2');
     // hero copy for a multi-category page (no "hand-strung"/"crystal" claim for hair and necklaces: 03 §2)
-    var k = $('.hero-copy .k'); if (k) k.textContent = 'Part of Melbe Home · shops in Watford & Guildford';
+    var k = $('.hero-copy .k'); if (k) k.textContent = 'Bracelets · Necklaces · Hair';   // the Melbe Home line already sits under the hero text (no repeat)
     var p = $('.hero-copy p'); if (p) { p.textContent = 'Bracelets, necklaces and hair pieces in soft colour. Mix pieces, build your own stack.'; p.removeAttribute('data-kl-m1'); }   // M1 would put the Gradient-only line back
     // Gradient-only copy (15 shades / 4mm crystal / bracelet sizes, made-in, the Gradient 10+ answer): shown on the
     // Gradient Edit tab only (renderTabs); copy shown on every tab is made family-neutral here.
@@ -391,9 +391,11 @@
     });
     document.addEventListener('keydown', function (e) {
       if (!CFG.families || !e.target.matches || !e.target.matches('[role=tab]')) return;
-      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      if (['ArrowRight', 'ArrowLeft', 'Home', 'End'].indexOf(e.key) < 0) return;
+      e.preventDefault();
       var vt = $$('[role=tab]').filter(function (b) { return !b.hidden; }), i = vt.indexOf(e.target);
-      var n = vt[(i + (e.key === 'ArrowRight' ? 1 : vt.length - 1)) % vt.length]; setTab(n.dataset.tab, true); n.focus();
+      var n = e.key === 'Home' ? vt[0] : e.key === 'End' ? vt[vt.length - 1] : vt[(i + (e.key === 'ArrowRight' ? 1 : vt.length - 1)) % vt.length];
+      setTab(n.dataset.tab, true); n.focus();
     });
     window.addEventListener('popstate', function () { if (CFG.families) setTab(location.hash.slice(1) || 'gradient', false); });
   }
