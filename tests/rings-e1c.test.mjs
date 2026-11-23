@@ -106,9 +106,9 @@ function record(view) {
 const flat = (o) => (typeof o === 'string' ? [o] : Array.isArray(o) ? o.flatMap(flat) : o && typeof o === 'object' ? Object.values(o).flatMap(flat) : [])
 const sha = (o) => createHash('sha256').update(JSON.stringify(o)).digest('hex')
 
-// sha256 of record(OFF) / record(null) taken on origin/master d0c08bc (before this change): rings OFF = not one byte different
-const PIN_OFF = 'f9a2bc41638768440795aae151f3427ea9e84a062d5ce8be3d61d1280341156f'
-const PIN_FALLBACK = 'f9a2bc41638768440795aae151f3427ea9e84a062d5ce8be3d61d1280341156f'   // M1_FALLBACK = publicLadders(ladders.json)
+// sha256 of record(OFF) / record(null) taken on origin/master 9ed2989 (#77 meta, before this change): rings OFF = not one byte different
+const PIN_OFF = '7be61fbcc382024e9a75e083ea71570bd9638662db3a3994ba7a031d7a659c02'
+const PIN_FALLBACK = '7be61fbcc382024e9a75e083ea71570bd9638662db3a3994ba7a031d7a659c02'   // M1_FALLBACK = publicLadders(ladders.json)
 
 test('rings OFF (ladders.json today + first paint): every page text byte-for-byte = master (sha pin)', () => {
   assert.equal(RAW.flat_groups.R.enabled, false)
