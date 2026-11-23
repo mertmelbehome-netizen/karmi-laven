@@ -459,3 +459,10 @@ test('photo first: real photos / passed renders before colour tiles on every tab
   assert.match(html, /function render\(list\)\{\r?\n  list=klPhotoFirst\(list\);/)
   assert.match(SF, /SF_ORDER\[a\.s\] - SF_ORDER\[b\.s\] \|\| \(a\.c\.photo \? 0 : 1\) - \(b\.c\.photo \? 0 : 1\) \|\| a\.i - b\.i/)
 })
+
+test('meta description: dispatch time and delivery time are not merged into one "Shipped in 2–5 days" claim (Marketing 23 Nov)', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  const d = html.match(/<meta name="description" content="([^"]*)">/)[1]
+  assert.doesNotMatch(d, /Shipped in 2–5 days/)
+  assert.match(d, /Ships within 1–2 business days; UK delivery usually 2–5 business days after dispatch\./)
+})
