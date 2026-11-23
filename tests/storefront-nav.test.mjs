@@ -220,3 +220,25 @@ test('phone: card ship label is one short line (no 3-line block over the photo)'
   assert.match(html, /matchMedia\('\(max-width:560px\)'\)\.matches\) return 'Ships in 1–2 business days';/)
   assert.match(css, /@media\(max-width:560px\)\{[\s\S]*?\.imgwrap \.stk:not\(:empty\)\{[^}]*white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:calc\(100% - 16px\)\}/)
 })
+
+test('N3: meta / og / JSON-LD name only categories on sale; hair wording added back only when hair is sellable', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  const head = [...html.matchAll(/<meta (?:name|property)="[^"]+" content="([^"]*)"/g)].map((m) => m[1]).join(' | ')
+    + [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => m[1]).join(' ')
+  assert.doesNotMatch(head, /hair/i, 'static head has no hair wording while hair is withdrawn')
+  const sfMetaCats = new Function(`${LAYOUT}; return sfMetaCats;`)()
+  const mk = () => { const metas = [{ c: 'Karmi Laven bracelets and necklaces — £5' }, { c: 'Karmi Laven — Bracelets & Necklaces · from £5 each' }]
+    const ld = { textContent: JSON.stringify({ name: 'Karmi Laven Bracelets & Necklaces', description: 'Bracelets and necklaces, £5' }) }
+    return { metas, ld, doc: { querySelectorAll: (s) => s.startsWith('meta') ? metas.map((m) => ({ getAttribute: () => m.c, setAttribute: (k, v) => { m.c = v } })) : [ld] } } }
+  const a = mk(); sfMetaCats(a.doc, true)
+  assert.equal(a.metas[0].c, 'Karmi Laven bracelets, necklaces and hair pieces — £5')
+  assert.equal(a.metas[1].c, 'Karmi Laven — Bracelets, Necklaces & Hair · from £5 each')
+  assert.equal(JSON.parse(a.ld.textContent).name, 'Karmi Laven Bracelets, Necklaces & Hair')
+  sfMetaCats(a.doc, false)
+  assert.equal(a.metas[1].c, 'Karmi Laven — Bracelets & Necklaces · from £5 each')
+  assert.match(SF, /sfMetaCats\(document, vis\.indexOf\('hair'\) >= 0\);/)
+})
+test('N1: phone cookie banner is compact (does not cover the first card price + delivery line)', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  assert.match(html, /@media\(max-width:600px\)\{\n  \/\* compact on phones[\s\S]*?#cookie-banner\{ flex-direction:row; flex-wrap:wrap; align-items:center; padding:8px 12px;/)
+})

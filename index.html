@@ -442,8 +442,11 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 .cb-btn.accept{ background:#faf7f1; color:#34302a; border-color:#faf7f1; }
 .cb-btn:hover{ opacity:.8; }
 @media(max-width:600px){
-  #cookie-banner{ flex-direction:column; align-items:flex-start; padding:18px 20px; }
-  .cb-btn{ padding:10px 16px; }
+  /* compact on phones (K&D #61 N1): 390x844 banner 155 -> 113 px, top 731 > first card's delivery line (701) */
+  #cookie-banner{ flex-direction:row; flex-wrap:wrap; align-items:center; padding:8px 12px; gap:6px 10px; font-size:11.5px; line-height:1.35; }
+  #cookie-banner .cb-text{ flex:1 1 100%; }
+  #cookie-banner .cb-btns{ flex:1 1 100%; justify-content:flex-end; gap:8px; }
+  .cb-btn{ padding:7px 14px; font-size:10.5px; min-height:32px; }
 }
 /* LIVE STOCK — sold-out state */
 .card.sold-out{display:none !important}
@@ -454,12 +457,12 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 .sw.sold-out{display:none !important}
 .hide{display:none}
 </style>
-<meta name="description" content="Karmi Laven bracelets, necklaces and hair pieces — £5, £8 or £13 each · 70% off every item when you buy any 10+ items (£1.50, £2.40 or £3.90 each). Shipped in 2–5 days. £1.49 UK delivery · free with any 10+ items.">
+<meta name="description" content="Karmi Laven bracelets and necklaces — £5, £8 or £13 each · 70% off every item when you buy any 10+ items (£1.50, £2.40 or £3.90 each). Shipped in 2–5 days. £1.49 UK delivery · free with any 10+ items.">
 <link rel="canonical" href="https://www.karmilaven.com/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Karmi Laven">
 <meta property="og:url" content="https://www.karmilaven.com/">
-<meta property="og:title" content="Karmi Laven — Bracelets, Necklaces &amp; Hair · from £5 each">
+<meta property="og:title" content="Karmi Laven — Bracelets &amp; Necklaces · from £5 each">
 <meta property="og:description" content="15 faceted bead shades. Champagne to cobalt — find your colour. £1.49 UK delivery · free with any 10+ items.">
 <meta property="og:image" content="https://www.karmilaven.com/og-image.jpg">
 <meta property="og:image:width" content="1200">
@@ -467,7 +470,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 <meta property="og:image:alt" content="Karmi Laven bracelets gradient collection">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@karmilaven">
-<meta name="twitter:title" content="Karmi Laven — Bracelets, Necklaces &amp; Hair · from £5 each">
+<meta name="twitter:title" content="Karmi Laven — Bracelets &amp; Necklaces · from £5 each">
 <meta name="twitter:description" content="15 faceted bead shades. Find your colour. £1.49 UK delivery · free with any 10+ items.">
 <meta name="twitter:image" content="https://www.karmilaven.com/og-image.jpg">
 </head>
@@ -1485,9 +1488,9 @@ var SHOW_REVIEWS = false;
 {
   "@context": "https://schema.org/",
   "@type": "ProductCollection",
-  "name": "Karmi Laven Bracelets, Necklaces & Hair",
+  "name": "Karmi Laven Bracelets & Necklaces",
   "url": "https://www.karmilaven.com/",
-  "description": "Bracelets, necklaces and hair pieces, £5, £8 or £13 each, or £1.50, £2.40 or £3.90 each when you buy any 10 or more items.",
+  "description": "Bracelets and necklaces, £5, £8 or £13 each, or £1.50, £2.40 or £3.90 each when you buy any 10 or more items.",
   "brand": {
     "@type": "Brand",
     "name": "Karmi Laven"

@@ -152,6 +152,22 @@
     var list = w.length < 2 ? w[0] : w.slice(0, -1).join(', ') + ' and ' + w[w.length - 1];
     return list + '. Build your own stack.';
   }
+  /** Meta / og / twitter / JSON-LD name only the categories on sale: the static page says bracelets + necklaces
+   *  (hair withdrawn 23 Nov); when a hair card is sellable again the hair wording is added, and removed when it goes. */
+  function sfMetaCats(doc, hair) {
+    var sw = function (s) {
+      return hair
+        ? s.replace(/bracelets and necklaces/g, 'bracelets, necklaces and hair pieces').replace(/Bracelets and necklaces/g, 'Bracelets, necklaces and hair pieces').replace(/Bracelets & Necklaces/g, 'Bracelets, Necklaces & Hair')
+        : s.replace(/bracelets, necklaces and hair pieces/g, 'bracelets and necklaces').replace(/Bracelets, necklaces and hair pieces/g, 'Bracelets and necklaces').replace(/Bracelets, Necklaces & Hair/g, 'Bracelets & Necklaces');
+    };
+    Array.prototype.forEach.call(doc.querySelectorAll('meta[name="description"],meta[property="og:title"],meta[name="twitter:title"]'), function (m) {
+      var c = m.getAttribute('content'); if (c) m.setAttribute('content', sw(c));
+    });
+    Array.prototype.forEach.call(doc.querySelectorAll('script[type="application/ld+json"]'), function (sc) {
+      try { var j = JSON.parse(sc.textContent); if (!j.name || !/Karmi Laven Bracelets/.test(j.name)) return;
+        j.name = sw(j.name); if (j.description) j.description = sw(j.description); sc.textContent = JSON.stringify(j, null, 2); } catch (e) {}
+    });
+  }
   /*KL-SF-LAYOUT-END*/
 
   if (typeof document === 'undefined') return;
@@ -247,6 +263,7 @@
     $('#klFam').hidden = isG;
     $$('[data-kl-gonly]').forEach(function (e) { e.classList.toggle('kl-goff', !isG); });
     var hp = $('.hero-copy p'); if (hp && hp.parentNode) hp.textContent = sfHeroLine(vis);
+    sfMetaCats(document, vis.indexOf('hair') >= 0);
     tabScroll(true); syncSticky(); syncHero();
     // only the open tab's cards are in the page (no hidden duplicate buttons / texts)
     if (isG) { $('#klFamGrid').innerHTML = ''; if (!wasG || !grid.children.length) rerenderGradient(); }
