@@ -134,20 +134,29 @@ export function createHandler({
       for (const u of units) {
         if (u.ladder) { u.name = GRADIENT[u.bc]; continue; }
         const l = lineByBc[u.bc];
+        if (groupMode) {
+          // cart_qty_groups: the ONLINE group price is the price (priceUnits charges the group single / 10+ price), so
+          // a missing till price does not block a line WITH a group (command centre 23 Nov). No group = not priced
+          // (fail closed); a name is still required (Stripe line name).
+          if (!l || !l.name) {
+            if (held) await release(ref, db);
+            return res.status(503).json({ error: 'stock_unavailable', message: MSG_UNAVAILABLE });
+          }
+          u.group = lineGroup(l, table);
+          if (!u.group) {
+            if (held) await release(ref, db);
+            return res.status(503).json({ error: 'pricing_unavailable', message: MSG_PRICING_UNAVAILABLE });
+          }
+          u.unitP = Number.isInteger(l.price_pence) && l.price_pence > 0 ? l.price_pence : table.groups[u.group].single;
+          u.name = String(l.name).slice(0, 60);
+          continue;
+        }
         if (!l || !Number.isInteger(l.price_pence) || l.price_pence <= 0 || !l.name) {
           if (held) await release(ref, db);
           return res.status(503).json({ error: 'stock_unavailable', message: MSG_UNAVAILABLE });
         }
         u.unitP = l.price_pence;
         u.name = String(l.name).slice(0, 60);
-        if (groupMode) {
-          // cart_qty_groups: the ONLINE group price replaces the till price; no group = not priced (fail closed).
-          u.group = lineGroup(l, table);
-          if (!u.group) {
-            if (held) await release(ref, db);
-            return res.status(503).json({ error: 'pricing_unavailable', message: MSG_PRICING_UNAVAILABLE });
-          }
-        }
       }
       let amount;
       if (groupMode) {
