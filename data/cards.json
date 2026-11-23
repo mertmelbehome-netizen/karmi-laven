@@ -676,8 +676,8 @@
    "barcode": "82001",
    "tab": "rings",
    "family": "Ring",
-   "line": "Stone Chip Ring",
-   "name": "Stone Chip",
+   "line": "Chip Ring",
+   "name": "Chip",
    "swatch": "#c9a882",
    "photo": null,
    "photo_qc": false
@@ -756,8 +756,8 @@
    "barcode": "GEN-C112D067",
    "tab": "rings",
    "family": "Ring",
-   "line": "Raw Stone Look Ring",
-   "name": "Raw Stone Look",
+   "line": "Rough-Cut Look Ring",
+   "name": "Rough-Cut Look",
    "swatch": "#b9ada0",
    "photo": null,
    "photo_qc": false
@@ -766,8 +766,8 @@
    "barcode": "GEN-2536586E",
    "tab": "rings",
    "family": "Ring",
-   "line": "Raw Stone Look Ring",
-   "name": "Raw Stone Look",
+   "line": "Rough-Cut Look Ring",
+   "name": "Rough-Cut Look",
    "swatch": "#b9ada0",
    "photo": null,
    "photo_qc": false
@@ -776,8 +776,8 @@
    "barcode": "103193146",
    "tab": "rings",
    "family": "Ring",
-   "line": "Raw Stone Look Ring",
-   "name": "Raw Stone Look",
+   "line": "Rough-Cut Look Ring",
+   "name": "Rough-Cut Look",
    "swatch": "#b9ada0",
    "photo": null,
    "photo_qc": false

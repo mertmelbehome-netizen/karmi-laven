@@ -75,7 +75,7 @@ test('ring cards: data only (tab rings, no photo, no tile exception), every barc
   for (const c of RINGS) {
     assert.equal(c.photo, null, c.barcode); assert.equal(c.photo_qc, false); assert.ok(!('tile_sellable' in c), 'rings: photo first')
     assert.ok(core.sfSubOf('rings', c.line), 'sub-chip for ' + c.line)
-    assert.doesNotMatch(`${c.name} ${c.line}`, /stainless|zircon|crystal|gemstone|natural|genuine|sterling|real /i, c.barcode)
+    assert.doesNotMatch(`${c.name} ${c.line}`, /stainless|zircon|crystal|gemstone|natural|genuine|sterling|real |stone/i, c.barcode)
   }
 })
 
@@ -215,10 +215,10 @@ test('N2: on the Rings tab the 10+ hero price / delivery block steps aside for t
 })
 
 test('sub-chips: spec hashes and labels (no unverified material words), hash round trip incl. #rings-steel-chunky', () => {
-  assert.deepEqual(core.SF_SUBS.rings.map((x) => x.k), ['steel-chunky', 'steel', 'charm', 'ivory', 'stone-chip', 'butterfly', 'sparkle', 'antique', 'enamel', 'raw-look'])
-  assert.deepEqual(core.SF_SUBS.rings.map((x) => x.label), ['Steel-look Chunky', 'Steel-look', 'Charm', 'Ivory', 'Stone Chip', 'Butterfly & Starfish', 'Sparkle', 'Antique-Style', 'Enamel', 'Raw Stone Look'])
+  assert.deepEqual(core.SF_SUBS.rings.map((x) => x.k), ['steel-chunky', 'steel', 'charm', 'ivory', 'chip', 'butterfly', 'sparkle', 'antique', 'enamel', 'rough-cut'])
+  assert.deepEqual(core.SF_SUBS.rings.map((x) => x.label), ['Steel-look Chunky', 'Steel-look', 'Charm', 'Ivory', 'Chip', 'Butterfly & Starfish', 'Sparkle', 'Antique-Style', 'Enamel', 'Rough-Cut Look'])
   assert.deepEqual(core.sfParseHash('#rings-steel-chunky'), { tab: 'rings', sub: 'steel-chunky' })
-  assert.deepEqual(core.sfParseHash('#rings-raw-look'), { tab: 'rings', sub: 'raw-look' })
+  assert.deepEqual(core.sfParseHash('#rings-rough-cut'), { tab: 'rings', sub: 'rough-cut' })
   assert.deepEqual(core.sfParseHash('#rings'), { tab: 'rings', sub: 'all' })
   assert.equal(core.sfHash('rings', 'steel-chunky'), '#rings-steel-chunky')
   assert.equal(core.sfSubOf('rings', 'Steel-look Ring'), 'steel'); assert.equal(core.sfSubOf('rings', 'Steel-look Chunky Ring'), 'steel-chunky')

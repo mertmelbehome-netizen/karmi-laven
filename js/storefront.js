@@ -95,9 +95,9 @@
     // Keys may hold a hyphen ('#rings-steel-chunky'): sfParseHash splits at the FIRST hyphen only.
     rings: [{ k: 'steel-chunky', label: 'Steel-look Chunky', re: /^steel-look chunky ring$/i }, { k: 'steel', label: 'Steel-look', re: /^steel-look ring$/i },
       { k: 'charm', label: 'Charm', re: /^charm ring$/i }, { k: 'ivory', label: 'Ivory', re: /^ivory ring$/i },
-      { k: 'stone-chip', label: 'Stone Chip', re: /^stone chip ring$/i }, { k: 'butterfly', label: 'Butterfly & Starfish', re: /^butterfly & starfish ring$/i },
+      { k: 'chip', label: 'Chip', re: /^chip ring$/i }, { k: 'butterfly', label: 'Butterfly & Starfish', re: /^butterfly & starfish ring$/i },
       { k: 'sparkle', label: 'Sparkle', re: /^(statement )?sparkle ring$/i }, { k: 'antique', label: 'Antique-Style', re: /^antique-style ring$/i },
-      { k: 'enamel', label: 'Enamel', re: /^enamel ring$/i }, { k: 'raw-look', label: 'Raw Stone Look', re: /^raw stone look ring$/i }]
+      { k: 'enamel', label: 'Enamel', re: /^enamel ring$/i }, { k: 'rough-cut', label: 'Rough-Cut Look', re: /^rough-cut look ring$/i }]
   };
   /** sub-category key of a line/type inside a tab; null = shown under All only */
   function sfSubOf(tab, line) {
