@@ -21,6 +21,9 @@
 // The default table (ladders.json) = the live prices before this change: Gradient 1 = £2.99, 2 = £5.50, 3 = £7.50,
 // 5 = £12 (cheapest combination); no family multi-buy; free shipping >= £12 or 5+ units. tests/pricing.test.mjs
 // proves it charges exactly what the old hard-coded DENOMS code charged (golden + legacy comparison).
+// Schema extension (23 Nov 2026, backwards-compatible): `mode: 'cart_qty_groups'` (see loadGroupTable) = group single
+// price + one cart-wide 10+ price, non-monotonic by design; used only by PREVIEW tables in ladders-preview/ (e.g.
+// M1_mert_list), selectable via previewLadders() on a Vercel preview. A table without `mode` = the pools model above.
 // index.html still mirrors the Gradient ladder between /*KL-PRICING-START*/ and /*KL-PRICING-END*/; the tests keep the
 // page = this table. /api/stock serves publicLadders() as `ladders` so the page can read the table (PR-2).
 import { readFileSync } from 'node:fs';
@@ -82,11 +85,91 @@ function normalisePool(key, p, maxUnits) {
   });
 }
 
+export const MODE_POOLS = 'pools';
+export const MODE_GROUPS = 'cart_qty_groups';
+export const MONOTONIC_EXCEPTION = 'cart_qty_threshold';
+
+/**
+ * mode 'cart_qty_groups' (schema extension, 23 Nov 2026; Mert's list, K-046 — NOT the live table):
+ *   every product belongs to a GROUP with an ONLINE single price (not the till price) and a group tier price;
+ *   the cart's TOTAL unit count (all groups mixed) decides: n < cart_qty_tier.from -> every unit at its group's
+ *   single, n >= from -> every unit at its group's tier_each. No intermediate steps. Non-monotonic BY DESIGN
+ *   (9 × £8 = £72 > 10 × £2.40 = £24), so the table must say rule.monotonic = false and
+ *   rule.monotonic_exception = 'cart_qty_threshold'; the cart shows "add k more" instead (progress / cartSummary).
+ *   Group of a unit: Gradient Edit -> gradient_group; any other -> u.group (caller: DB online_group, else
+ *   family_groups[family]); no group = not priced (throws; checkout answers 503).
+ */
+function loadGroupTable(raw) {
+  const r = raw.rule;
+  if (!isObj(r)) throw new Error('ladders: rule missing');
+  if (r.monotonic !== false || r.monotonic_exception !== MONOTONIC_EXCEPTION) {
+    throw new Error(`ladders: mode '${MODE_GROUPS}' is non-monotonic by design: rule.monotonic must be false and rule.monotonic_exception '${MONOTONIC_EXCEPTION}'`);
+  }
+  if (r.rounding !== RULE_ROUNDING) throw new Error(`ladders: rule.rounding must be '${RULE_ROUNDING}'`);
+  if (!isPosInt(r.max_units) || r.max_units > MAX_UNITS_LIMIT) throw new Error('ladders: rule.max_units invalid');
+  const maxUnits = r.max_units;
+  const ct = raw.cart_qty_tier;
+  if (!isObj(ct) || !Number.isInteger(ct.from) || ct.from < 2 || ct.from > maxUnits || ct.counts !== 'all_units') {
+    throw new Error(`ladders: cart_qty_tier must be {from: 2..${maxUnits}, counts: 'all_units'}`);
+  }
+  const sh = raw.shipping;
+  if (!isObj(sh) || !(sh.free_threshold_pence === null || isPosInt(sh.free_threshold_pence))
+    || !Number.isInteger(sh.below_threshold_fee_pence) || sh.below_threshold_fee_pence < 0) {
+    throw new Error('ladders: shipping must have free_threshold_pence (>0 or null) and below_threshold_fee_pence (>=0), integer pence');
+  }
+  const fq = sh.free_at_qty;
+  if (!isObj(fq) || typeof fq.enabled !== 'boolean' || !isPosInt(fq.qty)) throw new Error('ladders: shipping.free_at_qty must be {enabled: bool, qty: int}');
+  if (sh.derive_threshold !== undefined && sh.derive_threshold !== null) throw new Error(`ladders: shipping.derive_threshold is not supported in mode '${MODE_GROUPS}'`);
+  if (!Array.isArray(raw.rules)) throw new Error('ladders: rules must be an array ([] = none)');
+  if (raw.rules.length) throw new Error('ladders: cart-level rules are an extension point only');
+  const ui = raw.ui === undefined ? {} : raw.ui;
+  if (!isObj(ui) || (ui.progress_line !== undefined && typeof ui.progress_line !== 'boolean')) throw new Error('ladders: ui.progress_line must be boolean');
+  if (raw.pools !== undefined && !(isObj(raw.pools) && Object.keys(raw.pools).length === 0)) {
+    throw new Error(`ladders: mode '${MODE_GROUPS}' takes groups, not pools`);
+  }
+  if (!isObj(raw.groups) || !Object.keys(raw.groups).length) throw new Error('ladders: groups missing');
+  const groups = {};
+  for (const [k, gr] of Object.entries(raw.groups)) {
+    const where = `ladders: group '${k}'`;
+    if (!/^[A-Z][A-Z0-9_]{0,15}$/.test(k)) throw new Error(`${where}: key must be A..Z (e.g. 'A')`);
+    if (!isObj(gr) || !isPosInt(gr.single) || !isPosInt(gr.tier_each)) throw new Error(`${where}: single and tier_each must be positive integers (pence)`);
+    if (gr.tier_each > gr.single) throw new Error(`${where}: tier_each ${gr.tier_each} above single ${gr.single}`);
+    if (gr.label !== undefined && typeof gr.label !== 'string') throw new Error(`${where}: label must be text`);
+    groups[k] = Object.freeze({ single: gr.single, tier_each: gr.tier_each, label: gr.label || k });
+  }
+  const gg = raw.gradient_group === undefined ? null : raw.gradient_group;
+  if (gg !== null && !groups[gg]) throw new Error(`ladders: gradient_group '${gg}' is not a group`);
+  const fg = raw.family_groups === undefined ? {} : raw.family_groups;
+  if (!isObj(fg)) throw new Error('ladders: family_groups must be {family: group}');
+  for (const [fam, gk] of Object.entries(fg)) {
+    if (!/^[a-z][a-z_]*$/.test(fam) || fam === 'gradient') throw new Error(`ladders: family_groups key '${fam}' must be a DB family`);
+    if (!groups[gk]) throw new Error(`ladders: family_groups.${fam} -> '${gk}' is not a group`);
+  }
+  return {
+    ok: true,
+    table: Object.freeze({
+      mode: MODE_GROUPS,
+      version: raw.version,
+      maxUnits,
+      tierFrom: ct.from,
+      groups: Object.freeze(groups),
+      gradientGroup: gg,
+      familyGroups: Object.freeze({ ...fg }),
+      freeShip: Object.freeze({ fromP: sh.free_threshold_pence, units: fq.enabled ? fq.qty : null, feeP: sh.below_threshold_fee_pence, derivedFrom: null }),
+      rules: Object.freeze([]),
+      progressLine: ui.progress_line === true,
+      pools: Object.freeze({}),
+    }),
+  };
+}
+
 /** Validates a raw ladder table. Returns { ok: true, table } or { ok: false, error } — never throws. */
 export function loadLadders(raw) {
   try {
     if (!isObj(raw)) throw new Error('ladders: not an object');
     if (typeof raw.version !== 'string' || !raw.version.trim()) throw new Error('ladders: version missing');
+    if (raw.mode !== undefined && raw.mode !== MODE_POOLS && raw.mode !== MODE_GROUPS) throw new Error(`ladders: unknown mode '${raw.mode}'`);
+    if (raw.mode === MODE_GROUPS) return loadGroupTable(raw);
     const r = raw.rule;
     if (!isObj(r)) throw new Error('ladders: rule missing');
     if (r.monotonic !== true) throw new Error('ladders: rule.monotonic must be true');
@@ -142,30 +225,82 @@ export function loadLadders(raw) {
 // createRequire: Vercel compiles api/*.js to CommonJS (no "type": "module"), where import.meta is a
 // load-time SyntaxError (preview 16f6c32: FUNCTION_INVOCATION_FAILED). vercel.json includeFiles puts the
 // file in the checkout + stock bundles; locally npm test runs from the repo root.
+// TEST-ONLY: under `node --test` (NODE_TEST_CONTEXT is set by the runner, never on Vercel) a test file may pin the
+// default table to a fixture in tests/fixtures/ (tests/fixtures/use-live-table.mjs) so the pools-table tests keep
+// proving the 23 Nov behaviour after ladders.json moves to M1. Any other path is ignored.
+const TEST_TABLE = (() => {
+  const f = process.env.NODE_TEST_CONTEXT ? process.env.KL_TEST_LADDERS_FILE : undefined;
+  return typeof f === 'string' && /^tests\/fixtures\/ladders\.[A-Za-z0-9_.-]+\.json$/.test(f) ? f : null;
+})();
 const loaded = (() => {
   let raw;
-  try { raw = JSON.parse(readFileSync(join(process.cwd(), 'ladders.json'), 'utf8')); } catch (e) { return { ok: false, error: `ladders.json unreadable: ${e.message}` }; }
+  try { raw = JSON.parse(readFileSync(join(process.cwd(), TEST_TABLE || 'ladders.json'), 'utf8')); } catch (e) { return { ok: false, error: `ladders.json unreadable: ${e.message}` }; }
   return loadLadders(raw);
 })();
 export const LADDERS = loaded.ok ? loaded.table : null;
 export const LADDERS_ERROR = loaded.ok ? null : loaded.error;
 if (!loaded.ok) console.error('pricing: ladder table rejected, checkout fails closed:', LADDERS_ERROR);
 
+// PREVIEW-ONLY tables (23 Nov 2026): ladders-preview/<name>.json, selectable with ?ladder=<name> (/api/stock) or
+// body.ladder (/api/checkout) ONLY on a Vercel preview deployment (VERCEL_ENV = 'preview') or when
+// KL_LADDER_PREVIEW = '1' (tests / local). In production the parameter is ignored: the default ladders.json is used.
+export const PREVIEW_LADDERS = Object.freeze(['M1_mert_list']);
+export const previewAllowed = (env = process.env) => env.VERCEL_ENV === 'preview' || env.KL_LADDER_PREVIEW === '1';
+const previewCache = new Map();
+/**
+ * null = no (honoured) selection: use the default table. Otherwise { ok: true, name, table } or { ok: false, error }.
+ * Never throws; same validator as the default table.
+ */
+export function previewLadders(name, env = process.env) {
+  if (name === undefined || name === null || name === '') return null;
+  if (!previewAllowed(env)) return null;
+  const n = String(name);
+  if (!PREVIEW_LADDERS.includes(n)) return { ok: false, error: `unknown preview ladder '${n.slice(0, 40)}'` };
+  if (!previewCache.has(n)) {
+    let r;
+    try { r = loadLadders(JSON.parse(readFileSync(join(process.cwd(), 'ladders-preview', `${n}.json`), 'utf8'))); }
+    catch (e) { r = { ok: false, error: `ladders-preview/${n}.json unreadable: ${e.message}` }; }
+    previewCache.set(n, r.ok ? { ok: true, name: n, table: r.table } : { ok: false, error: r.error });
+  }
+  return previewCache.get(n);
+}
+
 const need = (table) => {
   if (!table) throw new Error(`ladder table invalid: ${LADDERS_ERROR || 'none'}`);
   return table;
 };
+const isGroups = (t) => t.mode === MODE_GROUPS;
 
 /** Pool key of one unit in `table`: 'gradient', the price key, or null (no multi-buy). */
 export function poolKey(u, table = LADDERS) {
+  if (isGroups(need(table))) return groupKey(u, table);
   if (u.ladder) return 'gradient';
   const k = String(u.unitP);
   return Object.prototype.hasOwnProperty.call(need(table).pools, k) ? k : null;
 }
 
+/** mode cart_qty_groups: the group of one unit (Gradient -> gradient_group; else u.group), or null = cannot price. */
+export function groupKey(u, table = LADDERS) {
+  const t = need(table);
+  if (!isGroups(t)) throw new Error('groupKey: table is not in cart_qty_groups mode');
+  const k = u.ladder ? t.gradientGroup : u.group;
+  return typeof k === 'string' && Object.prototype.hasOwnProperty.call(t.groups, k) ? k : null;
+}
+
+/** mode cart_qty_groups: the group for a DB checkout line ({family, online_group?}); null = no group. */
+export function lineGroup(line, table = LADDERS) {
+  const t = need(table);
+  if (!isGroups(t) || !line) return null;
+  const own = typeof line.online_group === 'string' ? line.online_group : null; // future DB column (K-046)
+  if (own !== null) return Object.prototype.hasOwnProperty.call(t.groups, own) ? own : null;
+  const f = typeof line.family === 'string' ? line.family : '';
+  return Object.prototype.hasOwnProperty.call(t.familyGroups, f) ? t.familyGroups[f] : null;
+}
+
 /** Total (pence) for q units of one pool; q = 0 -> 0. Throws on an unknown pool or q above max_units. */
 export function poolTotalP(key, q, table = LADDERS) {
   const t = need(table);
+  if (isGroups(t)) throw new Error('poolTotalP: cart_qty_groups prices depend on the whole cart (use priceUnits)');
   if (q <= 0) return 0;
   const p = t.pools[key];
   if (!p) throw new Error(`no ladder pool '${key}'`);
@@ -174,11 +309,15 @@ export function poolTotalP(key, q, table = LADDERS) {
 }
 
 // Backward-compatible exports (same names and values as before 23 Nov 2026), now read from the table.
-export const UNIT = LADDERS ? LADDERS.pools.gradient.single : null;
+// A cart_qty_groups default table (M1 go-live) has no 'gradient' pool: these legacy names must not crash the module
+// load (that would take /api/stock and /api/checkout down). UNIT = the Gradient group's single price; DENOMS = null.
+const POOLS_DEFAULT = !!(LADDERS && !isGroups(LADDERS));
+export const UNIT = !LADDERS ? null : POOLS_DEFAULT ? LADDERS.pools.gradient.single
+  : (LADDERS.gradientGroup ? LADDERS.groups[LADDERS.gradientGroup].single : null);
 export const FREE_SHIP_P = LADDERS ? LADDERS.freeShip.fromP : null;
 export const FREE_SHIP_UNITS = LADDERS ? LADDERS.freeShip.units : null;
 export const SHIP_FEE_P = LADDERS ? LADDERS.freeShip.feeP : null;
-export const DENOMS = LADDERS
+export const DENOMS = POOLS_DEFAULT
   ? Object.freeze([...LADDERS.pools.gradient.bundles, [1, LADDERS.pools.gradient.single]].sort((a, b) => b[0] - a[0]))
   : null;
 /** Ladder total (pence) for q Gradient Edit units (cheapest combination + monotonic rule). */
@@ -192,6 +331,7 @@ export const ladderTotalP = (q) => (q > 0 ? poolTotalP('gradient', q) : 0);
  */
 export function priceUnits(units, table = LADDERS) {
   const t = need(table);
+  if (isGroups(t)) return priceGroupUnits(units, t);
   const byPool = new Map();
   let other = 0;
   for (const u of units) {
@@ -213,9 +353,30 @@ export function priceUnits(units, table = LADDERS) {
   return total;
 }
 
+/**
+ * mode cart_qty_groups: n = ALL units in the cart (every group mixed). n < tierFrom -> each unit its group single;
+ * n >= tierFrom -> each unit its group tier_each. Whole pence per unit, so no spreading is needed (line items sum
+ * exactly). Sets u.pool = group, u.single = group single, u.price. Throws on an ungrouped unit.
+ */
+function priceGroupUnits(units, t) {
+  if (units.length > t.maxUnits) throw new Error(`cart: ${units.length} units above max_units ${t.maxUnits}`);
+  const tier = units.length >= t.tierFrom;
+  let total = 0;
+  for (const u of units) {
+    const k = groupKey(u, t);
+    if (k === null) throw new Error(u.ladder ? 'gradient not sold under this table' : 'ungrouped unit');
+    const gr = t.groups[k];
+    u.pool = k;
+    u.single = gr.single;
+    u.price = tier ? gr.tier_each : gr.single;
+    total += u.price;
+  }
+  return total;
+}
+
 export const freeShipping = (amountP, totalUnits, table = LADDERS) => {
   const f = need(table).freeShip;
-  return amountP >= f.fromP || (f.units !== null && totalUnits >= f.units);
+  return (f.fromP !== null && amountP >= f.fromP) || (f.units !== null && totalUnits >= f.units);
 };
 /** Shipping charge (pence) for a priced bag: 0 when free, else the table's below-threshold fee. */
 export const shippingFeeP = (amountP, totalUnits, table = LADDERS) =>
@@ -251,6 +412,7 @@ const gbp = (p) => `£${(p / 100).toFixed(2)}`;
  */
 export function progress(units, table = LADDERS) {
   const t = need(table);
+  if (isGroups(t)) return groupProgress(units, t);
   const priced = units.map((u) => ({ ladder: !!u.ladder, unitP: u.unitP }));
   const amount = priced.length ? priceUnits(priced, t) : 0;
   let next = null, bestUnlocked = false;
@@ -284,9 +446,115 @@ export function progress(units, table = LADDERS) {
   return { amount_pence: amount, next_tier: next, best_unlocked: bestUnlocked, free_delivery_gap: gap, lines };
 }
 
+const copyUnits = (units) => units.map((u) => ({ ladder: !!u.ladder, unitP: u.unitP, group: u.group }));
+
+/**
+ * mode cart_qty_groups: BOTH prices and the difference, for the cart (Mert, 23 Nov: "cart must show both prices and
+ * the saving"). single_total = every unit at its group single; tier_total = every unit at its group tier price;
+ * charged = what the bag costs now (single_total below the threshold, tier_total from it).
+ * Unlock (Komuta rule, 23 Nov 2026: the figure comes from THIS cart, never a generic "cheapest 10"): to_unlock = units
+ * still needed; unlock_group = the group IN THIS CART with the lowest tier_each (tie: alphabetical; a group that is not
+ * in the cart is never assumed); unlock_total = tier_total + to_unlock x that tier_each = what the bag would cost at the
+ * threshold. shipping_pence = delivery charged now; unlock_shipping_pence = delivery at the threshold;
+ * unlock_lowers_total = unlock_total + unlock_shipping < charged + shipping (only then may the cart say "drops").
+ * Wording of a "saving" line on the page is LEGAL-CHECK (CMA/DMCC reference price): numbers only here.
+ */
+export function cartSummary(units, table = LADDERS) {
+  const t = need(table);
+  if (!isGroups(t)) throw new Error('cartSummary: table is not in cart_qty_groups mode');
+  const priced = copyUnits(units);
+  const charged = priced.length ? priceUnits(priced, t) : 0;
+  let singleTotal = 0, tierTotal = 0;
+  const byGroup = {};
+  for (const u of priced) {
+    const gr = t.groups[u.pool];
+    singleTotal += gr.single; tierTotal += gr.tier_each;
+    const b = byGroup[u.pool] || (byGroup[u.pool] = { group: u.pool, qty: 0, single: gr.single, tier_each: gr.tier_each, each_charged: u.price });
+    b.qty++;
+  }
+  const n = priced.length;
+  const groups = Object.values(byGroup).sort((a, b) => (a.group < b.group ? -1 : 1));
+  const toUnlock = n >= t.tierFrom ? 0 : t.tierFrom - n;
+  let pad = null;
+  for (const g of groups) if (!pad || g.tier_each < pad.tier_each) pad = g;
+  const unlockTotal = toUnlock && pad ? tierTotal + toUnlock * pad.tier_each : null;
+  const shipping = n ? shippingFeeP(charged, n, t) : 0;
+  const unlockShipping = unlockTotal === null ? null : shippingFeeP(unlockTotal, t.tierFrom, t);
+  return {
+    units: n,
+    tier_from: t.tierFrom,
+    tier_unlocked: n >= t.tierFrom,
+    single_total_pence: singleTotal,
+    tier_total_pence: tierTotal,
+    charged_pence: charged,
+    difference_pence: singleTotal - charged, // 0 below the threshold
+    shipping_pence: shipping,
+    to_unlock: toUnlock,
+    unlock_group: toUnlock && pad ? pad.group : null,
+    unlock_tier_each_pence: toUnlock && pad ? pad.tier_each : null,
+    unlock_total_pence: unlockTotal,
+    unlock_shipping_pence: unlockShipping,
+    unlock_lowers_total: unlockTotal !== null && unlockTotal + unlockShipping < charged + shipping,
+    groups,
+  };
+}
+
+function groupProgress(units, t) {
+  const s = cartSummary(units, t);
+  const f = t.freeShip;
+  const free = freeShipping(s.charged_pence, s.units, t);
+  const gap = free ? null : {
+    pence: f.fromP === null ? null : f.fromP - s.charged_pence,
+    units: f.units === null ? null : f.units - s.units,
+  };
+  let next = null;
+  if (s.to_unlock && s.units) {
+    next = { pool: s.unlock_group, qty: t.tierFrom, add: s.to_unlock, total_pence: s.unlock_total_pence, each_pence: null, same_total: s.unlock_total_pence === s.charged_pence };
+  }
+  const bestUnlocked = s.tier_unlocked;
+  const lines = [];
+  const freeAtTier = s.unlock_shipping_pence === 0 && s.shipping_pence > 0;
+  if (next) {
+    // Komuta rule (23 Nov): the figure is THIS cart at the threshold (cheapest group already in the cart). "drops" /
+    // "becomes" only when that total (delivery included) is lower than the bag now; otherwise only name the unlock.
+    if (s.unlock_lowers_total) {
+      lines.push(next.add === 1
+        ? `Add 1 more: total drops to ${gbp(next.total_pence)}${freeAtTier ? ' with free delivery' : ''}`
+        : `Add ${next.add} more: your total becomes ${gbp(next.total_pence)}${freeAtTier ? ' with free delivery' : ''}`);
+    } else {
+      lines.push(`Add ${next.add} more to unlock ${t.tierFrom}+ prices (from ${gbp(s.unlock_tier_each_pence)} each)${freeAtTier ? ' and free UK delivery' : ''}`);
+    }
+  } else if (bestUnlocked) lines.push('Best multi-buy price unlocked');
+  if (gap && !freeAtTier) {
+    if (gap.pence !== null) lines.push(`Add ${gbp(gap.pence)} for free delivery`);
+    else if (gap.units !== null) lines.push(`Add ${gap.units} more for free delivery`);
+  }
+  return { amount_pence: s.charged_pence, next_tier: next, best_unlocked: bestUnlocked, free_delivery_gap: gap, lines, summary: s };
+}
+
 /** The table as /api/stock serves it (`ladders`): additive, read-only, null when the table is invalid. */
 export function publicLadders(table = LADDERS) {
   if (!table) return null;
+  if (isGroups(table)) {
+    return {
+      version: table.version,
+      mode: MODE_GROUPS,
+      rule: { monotonic: false, monotonic_exception: MONOTONIC_EXCEPTION, rounding: RULE_ROUNDING, max_units: table.maxUnits },
+      cart_qty_tier: { from: table.tierFrom, counts: 'all_units' },
+      groups: Object.fromEntries(Object.entries(table.groups).map(([k, gr]) => [k, { label: gr.label, single: gr.single, tier_each: gr.tier_each }])),
+      gradient_group: table.gradientGroup,
+      family_groups: { ...table.familyGroups },
+      shipping: {
+        free_threshold_pence: table.freeShip.fromP,
+        below_threshold_fee_pence: table.freeShip.feeP,
+        free_at_qty: table.freeShip.units === null ? { enabled: false } : { enabled: true, qty: table.freeShip.units },
+        derived_from: null,
+      },
+      rules: [],
+      ui: { progress_line: table.progressLine },
+      pools: {},
+    };
+  }
   const pools = {};
   for (const [k, p] of Object.entries(table.pools)) {
     pools[k] = {

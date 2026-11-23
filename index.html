@@ -145,6 +145,13 @@ nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
 .cbody .pr{font-size:13px; letter-spacing:.04em; color:var(--ink)}
 .cbody .pr s{color:#bdb3a3; margin-left:4px; font-size:12px}
 .cbody .fee{font-size:12px; letter-spacing:.02em; color:var(--ink); opacity:.78; margin-top:3px; line-height:1.35}
+/* M1 (mode cart_qty_groups only; unused by the live default table) */
+.m1s{font-weight:500} .m1t{color:var(--ink); opacity:.85}
+.cart-m1{font-size:12px; line-height:1.45; color:var(--ink); margin:0 0 8px}
+.cart-m1 .m1on{color:var(--accent); font-weight:600}
+.cart-m1 .m1promo{display:block; font-size:11px; color:var(--soft); margin-top:2px}
+.cart-m1near{font-size:13.5px; font-weight:600; line-height:1.35; color:var(--ink); background:#f6eee6; border:1px solid var(--accent); border-radius:8px; padding:9px 12px; margin:0 0 10px; text-align:center}
+.modal .mprice .p .m1t, .hero .launch .p .m1t{font-family:'Jost'; font-size:13px}
 .cbody .ship24{font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-top:7px}
 .cbody .add{display:block; text-align:center; text-decoration:none; margin-top:11px; font-family:'Jost'; font-weight:400; font-size:10.5px; letter-spacing:.2em;
   text-transform:uppercase; color:var(--ink); background:none; border:1px solid var(--hair); padding:10px 0;
@@ -478,13 +485,13 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
   <div class="hero-copy">
     <div class="k fadein d1">The Gradient Edit</div>
     <h1 class="fadein d1">Colour,<br>worn <em>softly</em>.</h1>
-    <p class="fadein d2">Fifteen crystal shades, hand-strung on gold with a single charm. Wear one — or let the whole spectrum fall down your wrist.</p>
+    <p class="fadein d2" data-kl-m1="herop">Fifteen crystal shades, hand-strung on gold with a single charm. Wear one — or let the whole spectrum fall down your wrist.</p>
     <div class="stars fadein d2"><span class="num">Part of Melbe Home · with shops in Watford &amp; Guildford</span></div>
     <div class="cta fadein d3">
       <button class="btn" onclick="openBundle()">Build your bundle</button>
       <button class="btn ghost" onclick="document.getElementById('palette').scrollIntoView({behavior:'smooth'})">Shop by colour</button>
     </div>
-    <div class="launch fadein d3"><span>Online price</span><span class="p">£2.99</span><span class="lbl">Ships within 1–2 business days</span></div>
+    <div class="launch fadein d3"><span>Online price</span><span class="p" data-kl-m1="hero">£2.99</span><span class="lbl">Ships within 1–2 business days</span></div>
     <div class="launchfee fadein d3" data-kl="cardship">+ £1.49 UK delivery · free from £12 or 5 items</div>
     <div class="spectrum fadein d4" id="spectrum"></div>
   </div>
@@ -516,7 +523,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 
 <main class="wrap collection" id="palette">
   <div class="bundlecta">
-    <div><div class="t">Build your <em>gradient stack</em></div><div class="s">Mix any shades · 3 for <span data-kl-q="3">£7.50</span> · 6 for <span data-kl-q="6">£14.99</span> · <span data-kl="ship">£1.49 UK delivery, free from £12 (or 5 items)</span></div></div>
+    <div><div class="t">Build your <em>gradient stack</em></div><div class="s" data-kl-m1="cta">Mix any shades · 3 for <span data-kl-q="3">£7.50</span> · 6 for <span data-kl-q="6">£14.99</span> · <span data-kl="ship">£1.49 UK delivery, free from £12 (or 5 items)</span></div></div>
     <button class="btn" onclick="openBundle()">Build your bundle</button>
   </div>
   <div class="bundletrust">Backed by <b>Melbe Home</b> · shops in Watford &amp; Guildford · secure Stripe checkout · 14-day returns</div>
@@ -533,15 +540,15 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
   <div class="row">
     <div class="it"><b>15</b> shades</div>
     <div class="it"><b>4mm</b> crystal</div>
-    <div class="it"><b>£2.99</b> each <span class="dl" data-kl="fee1">+ £1.49 UK delivery</span></div>
+    <div class="it" data-kl-m1="each"><b>£2.99</b> each <span class="dl" data-kl="fee1">+ £1.49 UK delivery</span></div>
   </div>
 </section>
 
 <section class="faq wrap">
   <h3>Good to <em>know</em></h3>
   <details class="faqitem"><summary>When will my order arrive?</summary><p>Orders ship within 1–2 business days and arrive in 2–5 business days via Royal Mail. You're charged securely at checkout.</p></details>
-  <details class="faqitem"><summary>What size are they?</summary><p>Each bracelet is hand-strung on a fine gold-tone chain that fastens with a clasp and a loop extender chain, comfortable from roughly 14–19cm.</p></details>
-  <details class="faqitem"><summary>What are they made of?</summary><p>4mm faceted crystal beads hand-strung on a gold-tone chain with a single delicate charm.</p></details>
+  <details class="faqitem"><summary>What size are they?</summary><p data-kl-m1="faqsize">Each bracelet is hand-strung on a fine gold-tone chain that fastens with a clasp and a loop extender chain, comfortable from roughly 14–19cm.</p></details>
+  <details class="faqitem"><summary>What are they made of?</summary><p data-kl-m1="faqmade">4mm faceted crystal beads hand-strung on a gold-tone chain with a single delicate charm.</p></details>
   <details class="faqitem"><summary>Shipping &amp; delivery?</summary><p><span data-kl="ship">£1.49 UK delivery, free from £12 (or 5 items)</span>. Delivery 2–5 business days after dispatch.</p></details>
 </section>
 
@@ -580,8 +587,8 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
       </div>
 
       <div class="faq">
-        <p class="faq-q">How do multi-buy savings work?</p>
-        <p class="faq-a">The more you add to your bag, the less each bracelet costs — <b>2 for <span data-kl-q="2">£5.50</span> · 3 for <span data-kl-q="3">£7.50</span> · 6 for <span data-kl-q="6">£14.99</span></b>. Savings are applied automatically at checkout. Mix any colours you like.</p>
+        <p class="faq-q" data-kl-m1="faqq">How do multi-buy savings work?</p>
+        <p class="faq-a" data-kl-m1="faqa">The more you add to your bag, the less each bracelet costs — <b>2 for <span data-kl-q="2">£5.50</span> · 3 for <span data-kl-q="3">£7.50</span> · 6 for <span data-kl-q="6">£14.99</span></b>. Savings are applied automatically at checkout. Mix any colours you like.</p>
       </div>
 
       <div class="faq">
@@ -631,9 +638,9 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
     <div class="mname" id="mName"></div>
     <div class="mprice" id="mPrice"></div>
     <div class="mstock" id="mStock"></div>
-    <div class="mdesc">A single thread of 4mm crystal beads, hand-strung on gold with a delicate charm. Wear it alone, or stack it into the gradient.</div>
+    <div class="mdesc" data-kl-m1="mdesc">A single thread of 4mm crystal beads, hand-strung on gold with a delicate charm. Wear it alone, or stack it into the gradient.</div>
     <div class="mbag" id="mBag" aria-live="polite"></div>
-    <button class="madd" id="mAdd">Add to bag</button>
+    <button class="madd" id="mAdd" data-kl-m1="madd">Add to bag</button>
     <button class="mbundle" onclick="closeModal();openBundle(window._mbc)">Save more — build a bundle</button>
   </div>
 </div>
@@ -661,11 +668,13 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
   <div class="cart-items" id="cartItems"></div>
   <div class="cart-foot">
     <div class="shipbar"><i id="shipFill"></i></div>
-    <div class="cart-ship" id="cartShip">£1.49 UK delivery, free from £12 (or 5 items)</div>
+    <div class="cart-ship" id="cartShip" data-kl-progress aria-live="polite">£1.49 UK delivery, free from £12 (or 5 items)</div>
+    <div class="cart-m1" id="cartM1" aria-live="polite" hidden></div>
     <div class="cart-sub"><span>Subtotal</span><span id="cartSub">£0.00</span></div>
     <div class="cart-shipline" id="cartShipLine"><span>UK delivery</span><span id="cartShipVal">£1.49</span></div>
     <div class="cart-total"><span>Total inc. delivery</span><span id="cartTotal">£0.00</span></div>
     <div class="cart-pre" id="cartPre">Ships within 1–2 business days; delivery usually 2–5 business days after dispatch</div>
+    <div class="cart-m1near" id="cartM1Near" aria-live="polite" hidden></div>
     <button class="cart-checkout" id="checkoutBtn" onclick="checkout()">Secure Checkout →</button>
     <div class="cart-trustline">🔒 Secure payment · 14-day returns · A real UK brand — 2 high-street shops</div>
     <div class="cart-storeproof">Part of <b>Melbe Home</b> · shops in Watford &amp; Guildford</div>
@@ -691,6 +700,9 @@ const TIERS=[                             // multi-buy bundle tiers; price = the
   {n:3,label:'Most popular'},
   {n:6,label:'Free delivery'}
 ].map(t=>Object.defineProperty(t,'price',{get(){return gradTotalP(t.n)/100;}}));
+// M1 (mode cart_qty_groups): no 2/3/6 steps exist, so the builder offers 1 / 5 / 10 (10 = the 10+ price).
+const M1_TIERS=[{n:1,label:''},{n:5,label:''},{n:10,label:'10+ price'}].map(t=>Object.defineProperty(t,'price',{get(){return gradTotalP(t.n)/100;}}));
+function tiersNow(){ return (typeof m1On==='function'&&m1On()) ? M1_TIERS : TIERS; }
 const STORENAMES={WAT:'Watford',GUI:'Guildford',BRA:'Bracknell',GLO:'Gloucester',SB:'Southampton',LCB:'Watford'};
 
 /* ===== ANALYTICS (Meta Pixel + GA4) ===== */
@@ -803,7 +815,7 @@ function card(d,i){
     <div class="cbody">
       <div class="nm">${d.color_en}</div>
       <div class="sub"><span class="d" style="background:${d.swatch}"></span>Beaded bracelet</div>
-      <div class="pr">${pt}</div>
+      <div class="pr">${m1On()?m1PriceHtml(d.barcode):pt}</div>
       <div class="fee" data-kl="cardship">${cardShipText()}</div>
       <div class="ship24">Ships within 1–2 business days; delivery usually 2–5 business days after dispatch</div>
       <button class="add" data-kl-add onclick="addToCart('${d.barcode}')"${lad?'':' disabled'}>${lad?'Add to bag — '+pt:NA_TXT}</button>
@@ -812,7 +824,7 @@ function card(d,i){
 }
 function render(list){
   grid.innerHTML=''; list.forEach((d,i)=>grid.appendChild(card(d,i)));
-  countEl.textContent=list.length+' shades · online price £'+PRICE.toFixed(2)+' + '+gbpP(SHIP.feeP)+' UK delivery';
+  countEl.textContent=countText(list.length);
   requestAnimationFrame(()=>{const cs=[...grid.children];
     cs.forEach((c,i)=>c.style.transitionDelay=(i*40)+'ms');
     const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.06});
@@ -826,7 +838,7 @@ function openModal(bc){
   document.getElementById('mImg').src=d.img;
   document.getElementById('mName').textContent=d.color_en;
   document.getElementById('mDot').style.background=d.swatch;
-  document.getElementById('mPrice').innerHTML=`<span class="p">${priceTxt(bc)}</span><div class="fee" data-kl="cardship">${cardShipText()}</div>`;
+  document.getElementById('mPrice').innerHTML=`<span class="p">${m1On()?m1PriceHtml(bc):priceTxt(bc)}</span><div class="fee" data-kl="cardship">${cardShipText()}</div>`;
   document.getElementById('mAdd').textContent='Add to bag — '+priceTxt(bc);
   updateModalBag();
   document.getElementById('mStock').textContent='Ships within 1–2 business days; delivery usually 2–5 business days after dispatch';
@@ -844,17 +856,19 @@ function updateModalBag(){ const bc=window._mbc, el=document.getElementById('mBa
 /* ---- BUNDLE BUILDER ---- */
 let bTier=6;
 function openBundle(seedBc){
+  if(!tiersNow().some(t=>t.n===bTier)) bTier=tiersNow()[tiersNow().length-1].n;
   renderTiers(); renderSlots(seedBc); updateBundleTotal();
   document.getElementById('bundle').classList.add('open');
   document.getElementById('ovl').classList.add('open');
   track('ViewContent','view_item',{value:bundlePrice(),currency:'GBP',content_name:'Bundle builder',content_type:'product_group'});
 }
 function closeBundle(){document.getElementById('bundle').classList.remove('open');syncOvl();}
-function bundlePrice(){return (TIERS.find(t=>t.n===bTier)||TIERS[0]).price;}
+function bundlePrice(){const T=tiersNow(); return (T.find(t=>t.n===bTier)||T[0]).price;}
 function renderTiers(){
-  document.getElementById('tiers').innerHTML=TIERS.map(t=>`<div class="tier ${t.n===bTier?'sel':''}" onclick="setTier(${t.n})">
+  document.getElementById('tiers').innerHTML=tiersNow().map(t=>`<div class="tier ${t.n===bTier?'sel':''}" onclick="setTier(${t.n})">
     <div class="qn">${t.n}</div><div class="qp">£${t.price.toFixed(2)}</div><div class="ql">${t.label}</div></div>`).join('');
-  const t=TIERS.find(x=>x.n===bTier);
+  const t=tiersNow().find(x=>x.n===bTier);
+  if(m1On()){ document.getElementById('tierhint').textContent=m1TierHint(bTier); return; }
   document.getElementById('tierhint').textContent = deliveryFor(gradTotalP(bTier),bTier).free ? 'Free UK delivery included' : ((bTier>1?`Just £${(t.price/t.n).toFixed(2)} each · `:'')+'+ '+gbpP(SHIP.feeP)+' UK delivery under '+gbpShort(SHIP.freeP));
 }
 function setTier(n){bTier=n; renderTiers(); renderSlots(); updateBundleTotal();}
@@ -890,7 +904,7 @@ function onSlot(i){
   document.getElementById('swd'+i).style.background=c.hex;
 }
 function updateBundleTotal(){
-  const t=TIERS.find(x=>x.n===bTier);
+  const t=tiersNow().find(x=>x.n===bTier);
   document.getElementById('bTot').textContent='£'+t.price.toFixed(2);
   document.getElementById('bEach').textContent = `≈ £${(t.price/t.n).toFixed(2)} each · ${t.n} bracelet${t.n>1?'s':''}`
     + (deliveryFor(gradTotalP(bTier),bTier).free ? ' · free UK delivery' : '');
@@ -928,12 +942,12 @@ const DENOMS=[[5,12.00],[3,7.50],[2,5.50],[1,2.99]];   // multi-buy ladder; chea
 function bestPrice(q){ if(q<=0)return 0; const dp=[0]; for(let i=1;i<=q;i++){dp[i]=Infinity; for(const d of DENOMS){ if(d[0]<=i) dp[i]=Math.min(dp[i],dp[i-d[0]]+d[1]); } } return Math.round(dp[q]*100)/100; }
 function isLadder(bc){ const d=BY[bc]; return !!d && LADDER_TYPES.indexOf(d.type)>=0; }
 // Any other product: its WAT till single price as served by /api/stock (window.klPrice). Unknown = not sellable.
-function unitPrice(bc){ if(isLadder(bc)) return PRICE; const p=(typeof window.klPrice==='function')?window.klPrice(bc):null; return (typeof p==='number'&&p>0)?p:null; }
+function unitPrice(bc){ if(typeof m1On==='function'&&m1On()){ const g=m1Group(bc); return g?m1T().groups[g].single/100:null; } if(isLadder(bc)) return PRICE; const p=(typeof window.klPrice==='function')?window.klPrice(bc):null; return (typeof p==='number'&&p>0)?p:null; }
 function ladderQty(lines){ return lines.reduce((a,c)=>a+(isLadder(c.bc)?c.qty:0),0); }
 // Other units are grouped by single price (the server's pool key); a price with a pool in the served table
 // (window.klLadders.pools[pence].totals, from /api/stock) costs that pool total, else n × single. The live table has no
 // family pool, so today this is exactly n × single per product (PR-2; tests/storefront.test.mjs checks page = server).
-function cartTotal(lines){ const byP={}; lines.forEach(c=>{ if(!isLadder(c.bc)){ const p=Math.round((unitPrice(c.bc)||0)*100); byP[p]=(byP[p]||0)+c.qty; } });
+function cartTotal(lines){ if(typeof m1On==='function'&&m1On()) return m1CartTotalP(lines)/100; const byP={}; lines.forEach(c=>{ if(!isLadder(c.bc)){ const p=Math.round((unitPrice(c.bc)||0)*100); byP[p]=(byP[p]||0)+c.qty; } });
   const pools=(window.klLadders&&window.klLadders.pools)||{}; let otherP=0;
   for(const k in byP){ const n=byP[k], t=pools[k]&&pools[k].totals; otherP+=(t&&Number.isInteger(t[n]))?t[n]:Number(k)*n; }
   return Math.round(bestPrice(ladderQty(lines))*100+otherP)/100; }
@@ -945,21 +959,22 @@ const SHIP={freeP:1200, feeP:149, freeQty:5};   // free from £12.00 OR 5+ items
 function applyLadderShipping(l){
   const s=l&&l.shipping; if(!s) return false;
   const f=Number(s.free_threshold_pence), fee=Number(s.below_threshold_fee_pence), q=s.free_at_qty;
-  if(!(Number.isInteger(f)&&f>0&&Number.isInteger(fee)&&fee>=0)) return false;
-  SHIP.freeP=f; SHIP.feeP=fee; SHIP.freeQty=(q&&q.enabled&&Number.isInteger(q.qty)&&q.qty>0)?q.qty:null;
+  const noSpend=l.mode==='cart_qty_groups'&&s.free_threshold_pence===null;   // M1: free only by item count
+  if(!((noSpend||(Number.isInteger(f)&&f>0))&&Number.isInteger(fee)&&fee>=0)) return false;
+  SHIP.freeP=noSpend?null:f; SHIP.feeP=fee; SHIP.freeQty=(q&&q.enabled&&Number.isInteger(q.qty)&&q.qty>0)?q.qty:null;
   return true;
 }
 // §5.14: the FULL fee is in the total until the bag reaches the threshold (same rule as the server's freeShipping()).
 function deliveryFor(subP, units){
   if(!(units>0)) return {feeP:0, totalP:0, free:false};
-  const free = subP>=SHIP.freeP || (SHIP.freeQty!==null && units>=SHIP.freeQty);
+  const free = (SHIP.freeP!==null && subP>=SHIP.freeP) || (SHIP.freeQty!==null && units>=SHIP.freeQty);
   const feeP = free?0:SHIP.feeP;
   return {feeP, totalP:subP+feeP, free};
 }
 function gbpP(p){ return '£'+(p/100).toFixed(2); }
 function gbpShort(p){ return p%100===0 ? '£'+(p/100) : gbpP(p); }
-function shipSentence(){ return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery, free from '+gbpShort(SHIP.freeP)+(SHIP.freeQty?' (or '+SHIP.freeQty+' items)':''); }
-function cardShipText(){ return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery · free from '+gbpShort(SHIP.freeP)+(SHIP.freeQty?' or '+SHIP.freeQty+' items':''); }
+function shipSentence(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with '+SHIP.freeQty+'+ items':''); return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery, free from '+gbpShort(SHIP.freeP)+(SHIP.freeQty?' (or '+SHIP.freeQty+' items)':''); }
+function cardShipText(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with '+SHIP.freeQty+'+ items':''); return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery · free from '+gbpShort(SHIP.freeP)+(SHIP.freeQty?' or '+SHIP.freeQty+' items':''); }
 function rollingText(subP, units){
   if(!(units>0)) return '';
   const d=deliveryFor(subP,units);
@@ -967,10 +982,152 @@ function rollingText(subP, units){
 }
 // Gradient Edit total for q units: the /api/stock ladder table when loaded, else the page's own ladder (same numbers today).
 function gradTotalP(q){
+  if(typeof m1On==='function'&&m1On()){ const t=m1T(), gr=t.groups[t.gradient_group]; return gr ? q*(q>=t.cart_qty_tier.from?gr.tier_each:gr.single) : 0; }
   const L=(typeof window!=='undefined'&&window.klLadders)||null, t=L&&L.pools&&L.pools.gradient&&L.pools.gradient.totals;
   return (t&&Number.isInteger(t[q])) ? t[q] : Math.round(bestPrice(q)*100);
 }
 /*KL-DELIVERY-END*/
+/*KL-M1-START*/ // M1 (Mert's list, 23 Nov 2026; K-046). Runs ONLY when /api/stock `ladders` (or M1_FALLBACK) is in mode
+// 'cart_qty_groups'; with the live default table m1On() is false and the page behaves exactly as before.
+// Mirrors api/_pricing.js priceUnits / cartSummary / progress of that mode; tests/m1-page.test.mjs keeps page = server.
+// Texts: S1 (no %, no strike-through, no "save"); every "free with 10+" states the fee below it (CMA209 §5.21).
+const M1_FALLBACK=null;   // GO-LIVE (docs/GO_LIVE_M1.md): = publicLadders(ladders.json) so the first paint shows M1
+function m1T(){ const L=(typeof window!=='undefined'&&window.klLadders)||M1_FALLBACK;
+  return (L&&L.mode==='cart_qty_groups'&&L.groups&&L.cart_qty_tier&&Number.isInteger(L.cart_qty_tier.from))?L:null; }
+function m1On(){ return !!m1T(); }
+// Group of a barcode: Gradient Edit -> gradient_group; any other -> /api/stock online_group (window.klGroup); none = not sold.
+function m1Group(bc){ const t=m1T(); if(!t) return null;
+  const k=isLadder(bc)?t.gradient_group:((typeof window!=='undefined'&&typeof window.klGroup==='function')?window.klGroup(bc):null);
+  return (typeof k==='string'&&Object.prototype.hasOwnProperty.call(t.groups,k))?k:null; }
+// = cartSummary() for page lines [{bc,qty}] (cart order = unit order). Ungrouped lines are not priced (counted apart).
+// Unlock (Komuta rule 23 Nov): THIS cart completed to the threshold with the cheapest group already IN the cart.
+function m1Summary(lines){
+  const t=m1T(), by={}; let n=0, single=0, tier=0, ungrouped=0;
+  lines.forEach(c=>{ const q=c.qty|0; if(q<=0) return; const g=m1Group(c.bc); if(!g){ ungrouped+=q; return; }
+    const gr=t.groups[g]; n+=q; single+=q*gr.single; tier+=q*gr.tier_each;
+    const b=by[g]||(by[g]={group:g,qty:0,single:gr.single,tier_each:gr.tier_each,each_charged:0}); b.qty+=q; });
+  const from=t.cart_qty_tier.from, on=n>=from, toUnlock=on?0:from-n, charged=on?tier:single;
+  const groups=Object.values(by).sort((a,b)=>a.group<b.group?-1:1);
+  groups.forEach(b=>{ b.each_charged=on?b.tier_each:b.single; });
+  let pad=null; groups.forEach(g=>{ if(!pad||g.tier_each<pad.tier_each) pad=g; });
+  const unlock=(toUnlock&&pad)?tier+toUnlock*pad.tier_each:null;
+  const ship=n?deliveryFor(charged,n).feeP:0, uship=unlock===null?null:deliveryFor(unlock,from).feeP;
+  return {units:n, tier_from:from, tier_unlocked:on, single_total_pence:single, tier_total_pence:tier, charged_pence:charged,
+    difference_pence:single-charged, shipping_pence:ship, to_unlock:toUnlock, unlock_group:(toUnlock&&pad)?pad.group:null,
+    unlock_tier_each_pence:(toUnlock&&pad)?pad.tier_each:null, unlock_total_pence:unlock, unlock_shipping_pence:uship,
+    unlock_lowers_total:unlock!==null&&unlock+uship<charged+ship, groups, ungrouped};
+}
+function m1CartTotalP(lines){ return m1Summary(lines).charged_pence; }
+// Cart texts = engine progress() lines (+ an "e.g." product name from THIS cart). progress below the threshold;
+// applied + promo from it (promotion codes and recovery links are off then: api/checkout.js).
+function m1Example(lines, g){ for(let i=lines.length-1;i>=0;i--){ const c=lines[i]; if((c.qty|0)>0&&m1Group(c.bc)===g)
+  return isLadder(c.bc)?'Crystal bracelets':String((BY[c.bc]&&BY[c.bc].type)||'items').replace(/s?$/,'s'); } return null; }
+function m1Lines(lines){
+  const s=m1Summary(lines), out={progress:null, applied:null, promo:null};
+  if(!s.units) return out;
+  if(s.tier_unlocked){
+    const each=[...new Set(s.groups.map(g=>g.tier_each))];
+    out.applied=s.tier_from+'+ price applied: '+(each.length===1?gbpP(each[0])+' each':'every item at its '+s.tier_from+'+ price');
+    out.promo='Promo codes can’t be used with the '+s.tier_from+'+ price.';
+  } else if(s.unlock_total_pence!==null){
+    const freeToo=s.unlock_shipping_pence===0&&s.shipping_pence>0, fd=freeToo?' with free delivery':'';
+    if(s.unlock_lowers_total){
+      // CTSI §20 / Komuta: the shopper does not have to work out the value; the figure is THIS cart at the threshold
+      const eg=m1Example(lines, s.unlock_group);
+      out.progress = s.to_unlock===1 ? 'Add 1 more: total drops to '+gbpP(s.unlock_total_pence)+fd
+        : 'Add '+s.to_unlock+' more'+(eg?' (e.g. '+eg+')':'')+': your total becomes '+gbpP(s.unlock_total_pence)+fd;
+    } else {
+      out.progress='Add '+s.to_unlock+' more to unlock '+s.tier_from+'+ prices (from '+gbpP(s.unlock_tier_each_pence)+' each)'+(freeToo?' and free UK delivery':'');
+    }
+  }
+  return out;
+}
+// Card / modal price (S1): "£8 each · £2.40 each when you buy 10 or more".
+function m1PriceText(bc){ const t=m1T(), g=m1Group(bc); if(!g) return '';
+  const gr=t.groups[g]; return gbpShort(gr.single)+' each · '+gbpShort(gr.tier_each)+' each when you buy '+t.cart_qty_tier.from+' or more'; }
+function m1PriceHtml(bc){ const t=m1T(), g=m1Group(bc); if(!g) return '';
+  const gr=t.groups[g]; return '<span class="m1s"><span class="m1p">'+gbpShort(gr.single)+'</span> each</span><span class="m1t"> · '+gbpShort(gr.tier_each)+' each when you buy '+t.cart_qty_tier.from+' or more</span>'; }
+// Static page texts that name the Gradient Edit price (data-kl-m1="key"), from the table.
+function m1Texts(){
+  const t=m1T(); if(!t) return null; const gr=t.groups[t.gradient_group]; if(!gr) return null;
+  const from=t.cart_qty_tier.from, s=gbpShort(gr.single), e=gbpShort(gr.tier_each);
+  const fee=SHIP.feeP?'+ '+gbpP(SHIP.feeP)+' UK delivery':'Free UK delivery';
+  return {
+    hero: s,
+    madd: 'Add to bag',   // the open modal sets 'Add to bag — £8.00' (openModal); closed, no price without its delivery fee
+    // K-08 (K&D wording list): no 'hand-strung on' in M1 copy
+    herop: 'Fifteen crystal shades on a gold-tone chain with a single charm. Wear one — or let the whole spectrum fall down your wrist.',
+    faqsize: 'Each bracelet sits on a fine gold-tone chain that fastens with a clasp and a loop extender chain, comfortable from roughly 14–19cm.',
+    faqmade: '4mm faceted crystal beads on a gold-tone chain with a single delicate charm.',
+    mdesc: 'A single thread of 4mm crystal beads on a gold-tone chain with a delicate charm. Wear it alone, or stack it into the gradient.',
+    cta: 'Mix any shades · '+s+' each · '+e+' each when you buy '+from+' or more · <span data-kl="ship">'+shipSentence()+'</span>',
+    each: '<b>'+s+'</b> each · '+e+' each at '+from+'+ <span class="dl" data-kl="fee1">'+fee+'</span>',
+    faqq: 'How does the '+from+'+ price work?',
+    faqa: 'Every bracelet is <b>'+s+' each</b>. Put <b>'+from+' or more</b> items in your bag (mix any shades) and every item is <b>'+e+' each</b>, with free UK delivery. Under '+from+' items, UK delivery is '+gbpP(SHIP.feeP)+'. The '+from+'+ price is applied automatically in your bag; promo codes can’t be added to it.',
+    count: (n)=>n+' shades · '+s+' each · '+e+' each when you buy '+from+' or more',
+  };
+}
+function m1TierHint(n){
+  const t=m1T(), gr=t.groups[t.gradient_group], from=t.cart_qty_tier.from;
+  return n>=from ? gbpP(gr.tier_each)+' each · free UK delivery included'
+    : gbpShort(gr.single)+' each · '+gbpShort(gr.tier_each)+' each when you buy '+from+' or more · '+cardShipText();
+}
+/*KL-M1-END*/
+// M1 DOM glue (no-ops with the live default table).
+function m1LineText(bc){ const s=m1Summary(cart), g=m1Group(bc), b=g&&s.groups.find(x=>x.group===g); if(!b) return NA_TXT;
+  return (isLadder(bc)?'Crystal bracelet':(BY[bc].type||''))+' · '+gbpP(b.each_charged)+' each'+(s.tier_unlocked?' ('+s.tier_from+'+ price)':''); }
+function countText(n){ if(m1On()){ const T=m1Texts(); if(T) return T.count(n); } return n+' shades · online price £'+PRICE.toFixed(2)+' + '+gbpP(SHIP.feeP)+' UK delivery'; }
+function m1ApplyPage(){
+  if(!m1On()) return; const T=m1Texts(); if(!T) return;
+  document.querySelectorAll('[data-kl-m1]').forEach(e=>{ const k=e.getAttribute('data-kl-m1'); if(typeof T[k]==='string') e.innerHTML=T[k]; });
+  document.querySelectorAll('#grid .card').forEach(cd=>{
+    const iw=cd.querySelector('.imgwrap'), m=iw&&(iw.getAttribute('onclick')||'').match(/'([^']+)'/); if(!m) return;
+    const bc=m[1], pr=cd.querySelector('.pr'), add=cd.querySelector('.add');
+    if(pr) pr.innerHTML=m1PriceHtml(bc);
+    if(add&&!add.hasAttribute('disabled')&&unitPrice(bc)) add.textContent='Add to bag — '+priceTxt(bc);
+  });
+  // K&D (CMA/CTSI): with M1 the spend threshold is gone, so no spend-threshold delivery text may remain anywhere,
+  // not even in meta / JSON-LD (the static files are changed at go-live: docs/GO_LIVE_M1.md; this covers previews + JS crawlers).
+  m1ApplyMeta(T);
+  if(document.getElementById('modal').classList.contains('open')&&window._mbc){ const bc=window._mbc;
+    const p=document.querySelector('#mPrice .p'); if(p) p.innerHTML=m1PriceHtml(bc);
+    document.getElementById('mAdd').textContent='Add to bag — '+priceTxt(bc); }
+}
+function m1ApplyMeta(T){
+  const old=/£\d+\.\d\d UK delivery, free from £\d+(?:\.\d\d)?(?: \(or \d+ items\))?/g, ship=shipSentence();
+  document.querySelectorAll('meta[name="description"],meta[property="og:description"],meta[name="twitter:description"],meta[property="og:title"],meta[name="twitter:title"]').forEach(m=>{
+    m.setAttribute('content', m.getAttribute('content').replace(old, ship).replace(/from £\d+\.\d\d/, T.hero+' each')); });
+  document.querySelectorAll('script[type="application/ld+json"]').forEach(sc=>{ try{ const j=JSON.parse(sc.textContent); if(!j.offers) return;
+    const t=m1T(), gr=t.groups[t.gradient_group], p=(gr.single/100).toFixed(2);
+    if(j.description) j.description=j.description.replace(/from £\d+\.\d\d/, T.hero+' each');
+    if('lowPrice' in j.offers) j.offers.lowPrice=p; if('highPrice' in j.offers) j.offers.highPrice=p; if('price' in j.offers) j.offers.price=p;
+    const sd=j.offers.shippingDetails; if(sd&&sd.shippingRate) sd.shippingRate.value=(SHIP.feeP/100).toFixed(2); if(sd&&sd.description) sd.description=ship;
+    sc.textContent=JSON.stringify(j); }catch(e){} });
+}
+function m1Foot(){
+  const s=m1Summary(cart), L=m1Lines(cart), q=s.units, dlv=deliveryFor(s.charged_pence,q);
+  document.getElementById('cartSub').textContent=q?gbpP(s.charged_pence):'—';   // K-11: no '£0.00' on screen
+  // CMA209 §5.21: the fee sits in the SAME element as the 'free with 10+' claim
+  document.getElementById('cartShipVal').innerHTML = dlv.free ? '<span class="free">FREE ✓</span>'
+    : (SHIP.freeQty?'<span class="note">'+gbpP(SHIP.feeP)+' UK delivery · free with '+SHIP.freeQty+'+ items</span>':gbpP(SHIP.feeP));
+  document.getElementById('cartTotal').textContent=q?gbpP(dlv.totalP):'—';
+  const band=document.getElementById('cartShip');
+  if(L.progress) band.innerHTML='<b>'+L.progress+'</b> <button class="nudge-add" type="button" onclick="nudgeAddOne()">＋ Add</button>';
+  else if(dlv.free) band.innerHTML='✓ <b>Free UK delivery</b>';
+  else band.textContent=shipSentence();
+  document.getElementById('shipFill').style.width=Math.min(100, q/s.tier_from*100)+'%';
+  const box=document.getElementById('cartM1'), t=m1T(), gr=t.groups[t.gradient_group];
+  if(L.applied){ box.innerHTML='<span class="m1on">✓ '+L.applied+'</span><span class="m1promo">'+L.promo+'</span>'; box.hidden=false; }
+  else if(q&&gr){ box.textContent='Now '+gbpShort(gr.single)+' each · '+gbpShort(gr.tier_each)+' each when your bag has '+s.tier_from+' or more items'; box.hidden=false; }
+  else { box.innerHTML=''; box.hidden=true; }
+  document.getElementById('cartPre').textContent=itemWord(q)+' · ships within 1–2 business days';
+  // CTSI §20 (K&D): the same 'Add N more' line again right above Secure Checkout, the last screen before payment.
+  const near=document.getElementById('cartM1Near'); if(near){ near.textContent=L.progress||''; near.hidden=!L.progress; }
+  document.getElementById('checkoutBtn').disabled=!cart.length;
+}
+// Preview only: ?ladder=<name> on the page URL is passed to /api/stock and /api/checkout (the server honours it only
+// on a Vercel preview or with KL_LADDER_PREVIEW=1; production ignores it). Absent = requests exactly as before.
+function klLadderParam(){ try{ const v=new URLSearchParams(location.search).get('ladder'); return v&&/^[A-Za-z0-9_-]{1,40}$/.test(v)?v:null; }catch(e){ return null; } }
 function addedLines(bc,n){ const out=cart.map(c=>({bc:c.bc,qty:c.qty})); const f=out.find(c=>c.bc===bc); if(f) f.qty+=n; else out.push({bc,qty:n}); return out; }
 function applyShipTexts(){
   document.querySelectorAll('[data-kl="ship"]').forEach(e=>{e.textContent=shipSentence();});
@@ -982,8 +1139,8 @@ function applyShipTexts(){
 window.klApplyLadders=function(l){
   if(!l||typeof l!=='object'||!l.version) return;
   window.klLadders=l; applyLadderShipping(l);
-  try{ applyShipTexts(); updateBag(); renderCart();
-    if(grid.children.length) countEl.textContent=grid.children.length+' shades · online price £'+PRICE.toFixed(2)+' + '+gbpP(SHIP.feeP)+' UK delivery';
+  try{ m1ApplyPage(); applyShipTexts(); updateBag(); renderCart();
+    if(grid.children.length) countEl.textContent=countText(grid.children.length);
     if(document.getElementById('bundle').classList.contains('open')){ renderTiers(); updateBundleTotal(); }
     if(document.getElementById('modal').classList.contains('open')) updateModalBag(); }catch(e){}
 };
@@ -1006,7 +1163,7 @@ function updateBag(){
       // measurement hooks for the CMA209 check (total = items + delivery), no visual change
       inf.setAttribute('data-kl-total',''); inf.dataset.klItemsP=subP; inf.dataset.klShipP=d.feeP; inf.dataset.klTotalP=d.totalP; }
     else { inf.removeAttribute('data-kl-total'); }
-    if(!hasItems) inf.innerHTML='Each <b>£'+PRICE.toFixed(2)+'</b><span class="dl" data-kl="fee1">'+(SHIP.feeP?'+ '+gbpP(SHIP.feeP)+' UK delivery':'Free UK delivery')+'</span>';
+    if(!hasItems) inf.innerHTML='Each <b>'+(m1On()?priceTxt(colours[0]&&colours[0].bc):'£'+PRICE.toFixed(2))+'</b><span class="dl" data-kl="fee1">'+(SHIP.feeP?'+ '+gbpP(SHIP.feeP)+' UK delivery':'Free UK delivery')+'</span>';
   }
   const bar=document.getElementById('stickybar'); if(bar) bar.classList.toggle('has',hasItems);
   document.body.classList.toggle('has-bar',hasItems); document.documentElement.classList.toggle('has-bar',hasItems);
@@ -1030,12 +1187,13 @@ function renderCart(){
     const d=BY[c.bc];
     return `<div class="ci"><img src="${d.img}">
       <div class="ci-m"><div class="ci-n">${d.color_en}</div>
-      <div class="ci-p">${isLadder(c.bc)?'Crystal bracelet':(d.type||'')+' · '+priceTxt(c.bc)}</div>
+      <div class="ci-p">${m1On()?m1LineText(c.bc):isLadder(c.bc)?'Crystal bracelet':(d.type||'')+' · '+priceTxt(c.bc)}</div>
       <div class="ci-q"><button onclick="changeQty(${i},-1)">−</button>
       <input type="number" inputmode="numeric" min="1" value="${c.qty}" onchange="setQty(${i},this.value)" aria-label="Quantity">
       <button onclick="changeQty(${i},1)">+</button>
       <button class="ci-x" onclick="removeItem(${i})">Remove</button></div></div></div>`;
   }).join('');
+  if(m1On()){ m1Foot(); return; }
   const q=totalQty(), s=subtotal(), lq=ladderQty(cart), saved=Math.max(0,Math.round((lq*PRICE-bestPrice(lq))*100)/100), free=hasFreeShip();   // savings: Gradient Edit units only
   document.getElementById('cartSub').textContent='£'+s.toFixed(2);
   const dlv=deliveryFor(Math.round(s*100), q);
@@ -1093,8 +1251,9 @@ async function checkout(){
   flTrack('begin_checkout',{cart_qty:q,cart_value:val});
   kl('Started Checkout',{$value:val,ItemNames:cart.map(c=>BY[c.bc].color_en),items:cart.map(c=>({ProductID:c.bc,SKU:c.bc,ProductName:BY[c.bc].color_en,Quantity:c.qty,ItemPrice:unitPrice(c.bc)||0})),CheckoutURL:'https://karmilaven.com/'});
   try{
+    const body={items,event_id:eventId,kl_sid:flSid(),consent:klConsent()}; const lp=klLadderParam(); if(lp) body.ladder=lp;   // preview only
     const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({items,event_id:eventId,kl_sid:flSid(),consent:klConsent()})});
+      body:JSON.stringify(body)});
     if(r.ok){const j=await r.json(); if(j.url){location.href=j.url;return;}}
     if(r.status===409){ // server stock check: trim each short shade to what can ship, keep the rest of the bag
       const j=await r.json().catch(()=>({})); const short=Array.isArray(j.items)?j.items:[];
@@ -1117,6 +1276,7 @@ let toastT;
 function toast(msg,ms){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),ms||1800);}
 document.getElementById('ovl').onclick=()=>{closeCart();closeModal();closeBundle();};
 
+if(M1_FALLBACK&&!window.klLadders) applyLadderShipping(M1_FALLBACK); m1ApplyPage();
 applyShipTexts(); render(DATA); updateBag(); renderCart(); firePurchaseIfSuccess();
 </script>
 
@@ -1317,6 +1477,8 @@ function cookieChoice(accepted){
   var loaded=false;
   var LOWMAX=6;              // "Only N left" threshold — from real stock ONLY, never from an online cap
   var SELLABLE={};           // non-Gradient barcode -> qty the bag may hold (caps AND stock); missing = 0 (fail closed)
+  var GROUP={};              // M1 only: non-Gradient barcode -> online group (A/B/C) from /api/stock online_group
+  window.klGroup=function(bc){ return GROUP[String(bc)]||null; };
   var PRICEP={};             // non-Gradient barcode -> WAT till price in pence (what /api/checkout charges)
   function ladder(bc){ return typeof window.isLadder!=='function' || window.isLadder(String(bc)); }
 
@@ -1341,7 +1503,7 @@ function cookieChoice(accepted){
       var stk=card.querySelector('.stk');
       var lad=ladder(bc);
       if(isSold(bc)){
-        card.classList.add('sold-out');
+        card.classList.add('sold-out'); card.dataset.klState='soldout';
         if(iw && !iw.querySelector('.sold-out-badge')){
           var b=document.createElement('span'); b.className='sold-out-badge'; b.textContent=lad?'Sold out':NA_TXT; iw.appendChild(b);
         }
@@ -1350,9 +1512,9 @@ function cookieChoice(accepted){
         if(addBtn){ addBtn.setAttribute('disabled','disabled'); addBtn.style.display='none'; }
       } else {
         // in stock — refresh the low-stock hint from LIVE qty if we have it
-        card.classList.remove('sold-out');
+        card.classList.remove('sold-out'); card.dataset.klState=lad?'sellable':'single';
         var iwb=iw&&iw.querySelector('.sold-out-badge'); if(iwb) iwb.remove();
-        if(!lad && addBtn){ var pt=window.priceTxt?window.priceTxt(bc):''; addBtn.removeAttribute('disabled'); addBtn.style.display=''; addBtn.textContent='Add to bag — '+pt; var pr=card.querySelector('.pr'); if(pr) pr.textContent=pt; }
+        if(!lad && addBtn){ var pt=window.priceTxt?window.priceTxt(bc):''; addBtn.removeAttribute('disabled'); addBtn.style.display=''; addBtn.textContent='Add to bag — '+pt; var pr=card.querySelector('.pr'); if(pr){ if(typeof window.m1On==='function'&&window.m1On()) pr.innerHTML=window.m1PriceHtml(bc); else pr.textContent=pt; } }
         var q=LIVEQTY[bc];
         if(stk && typeof q==='number'){ stk.textContent = q<=LOWMAX ? ('Only '+q+' left') : (stk.textContent||''); }
       }
@@ -1397,6 +1559,7 @@ function cookieChoice(accepted){
       var bcs=(window.DATA||[]).map(function(d){return d.barcode;}).filter(Boolean);
       if(Array.isArray(extra)) extra.forEach(function(b){ b=String(b); if(bcs.indexOf(b)<0) bcs.push(b); });
       var url=ENDPOINT+(bcs.length?('?bc='+encodeURIComponent(bcs.join(','))):'');
+      var lp=(typeof window.klLadderParam==='function')?window.klLadderParam():null; if(lp) url+=(url.indexOf('?')<0?'?':'&')+'ladder='+encodeURIComponent(lp);   // preview only
       var ctrl=new AbortController();
       var tid=setTimeout(function(){ctrl.abort();},5000);
       var res=await fetch(url,{signal:ctrl.signal});
@@ -1413,6 +1576,7 @@ function cookieChoice(accepted){
       });
       Object.keys(data.sellable||{}).forEach(function(bc){ SELLABLE[bc]=Number(data.sellable[bc])||0; });
       Object.keys(data.price_pence||{}).forEach(function(bc){ PRICEP[bc]=Number(data.price_pence[bc])||0; });
+      Object.keys(data.online_group||{}).forEach(function(bc){ GROUP[bc]=String(data.online_group[bc]); });   // M1 only (absent with the live table)
       window.klWindow=data.window||null;
       loaded=true;
       hook(); applyAll();

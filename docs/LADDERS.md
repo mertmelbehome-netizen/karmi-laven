@@ -71,7 +71,37 @@ The default file = the live behaviour on 23 Nov 2026: nothing changes for custom
 | `no_mid` | A without the 2/3/4/5 steps |
 | `legacy-pricing.mjs` | frozen pre-table `_pricing.js`; proves the default table charges exactly the same |
 
+## Mode `cart_qty_groups` (preview only: `ladders-preview/`)
+
+A second table model, used by `ladders-preview/M1_mert_list.json` (Mert's list, 23 Nov 2026, K-046). A table
+without `mode` is the pools model above; the live `ladders.json` has no `mode` and is unchanged.
+
+- `groups` `{A: {label, single, tier_each}}`: ONLINE single price per group (not the till price) and its 10+ price.
+- `cart_qty_tier` `{from: 10, counts: "all_units"}`: the cart's TOTAL unit count (all groups mixed). Below `from`
+  every unit pays its group `single`; from `from` every unit pays its group `tier_each`. No intermediate steps.
+- **Non-monotonic by design** (9 x £8 = £72, 10 x £2.40 = £24): the table must say `rule.monotonic: false` and
+  `rule.monotonic_exception: "cart_qty_threshold"`. The cart answers with `progress()` ("Add 1 more: all 10 for
+  £24.00 with free delivery") and `cartSummary()` (single total, charged total, difference, units to unlock).
+- Group of a unit: Gradient Edit -> `gradient_group`; other products -> DB line `online_group` (proposed column,
+  not built) else `family_groups[family]`. No group = not priced (checkout 503 `pricing_unavailable`, hold released).
+- `shipping.free_threshold_pence` may be `null` (no spend threshold; free only by `free_at_qty`).
+- Promotion codes and recovery links are off once the 10+ price applies.
+- Selection: `GET /api/stock?ladder=M1_mert_list`, `POST /api/checkout {ladder: "M1_mert_list", ...}` ONLY when
+  `VERCEL_ENV=preview` or `KL_LADDER_PREVIEW=1`; production ignores the parameter. `POST /api/checkout
+  {dry_run: true, ...}` (preview only) prices a Gradient-only bag and returns the numbers: no DB, no Stripe.
+- Bundled by `vercel.json` `includeFiles: "{ladders.json,ladders-preview/*.json}"`; every file there must be listed
+  in `PREVIEW_LADDERS` (test).
+
 ## Changelog
+
+- 2026-11-23 — M1 page + go-live kit (`feat/ladder-m1-on-master`): index.html reads mode `cart_qty_groups` from
+  /api/stock (dormant with the pools table: page output sha256-pinned, old-vs-new page text equal); cart line from THIS
+  cart (`Add N more …: your total becomes £X with free delivery` / `Add 1 more: total drops to £X …` / `Add N more to
+  unlock 10+ prices (from £x each) …`), also above Secure Checkout; `cartSummary()` unlock fields; legacy exports safe
+  with an M1 default; pools-table tests pinned to `tests/fixtures/ladders.live-2026-11-23.json`. Go-live = one commit,
+  `docs/GO_LIVE_M1.patch` (runbook + rollback + DB SQL: `docs/GO_LIVE_M1.md`). No 'capped' option (Mert 23 Nov).
+- 2026-11-23 — `cart_qty_groups` mode + preview table `M1_mert_list` (preview/test only). Live default outputs
+  byte-identical (before/after snapshot of live + 7 fixtures + checkout params + /api/stock).
 
 - 2026-11-23 — Delivery fee display (CMA209 §5.14/5.17–5.21): delivery-inclusive rolling bag total, fee next to
   every price and every free-delivery claim, "6 for £14.99" from the table. Display only; no price or amount changed.

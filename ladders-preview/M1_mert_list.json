@@ -1,0 +1,32 @@
+{
+  "_doc": "PREVIEW / TEST ONLY — never the live table. Mert's online price list (23 Nov 2026, OPERATING_MODEL §9; assumptions to be confirmed by Mert, K-046). Per-product ONLINE single price by group (not the till price): A £5, B £8, C £13. At 10+ units in the cart (ALL groups counted together) EVERY unit costs its group's 10+ price: A £1.50, B £2.40, C £3.90. 1–9 units pay the single price, no intermediate steps (non-monotonic by design: 9 × £8 = £72, 10 × £2.40 = £24). Delivery £1.49, free with 10+ units (no spend threshold). Groups: A Stretch Bracelet; B Gradient Edit + Stretch Charm Bracelet + Hair Clips (last-arrived 18 barcodes) + Necklace Lux; C Diamond Bracelet + Hair Claws + Necklace Lux Stone + Stretch Double Bracelet + Bangle. family_groups maps only the DB families (karmi_online_caps.family) that sit wholly in one group; 'hair' (Clips B + Claws C) and the families not online yet (Stretch Bracelet, Necklace Lux, Bangle) need a per-product group (proposed DB column karmi_online_products.online_group). Selectable only with ?ladder=M1_mert_list on a Vercel PREVIEW (VERCEL_ENV=preview) or KL_LADDER_PREVIEW=1.",
+  "version": "M1_mert_list-2026-11-23",
+  "mode": "cart_qty_groups",
+  "rule": {
+    "monotonic": false,
+    "monotonic_exception": "cart_qty_threshold",
+    "rounding": "integer-pence-floor-spread",
+    "max_units": 99
+  },
+  "cart_qty_tier": { "from": 10, "counts": "all_units" },
+  "shipping": {
+    "free_threshold_pence": null,
+    "below_threshold_fee_pence": 149,
+    "free_at_qty": { "enabled": true, "qty": 10 },
+    "derive_threshold": null
+  },
+  "rules": [],
+  "ui": { "progress_line": false },
+  "groups": {
+    "A": { "label": "Stretch Bracelet", "single": 500, "tier_each": 150 },
+    "B": { "label": "Gradient Edit, Stretch Charm, Hair Clips, Necklace Lux", "single": 800, "tier_each": 240 },
+    "C": { "label": "Diamond, Hair Claws, Necklace Lux Stone, Stretch Double, Bangle", "single": 1300, "tier_each": 390 }
+  },
+  "gradient_group": "B",
+  "family_groups": {
+    "stretch_charm": "B",
+    "stretch_double": "C",
+    "necklace_lux_stone": "C",
+    "diamond": "C"
+  }
+}

@@ -6,6 +6,7 @@
 //      the bag is free (§5.14) and equals what the server charges (api/_pricing.js shippingFeeP), penny-exact;
 //   4. the "6 for" price shown = the ladder total for 6 (£14.99 today), never the old "£15";
 //   5. the numbers follow /api/stock `ladders` at runtime (a different table changes the texts, not the code).
+import './fixtures/use-live-table.mjs' // pools-table tests: frozen 23 Nov table (see the file)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -15,7 +16,12 @@ import { GRADIENT, LADDER_TYPES } from '../api/_gradient.js'
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8')
 const HTML = read('../index.html')
 const SHIP_PAGE = read('../shipping-returns.html')
-const TABLE = JSON.parse(read('../ladders.json'))
+const RAW_TABLE = JSON.parse(read('../ladders.json'))
+// M1 go-live (docs/GO_LIVE_M1.md): ladders.json in mode cart_qty_groups -> the pools-era static texts are replaced and
+// checked by the M1 tests at the end; the page's pools fallback code keeps being checked against the frozen 23 Nov table.
+const M1MODE = RAW_TABLE.mode === 'cart_qty_groups'
+const TABLE = M1MODE ? JSON.parse(read('./fixtures/ladders.live-2026-11-23.json')) : RAW_TABLE
+const SKIP_M1 = M1MODE && 'ladders.json is M1: pools-era static texts replaced (see the M1 tests below)'
 const FEE = TABLE.shipping.below_threshold_fee_pence
 const FREE = TABLE.shipping.free_threshold_pence
 const QTY = TABLE.shipping.free_at_qty.enabled ? TABLE.shipping.free_at_qty.qty : null
@@ -42,7 +48,7 @@ const G = Object.keys(GRADIENT)[0]
 const bag = (p, lines) => { const units = lines.reduce((a, c) => a + c.qty, 0); return p.rollingText(Math.round(p.cartTotal(lines) * 100), units) }
 
 // ---------- 1. §5.21: no free-delivery claim without the fee ----------
-test('§5.21: every "free … over/from £12" text on index.html and shipping-returns.html also states the £1.49 fee', () => {
+test('§5.21: every "free … over/from £12" text on index.html and shipping-returns.html also states the £1.49 fee', { skip: SKIP_M1 }, () => {
   const claim = new RegExp(`free[^.<>]{0,60}?(?:over|from|of)\\s*${esc(gbpShort(FREE))}(?![\\d.])`, 'gi')
   let n = 0
   for (const [name, src] of [['index.html', TEXT], ['shipping-returns.html', SHIP_PAGE]]) {
@@ -56,7 +62,7 @@ test('§5.21: every "free … over/from £12" text on index.html and shipping-re
   assert.ok(!/free uk shipping over/i.test(TEXT), 'the old fee-less "Free UK shipping over £12" is gone')
 })
 
-test('§5.21: each meta / OG / Twitter description that mentions free delivery states the fee and the threshold', () => {
+test('§5.21: each meta / OG / Twitter description that mentions free delivery states the fee and the threshold', { skip: SKIP_M1 }, () => {
   const metas = [...TEXT.matchAll(/<meta (?:name|property)="(description|og:description|twitter:description)" content="([^"]*)"/g)]
   assert.equal(metas.length, 3)
   for (const [, kind, content] of metas) {
@@ -65,7 +71,7 @@ test('§5.21: each meta / OG / Twitter description that mentions free delivery s
 })
 
 // ---------- 2. static texts = ladders.json ----------
-test('static delivery texts carry ladders.json numbers (fails if ladders.json shipping changes without the HTML)', () => {
+test('static delivery texts carry ladders.json numbers (fails if ladders.json shipping changes without the HTML)', { skip: SKIP_M1 }, () => {
   const sentences = [...TEXT.matchAll(/£(\d+\.\d\d) UK delivery, free from £(\d+(?:\.\d\d)?)(?: \(or (\d+) items\))?/g)]
   const cards = [...TEXT.matchAll(/\+ £(\d+\.\d\d) UK delivery · free from £(\d+(?:\.\d\d)?)(?: or (\d+) items)?/g)]
   assert.ok(sentences.length >= 9, `sentence texts found: ${sentences.length}`)
@@ -121,7 +127,7 @@ test('rolling total = what the server charges (subtotal + shippingFeeP), penny-e
 })
 
 // ---------- 4. "6 for" = the table ----------
-test('"6 for" price shown = the ladder total for 6 (£14.99), never "£15"', () => {
+test('"6 for" price shown = the ladder total for 6 (£14.99), never "£15"', { skip: SKIP_M1 }, () => {
   assert.equal(ladderTotalP(6), 1499)
   const qs = [...TEXT.matchAll(/data-kl-q="(\d+)">£(\d+\.\d\d)</g)]
   assert.ok(qs.length >= 5)
@@ -167,6 +173,42 @@ test('structured data (JSON-LD offer) carries the delivery fee from ladders.json
   }
 })
 
-test('the story strip "£2.99 each" carries the delivery fee next to it', () => {
+test('the story strip "£2.99 each" carries the delivery fee next to it', { skip: SKIP_M1 }, () => {
   assert.match(TEXT, /<b>£2\.99<\/b> each <span class="dl" data-kl="fee1">\+ £1\.49 UK delivery<\/span>/)
+})
+
+// ---------- M1 (ladders.json in mode cart_qty_groups): static texts follow the quantity threshold ----------
+// K&D / Komuta 23 Nov: with M1 there is no spend threshold, so NO "free from/over £x" or "(or 5 items)" text may remain
+// in the shipped HTML (body text, meta / OG / Twitter, JSON-LD) or on shipping-returns.html / terms.html; every free
+// claim is "£1.49 UK delivery · free with 10+ items" (fee in the same text, CMA209 §5.21).
+const M1_SHIP = M1MODE ? `${gbp(RAW_TABLE.shipping.below_threshold_fee_pence)} UK delivery · free with ${RAW_TABLE.shipping.free_at_qty.qty}+ items` : null
+const visibleHtml = (h) => h.replace(/<script(?![^>]*application\/ld\+json)[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '')
+test('M1: no spend-threshold delivery text left (index.html incl. meta + JSON-LD, shipping-returns.html, terms.html)', { skip: !M1MODE && 'ladders.json is the pools table' }, () => {
+  const bad = /free (?:uk )?(?:delivery |shipping )?(?:from|over|on orders of) £\d|\(or \d+ items\)|or \d+ items|or of \d+ or more items|£12/i
+  for (const [name, src] of [['index.html', visibleHtml(TEXT)], ['shipping-returns.html', SHIP_PAGE], ['terms.html', read('../terms.html')]]) {
+    const m = src.match(bad)
+    assert.equal(m, null, `${name}: "${m && src.slice(Math.max(0, m.index - 60), m.index + 60)}"`)
+  }
+})
+test('M1: every static free-delivery claim is the quantity sentence with the fee; meta descriptions too', { skip: !M1MODE && 'ladders.json is the pools table' }, () => {
+  const html = visibleHtml(TEXT)
+  const claims = [...html.matchAll(/[^<>]*free with \d+\+ items[^<>]*/g)].map((m) => m[0])
+  assert.ok(claims.length >= 8, `claims found: ${claims.length}`)
+  for (const c of claims) assert.ok(c.includes(gbp(RAW_TABLE.shipping.below_threshold_fee_pence)), `fee missing: ${c}`)
+  const metas = [...TEXT.matchAll(/<meta (?:name|property)="(description|og:description|twitter:description)" content="([^"]*)"/g)]
+  assert.equal(metas.length, 3)
+  for (const [, kind, content] of metas) assert.ok(content.includes(M1_SHIP), `${kind}: ${content}`)
+  assert.ok(SHIP_PAGE.includes(`UK standard delivery — ${gbp(RAW_TABLE.shipping.below_threshold_fee_pence)}.`))
+  assert.ok(SHIP_PAGE.includes(`Free on orders of ${RAW_TABLE.shipping.free_at_qty.qty} or more items`))
+})
+test('M1: JSON-LD offer price = the Gradient group single price; delivery fee = the table', { skip: !M1MODE && 'ladders.json is the pools table' }, () => {
+  const gr = RAW_TABLE.groups[RAW_TABLE.gradient_group]
+  const offers = [...TEXT.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1])).map((b) => b.offers).filter(Boolean)
+  assert.ok(offers.length >= 1)
+  for (const o of offers) {
+    for (const k of ['lowPrice', 'highPrice', 'price']) if (k in o) assert.equal(o[k], (gr.single / 100).toFixed(2), k)
+    assert.equal(o.shippingDetails?.shippingRate?.value, (RAW_TABLE.shipping.below_threshold_fee_pence / 100).toFixed(2))
+    if (o.shippingDetails?.description) assert.equal(o.shippingDetails.description, M1_SHIP)
+  }
+  assert.doesNotMatch(visibleHtml(TEXT), /£2\.99/, 'no £2.99 left in the shipped HTML')
 })

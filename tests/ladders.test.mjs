@@ -4,6 +4,7 @@
 //   2. The same checks on three TEST fixtures (tests/fixtures/ladders.{A,B,C}.json = options A/B/C; never live):
 //      monotonic, never above n × single, penny-exact, pools shared by price, mixed carts, known points, shipping.
 //   3. Fail closed: a broken table / missing pool never prices anything; /api/checkout answers 503 before reserving.
+import './fixtures/use-live-table.mjs' // pools-table tests: frozen 23 Nov table (see the file)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -18,7 +19,7 @@ import stockHandler, { _setLadders } from '../api/stock.js'
 import { GRADIENT } from '../api/_gradient.js'
 
 const json = (p) => JSON.parse(readFileSync(new URL(p, import.meta.url), 'utf8'))
-const RAW_LIVE = json('../ladders.json')
+const RAW_LIVE = json('./fixtures/ladders.live-2026-11-23.json') // = ladders.json until the M1 go-live (tests/m1-page.test.mjs)
 const FIX = Object.fromEntries(['A', 'B', 'C', 'shipping_30', 'steps_1_10', 'steps_20', 'no_mid'].map((k) => {
   const r = loadLadders(json(`./fixtures/ladders.${k}.json`))
   assert.ok(r.ok, `fixture ${k}: ${r.error}`)
