@@ -60,14 +60,15 @@ test('disabled: hero / meta / FAQ / CTA / tier-hint texts unchanged (same as the
   assert.equal(pageTexts(null), pageTexts(publicLadders(OFF_REF)), 'before /api/stock answers (fallback) too')
 })
 
-test('even ENABLED, R never enters the ladder groups; texts stay the same except the E1b "(rings not included)" note on 10+ free claims', () => {
+test('even ENABLED, R never enters the ladder groups; texts stay the same except the E1b/E1c "non-ring items" note on 10+ claims', () => {
   const v = publicLadders(ON)
   assert.deepEqual(Object.keys(v.groups), Object.keys(publicLadders(OFF_REF).groups))
   assert.deepEqual(v.flat_groups, { R: { label: 'Rings', unit_name: 'ring', each: 400, min_qty: 5, counts_to_tier: false, counts_to_free_shipping: false, enabled: true } })
-  // K&D E1b: the only text change when rings are ON is the note on every 'free with any 10+ items' claim
-  assert.equal(pageTexts(v).replace(/ \(rings not included\)/g, ''), pageTexts(publicLadders(OFF_REF)))
-  assert.match(pageTexts(v), /free with any 10\+ items \(rings not included\)/)
-  assert.doesNotMatch(pageTexts(publicLadders(OFF_REF)), /rings not included/)
+  // K&D E1b/E1c: the only text change when rings are ON is 'non-ring' on every 10+ claim (price AND free delivery)
+  assert.equal(pageTexts(v).replace(/(Buy \d+\+) non-ring items,/g, '$1,').replace(/ non-ring(?= items\b)/g, ''), pageTexts(publicLadders(OFF_REF)))
+  assert.match(pageTexts(v), /free with any 10\+ non-ring items/)
+  assert.match(pageTexts(v), /70% off when you buy any 10\+ non-ring items/)
+  assert.doesNotMatch(pageTexts(publicLadders(OFF_REF)), /non-ring/)
 })
 
 test('disabled: engine results for non-ring bags identical to the table without R', () => {
