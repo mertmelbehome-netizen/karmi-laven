@@ -325,3 +325,9 @@ Code side is ready: api/checkout.js uses `line.online_group` first (else ladders
 serves `online_group[bc]` in M1 mode and marks a product without a group as not sellable (fail closed).
 Tests to add with the migration (tests/caps-sql.test.mjs, pglite): column + check, re-run safe, status/reserve return
 `online_group`, rollback restores the previous function bodies.
+
+## Komuta kararları (23-24 Kas) — go-live kontrol maddeleri
+- [ ] **families bayrağı KAPALI:** M1 altında `KARMI_STOREFRONT_FAMILIES` OFF (prod + preview); aile kartları M1 fiyat tablosundan okuyana kadar (PR-3) açılmaz (`js/storefront.js` aile kartlarını eski fiyatlıyor). Doğrula: prod `/api/stock` → `storefront.families === false`.
+- [ ] **M1 kapısı = CMA209 + K-02 + 'M1 öncesine göre yeni FAIL yok' (regresyon 0).** Canlıda zaten FAIL olan 6 erişilebilirlik maddesi M1'i bloklamaz (ayrı PR, hedef Cum 27).
+- [ ] **STOK ŞARTI (go-live günü):** satılabilir kart/adet sayısı (stockroom − tampon 3, stil başına tavan dahil) en az 6 stil ≥10 adet VE toplam ≥150 → değilse £8 tekli + 10'lu sepet satışı pratikte durdurur; Mert'e götür.
+- [ ] **İzleme listesi (ilk 2 hafta):** 4–9 ürünlü sipariş sayısı, iade, destek mesajı (9→10 fiyat uçurumu şikâyeti).
