@@ -1,7 +1,9 @@
 // /api/unsubscribe — the unsubscribe link in every Karmi Laven marketing email.
 //
-//   GET  /api/unsubscribe?h=<sha256>&t=<token>   link click → HTML confirmation page
-//   POST /api/unsubscribe?h=<sha256>&t=<token>   RFC 8058 one-click (body "List-Unsubscribe=One-Click") → 200 text
+//   GET  /api/unsubscribe?h=<sha256>&t=<token>   link click → page with a "Confirm unsubscribe" button. WRITES NOTHING
+//                                               (mail scanners pre-open links; Komuta 23 Nov: a lost subscriber is a real loss)
+//   POST same URL, form body "confirm=1"         the button → writes → HTML "You're unsubscribed" page
+//   POST same URL, "List-Unsubscribe=One-Click"  RFC 8058 one-click from the mail app → writes → 200 text
 //
 // Valid signature → idempotent upsert into public.marketing_suppression (shared ops v2 Supabase):
 //   { email_sha256: h, at: now, source: 'unsubscribe' }, on conflict (email_sha256 = primary key) do nothing,
@@ -53,12 +55,27 @@ export const PAGE_DONE = page('Unsubscribed',
   `<h1>You're unsubscribed from Karmi Laven emails.</h1>
 <p>You won't receive marketing emails from us again.</p>
 <p>Changed your mind? Email <a href="mailto:hello@karmilaven.com">hello@karmilaven.com</a></p>`);
+// The form has no action attribute: it posts back to this page's own URL (h + t stay in the query string, so the hash
+// is never written into the page).
+export const PAGE_CONFIRM = page('Unsubscribe',
+  `<h1>Unsubscribe from Karmi Laven emails?</h1>
+<p>Press the button to stop marketing emails from us.</p>
+<form method="post"><input type="hidden" name="confirm" value="1"><button type="submit" style="margin-top:18px;background:#34302a;color:#faf7f1;border:0;padding:16px 34px;font:inherit;font-size:13px;letter-spacing:.16em;text-transform:uppercase;cursor:pointer">Confirm unsubscribe</button></form>
+<p style="margin-top:22px">Changed your mind? Just close this page.</p>`);
 export const PAGE_BAD = page('Link not valid',
   `<h1>This unsubscribe link isn't valid.</h1>
 <p>It may have been cut short when it was copied. Please use the unsubscribe link in the email again, or email <a href="mailto:hello@karmilaven.com?subject=unsubscribe">hello@karmilaven.com</a> and we'll unsubscribe you.</p>`);
 export const PAGE_ERR = page('Something went wrong',
   `<h1>Sorry, something went wrong.</h1>
 <p>We couldn't record your request just now. Please try the link again in a minute, or email <a href="mailto:hello@karmilaven.com?subject=unsubscribe">hello@karmilaven.com</a> and we'll unsubscribe you.</p>`);
+
+/** RFC 8058 one-click POST from a mail app (body "List-Unsubscribe=One-Click"); anything else is the page's button. */
+export function isOneClick(req) {
+  const b = req.body;
+  if (b && typeof b === 'object' && !Buffer.isBuffer(b)) return b['List-Unsubscribe'] === 'One-Click';
+  const s = Buffer.isBuffer(b) ? b.toString('utf8') : typeof b === 'string' ? b : '';
+  return /(^|&)List-Unsubscribe=One-Click(&|$)/.test(s);
+}
 
 function params(req) {
   if (req.query && (req.query.h !== undefined || req.query.t !== undefined)) {
@@ -83,25 +100,27 @@ export function createHandler({
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('X-Robots-Tag', 'noindex, nofollow');
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'self' 'unsafe-inline'; font-src 'self'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'");
+    res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'self' 'unsafe-inline'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
 
     const method = req.method || 'GET';
     if (method === 'OPTIONS') { res.setHeader('Allow', 'GET, POST, OPTIONS'); return res.status(204).end(); }
     const isPost = method === 'POST';
+    const asText = isPost && isOneClick(req);
     if (method !== 'GET' && !isPost) { res.setHeader('Allow', 'GET, POST, OPTIONS'); return send(res, 405, isPost, 'Method not allowed', PAGE_BAD); }
 
     const ip = String((req.headers && req.headers['x-forwarded-for']) || '').split(',')[0].trim() || 'unknown';
-    if (!rate(ip)) return send(res, 429, isPost, 'Too many requests', PAGE_ERR);
+    if (!rate(ip)) return send(res, 429, asText, 'Too many requests', PAGE_ERR);
 
     const e = env();
     const secret = unsubSecret(e);
     if (!e.OPS_SUPABASE_URL || !e.OPS_SUPABASE_SERVICE_KEY || !secret) {
       log.error('[unsubscribe] server config missing');
-      return send(res, 500, isPost, 'Server error', PAGE_ERR);
+      return send(res, 500, asText, 'Server error', PAGE_ERR);
     }
 
     const { h, t } = params(req);
-    if (!verifyUnsub(h, t, secret)) return send(res, 400, isPost, 'Invalid unsubscribe link', PAGE_BAD);
+    if (!verifyUnsub(h, t, secret)) return send(res, 400, asText, 'Invalid unsubscribe link', PAGE_BAD);
+    if (!isPost) return send(res, 200, false, '', PAGE_CONFIRM); // GET: confirm page only, no write
 
     try {
       const r = await fetchImpl(`${e.OPS_SUPABASE_URL}/rest/v1/marketing_suppression?on_conflict=email_sha256`, {
@@ -116,13 +135,13 @@ export function createHandler({
       });
       if (!r.ok && r.status !== 409) {
         log.error('[unsubscribe] db error status', r.status); // status only: the body could echo the key
-        return send(res, 500, isPost, 'Server error', PAGE_ERR);
+        return send(res, 500, asText, 'Server error', PAGE_ERR);
       }
     } catch {
       log.error('[unsubscribe] db request failed');
-      return send(res, 500, isPost, 'Server error', PAGE_ERR);
+      return send(res, 500, asText, 'Server error', PAGE_ERR);
     }
-    return send(res, 200, isPost, 'Unsubscribed', PAGE_DONE);
+    return send(res, 200, asText, 'Unsubscribed', PAGE_DONE);
   };
 }
 

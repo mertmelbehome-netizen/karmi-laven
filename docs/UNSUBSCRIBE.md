@@ -7,7 +7,7 @@ Promised on privacy.html: "unsubscribe from marketing emails at any time with th
 | File | What |
 |------|------|
 | `api/_unsub.js` | `emailHash`, `unsubSecret`, `unsubToken`, `verifyUnsub` (constant-time), `unsubUrl`, `listUnsubscribeHeaders`, footer text |
-| `api/unsubscribe.js` | `GET` = link click → confirmation page; `POST` = RFC 8058 one-click → `200 Unsubscribed`. Valid signature → upsert `marketing_suppression (email_sha256, at, source='unsubscribe')`, on conflict do nothing |
+| `api/unsubscribe.js` | `GET` = link click → "Confirm unsubscribe" button page, **writes nothing**; the button = form `POST` → writes → "You're unsubscribed" page; RFC 8058 one-click `POST` → writes → `200 Unsubscribed`. A write is an upsert `marketing_suppression (email_sha256, at, source='unsubscribe')`, on conflict do nothing |
 | `scripts/campaign-recipients.mjs` | `buildRecipients(...)` (pure) + dry-run CLI that prints counts only. Sends nothing |
 
 Link: `https://karmilaven.com/api/unsubscribe?h=<sha256>&t=<token>`. No email address in it.
@@ -23,6 +23,8 @@ Link: `https://karmilaven.com/api/unsubscribe?h=<sha256>&t=<token>`. No email ad
 **If the service key rotates, old links stop verifying.** The `mailto:hello@karmilaven.com?subject=unsubscribe` fallback in `List-Unsubscribe` still works, and so does the email address on the error page. To decouple the links from the database key, set `KARMI_UNSUB_SECRET` in Vercel *and* in the sender's environment, using the same value. Links already sent with the old key will then stop verifying too.
 
 The sender must sign with the same key as the deployed function. Use the same `OPS_SUPABASE_SERVICE_KEY`, or the same `KARMI_UNSUB_SECRET`.
+
+**Env step needed before the first send (live test 23 Nov 2026).** The sender must sign with the exact key the deployed function uses. Links signed with the service-role key in `melbehome-ops-v2/.env.local` were rejected (400) by production, so Vercel's `OPS_SUPABASE_SERVICE_KEY` for this project is a different value (or `KARMI_UNSUB_SECRET` is already set there). Fix: generate one random value (e.g. `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`), set it as `KARMI_UNSUB_SECRET` in the Vercel project (Production), redeploy, and give the sender the same value. Then run the live check in the E2E section before any send. The sender must import `unsubSecret()` from `api/_unsub.js` (as `scripts/campaign-recipients.mjs` does) and must not re-implement the derivation.
 
 ## Sending (decided by Mert / Komuta, never automatic)
 
@@ -56,18 +58,18 @@ Run the dry run, and build the list, right before each send. Suppression is read
    `node -e "import('./api/_unsub.js').then(m=>console.log(m.unsubUrl('YOUR_TEST_ADDRESS', m.unsubSecret(process.env))))"`
    Run it with the same env as Vercel production (`OPS_SUPABASE_SERVICE_KEY`, plus `KARMI_UNSUB_SECRET` if it is set).
 2. Send one test email through Resend to that internal address only. Put the `List-Unsubscribe` and `List-Unsubscribe-Post` headers on it, plus the footer link.
-3. In Gmail, check that the "Unsubscribe" link appears next to the sender. Then click the footer link. You should see "You're unsubscribed from Karmi Laven emails."
+3. In Gmail, check that the "Unsubscribe" link appears next to the sender. Then click the footer link: you should see the "Confirm unsubscribe" page and NO row yet (step 4 returns 0 rows). Press the button. You should see "You're unsubscribed from Karmi Laven emails."
 4. Check the row (read-only):
    `select source, at from marketing_suppression where email_sha256 = encode(sha256(convert_to(lower(trim('YOUR_TEST_ADDRESS')),'UTF8')),'hex');`
    It should return 1 row with `source = 'unsubscribe'`.
-5. Click the link again. You should get the same page and still 1 row. Then open the link with one character of `t` changed. You should get the "isn't valid" page, and no new row is written.
+5. Open the link and press the button again. You should get the same page and still 1 row. Then open the link with one character of `t` changed. You should get the "isn't valid" page, and no new row is written.
 6. One-click check: `curl -i -X POST -d "List-Unsubscribe=One-Click" "<the link>"` should return `200 Unsubscribed`.
 7. Optional: the test row now suppresses the internal address. Deleting it is a manual live-DB step for the owner:
    `delete from marketing_suppression where email_sha256 = '<hash>' and source = 'unsubscribe';`
 
 ## Notes
 
-- `GET` writes immediately, as specified. Some corporate mail scanners open links before the person does, and that would unsubscribe them early. This errs on the safe side: we send fewer emails, never unwanted ones.
+- `GET` never writes (Komuta, 23 Nov). Corporate mail scanners open links before the person does; on a small list every lost subscriber is a real loss, so the link opens a page with a "Confirm unsubscribe" button. The mail app's one-click `POST` (RFC 8058) still writes immediately, because scanners do not send it.
 - The table has RLS on, with one policy (`service_role`, ALL). Only the service-role key, which stays on the server, can write to it.
 - Rate limit: 10 requests per IP per minute, held in memory like `api/subscribe.js`.
 - Nothing logs the email or the hash. A database error logs only its HTTP status.
