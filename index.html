@@ -531,7 +531,7 @@ body.has-bar{padding-bottom:84px} html.has-bar{scroll-padding-bottom:96px}
   <div class="row">
     <div class="it"><b>15</b> shades</div>
     <div class="it"><b>4mm</b> crystal</div>
-    <div class="it"><b>£2.99</b> each</div>
+    <div class="it"><b>£2.99</b> each <span class="dl" data-kl="fee1">+ £1.49 UK delivery</span></div>
   </div>
 </section>
 
@@ -1234,6 +1234,12 @@ var SHOW_REVIEWS = false;
     "priceCurrency": "GBP",
     "lowPrice": "2.99",
     "highPrice": "2.99",
+    "shippingDetails": {
+      "@type": "OfferShippingDetails",
+      "shippingRate": { "@type": "MonetaryAmount", "value": "1.49", "currency": "GBP" },
+      "shippingDestination": { "@type": "DefinedRegion", "addressCountry": "GB" },
+      "description": "£1.49 UK delivery, free from £12 (or 5 items)"
+    },
     "seller": {
       "@type": "Organization",
       "name": "Karmi Laven",

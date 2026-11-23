@@ -155,3 +155,18 @@ test('runtime: /api/stock ladders change the fee, threshold, free-at-qty and lad
   assert.equal(q.shipSentence(), '£1.49 UK delivery, free from £12 (or 5 items)')
 })
 
+
+test('structured data (JSON-LD offer) carries the delivery fee from ladders.json (§5.21: a search-result price is an advert)', () => {
+  const blocks = [...TEXT.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1]))
+  const offers = blocks.map((b) => b.offers).filter(Boolean)
+  assert.ok(offers.length >= 1, 'an offer exists')
+  for (const o of offers) {
+    assert.equal(o.shippingDetails?.shippingRate?.value, (FEE / 100).toFixed(2), 'shippingRate = ladders.json fee')
+    assert.equal(o.shippingDetails?.shippingRate?.currency, 'GBP')
+    assert.equal(o.shippingDetails?.shippingDestination?.addressCountry, 'GB')
+  }
+})
+
+test('the story strip "£2.99 each" carries the delivery fee next to it', () => {
+  assert.match(TEXT, /<b>£2\.99<\/b> each <span class="dl" data-kl="fee1">\+ £1\.49 UK delivery<\/span>/)
+})
