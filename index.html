@@ -915,13 +915,29 @@ function firePurchaseIfSuccess(){
 }
 window.DATA=DATA;   // expose for the live-stock skin (barcode matching)
 const grid=document.getElementById('grid'), swatchbar=document.getElementById('swatchbar'), countEl=document.getElementById('count');
+/* ---- Gradient grid before the first /api/stock answer (return-visit CLS fix 23 Nov, morning_review/18_cls_prepaint/
+   FIX_return_visit.md). Sold-out shades are display:none once live stock is known; painting all of them first and
+   hiding most of them ~0.3-0.9 s later pulled the in-stock cards up into the first screen (CLS 0.57 phone / 0.13
+   desktop). The last answer's sold-out Gradient barcodes are remembered (kl_sold, 7 days): a return visit paints the
+   same set from the start. When the first answer differs from what was painted (first visit: nothing hidden), the grid
+   is built again in the same task (new nodes appear, nothing moves = no layout shift; same-size images = LCP kept);
+   the live answer always decides (klStockSettle in the LIVE STOCK block). ---- */
+const KL_SOLD_MEM=(function(){ try{ var m=JSON.parse(localStorage.getItem('kl_sold')||'null');
+  if(m&&Array.isArray(m.s)&&Date.now()-Number(m.t)<7*864e5) return new Set(m.s.map(String)); }catch(e){} return null; })();
+function klPreSold(){   // before the first live answer only; never after it
+  if(window.__klStockSettled||(window.klStockReady&&window.klStockReady())) return;
+  if(!KL_SOLD_MEM) return;
+  grid.querySelectorAll('.card [data-bc]').forEach(function(b){ if(KL_SOLD_MEM.has(String(b.dataset.bc))){ var c=b.closest('.card'); if(c){ c.classList.add('sold-out'); c.setAttribute('data-kl-pre',''); } } });
+  swatchbar.querySelectorAll('.sw[data-col]').forEach(function(b){ var bcs=DATA.filter(function(d){return d.color_en===b.dataset.col;}).map(function(d){return String(d.barcode);});
+    if(bcs.length&&bcs.every(function(x){return KL_SOLD_MEM.has(x);})){ b.classList.add('sold-out'); b.setAttribute('data-kl-pre',''); } });
+}
 document.getElementById('spectrum').style.background='linear-gradient(90deg,'+DATA.map(d=>d.swatch).join(',')+')';
 // hero = 1268 Ice Blue: the only Gradient render that passed 2 independent referees (23 Nov); 1074 has no real photo to verify
 const hero=DATA.find(d=>d.barcode==='1268')||DATA[0]; document.getElementById('heroImg').src=hero.img; document.getElementById('heroName').textContent=hero.color_en;
 
 const seen=new Set(), colours=[];
 DATA.filter(d=>LADDER_TYPES.indexOf(d.type)>=0).forEach(d=>{if(!seen.has(d.color_en)){seen.add(d.color_en);colours.push({name:d.color_en,hex:d.swatch,bc:d.barcode,img:d.img});}});
-colours.forEach(c=>{const b=document.createElement('button');b.className='sw';
+colours.forEach(c=>{const b=document.createElement('button');b.className='sw';b.dataset.col=c.name;
   b.innerHTML=`<span class="chip" style="background:${c.hex}"></span>${c.name}`;
   b.onclick=()=>filter(c.name,b); swatchbar.appendChild(b);});
 
@@ -963,6 +979,7 @@ function card(d,i){
 }
 function render(list){
   grid.innerHTML=''; list.forEach((d,i)=>grid.appendChild(card(d,i))); if(typeof syncLimits==='function') syncLimits();
+  klPreSold();
   countEl.textContent=countText(list.length);
   requestAnimationFrame(()=>{const cs=[...grid.children];
     cs.forEach((c,i)=>c.style.transitionDelay=(i*40)+'ms');
@@ -1822,6 +1839,7 @@ window.klSfUndo=function(){
       window.klWindow=data.window||null;
       loaded=true;
       hook(); applyAll();
+      try{ localStorage.setItem('kl_sold', JSON.stringify({ t: Date.now(), s: (window.DATA||[]).map(function(d){return String(d.barcode);}).filter(function(bc){ return ladder(bc) && isSold(bc); }) })); }catch(e){}   // next visit's first paint (klPreSold)
       boot(data);
       return true;
     }catch(e){
@@ -1835,7 +1853,24 @@ window.klSfUndo=function(){
   window.klRefreshStock=fetchLiveStock;
 
   // first load: no usable answer (HTTP error, timeout, network) = the old page (undo the pre-paint families layout)
-  function firstLoad(){ fetchLiveStock().then(function(ok){ if(!ok) sfFail(); }); }
+  // the first answer (or its failure) decides the Gradient grid, in the same task as applyAll: no live data = drop the
+  // remembered sold-out guesses (fail open, as before); live set != painted set = build the grid again (new nodes)
+  function klStockSettle(){
+    if(window.__klStockSettled) return; window.__klStockSettled=true;
+    try{
+      var g=document.getElementById('grid'), cs=g?Array.prototype.slice.call(g.querySelectorAll('.card')):[];
+      var bcOf=function(c){ var b=c.querySelector('[data-bc]'); return b?String(b.dataset.bc):''; };
+      if(!loaded){ document.querySelectorAll('[data-kl-pre]').forEach(function(e){ e.classList.remove('sold-out'); }); }
+      if((loaded?cs.some(function(c){ return c.hasAttribute('data-kl-pre')!==(ladder(bcOf(c))&&isSold(bcOf(c))); }):cs.some(function(c){ return c.hasAttribute('data-kl-pre'); }))&&typeof window.render==='function'){
+        // painted set != live set (or no live data): new card nodes instead of moving the painted ones (a moved node is a layout shift)
+        var D=window.DATA||[]; window.render(typeof active!=='undefined'&&active?D.filter(function(d){return d.color_en===active;}):D);
+      }
+    }catch(e){}
+    document.querySelectorAll('[data-kl-pre]').forEach(function(e){ e.removeAttribute('data-kl-pre'); });
+  }
+  window.klStockSettle=klStockSettle;
+  setTimeout(klStockSettle, 8000);   // safety net: never leave the grid invisible
+  function firstLoad(){ fetchLiveStock().then(function(ok){ if(!ok) sfFail(); klStockSettle(); }, function(){ sfFail(); klStockSettle(); }); }
   if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded',firstLoad); }
   else { firstLoad(); }
 })();
