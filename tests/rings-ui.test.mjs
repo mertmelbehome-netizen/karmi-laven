@@ -132,13 +132,16 @@ test('R enabled: page m1Summary = engine cartSummary for mixed bags, every field
   assert.deepEqual(n(bags['5 rings only']), [2000, 149, 0, false, null])
 })
 
-test('R enabled, bag without rings: page = engine and = the table without R (nothing changes for non-ring bags)', () => {
+test('R enabled, bag without rings: page = engine and = the table without R (only the E1c "non-ring" note on progress lines)', () => {
   const p = page(publicLadders(ON)), off = page(publicLadders(LADDERS))
   for (let a = 1; a <= 12; a++) for (const bc of ['RA', 'RB', G1]) {
     const lines = [{ bc, qty: a }], { tier_units, flat_short, ...s } = p.m1Summary(lines)
     assert.deepEqual(s, off.m1Summary(lines)); assert.deepEqual(flat_short, [])
     const L = p.m1Lines(lines), { rings, ...rest } = L
-    assert.deepEqual(rings, []); assert.deepEqual(rest, off.m1Lines(lines))
+    assert.deepEqual(rings, [])
+    const o = off.m1Lines(lines)
+    assert.deepEqual({ ...rest, progress: rest.progress && rest.progress.replace(/^Add (\d+) more non-ring items?/, 'Add $1 more').replace(/every non-ring item/g, 'every item') }, o)
+    if (o.progress) assert.match(rest.progress, /non-ring item/, 'rings ON: rings never count, even with none in the bag')
   }
 })
 
@@ -176,21 +179,21 @@ test('E1 (b): a bag with rings says the 10+ count is for non-ring items; 1-4 rin
   const p = page(publicLadders(ON))
   let L = p.m1Lines([{ bc: 'RB', qty: 9 }, { bc: RING, qty: 3 }])
   assert.deepEqual(L.rings, ['Add 2 more rings to check out (minimum 5)'])
-  assert.match(L.progress, /^Add 1 more \(not counting rings\) for 70% off every item/)
+  assert.match(L.progress, /^Add 1 more non-ring item for 70% off every non-ring item/)
   L = p.m1Lines([{ bc: 'RA', qty: 6 }, { bc: RING, qty: 5 }])
-  assert.deepEqual(L.rings, []); assert.match(L.progress, /^Add 4 more \(not counting rings\)/)
+  assert.deepEqual(L.rings, []); assert.match(L.progress, /^Add 4 more non-ring items/)
   L = p.m1Lines([{ bc: RING, qty: 4 }])
   assert.deepEqual(L.rings, ['Add 1 more ring to check out (minimum 5)']); assert.equal(L.progress, null)
   L = p.m1Lines([{ bc: RING, qty: 1 }]); assert.deepEqual(L.rings, ['Add 4 more rings to check out (minimum 5)'])
   // 10+ applied with rings: the "£y each instead of £x" pairs name the ladder groups only (never "£4.00 each instead of £4")
   L = p.m1Lines([{ bc: 'RB', qty: 10 }, { bc: RING, qty: 5 }])
   assert.equal(L.applied, 'Instant 70% off applied: £2.40 each instead of £8'); assert.deepEqual(L.rings, [])
-  // bag footer (m1Foot): free line + band carry "(rings not included)"; checkout disabled while rings are short
+  // bag footer (m1Foot): free line + band say "non-ring items" (E1c); checkout disabled while rings are short
   const foot = HTML.match(/function m1Foot\(\)\{[\s\S]*?\n\}/)[0]
-  assert.match(foot, /free with any '\+SHIP\.freeQty\+'\+ items'\+ni\+'/)
-  assert.match(foot, /'Free UK delivery with any '\+SHIP\.freeQty\+'\+ items'\+ni/)
+  assert.match(foot, /free with any '\+SHIP\.freeQty\+'\+'\+ni\+' items/)
+  assert.match(foot, /'Free UK delivery with any '\+SHIP\.freeQty\+'\+'\+ni\+' items/)
+  assert.match(foot, /ni=klRingsNote\(\);/)
   assert.match(foot, /cb\.disabled=!cart\.length\|\|rl\.length>0/)
-  assert.equal(p.m1RingTexts().notInc, ' (rings not included)')
   // ring lines grouped in the bag with their own subtotal
   assert.match(HTML, /'<div class="ci-grp" role="group" aria-label="'\+T\.group\+'"><div class="ci-gh"><b>'\+T\.group\+'<\/b><span>'\+T\.sub\(n\)\+'<\/span><\/div>'/)
 })
@@ -211,8 +214,8 @@ test('N2: on the Rings tab the 10+ hero price / delivery block steps aside for t
   assert.match(CSS, /\.kl-dlv\[hidden\], \.kl-roff, \.kl-ringinfo\[hidden\]\{display:none !important\}/)
   // even with R enabled the page-wide texts (hero, meta, FAQ, JSON-LD, CTA) are the ladder-group texts (no ring auto pick-up)
   const on = page(publicLadders(ON)).m1Texts(), off = page(publicLadders(LADDERS)).m1Texts()
-  // except the E1b note on every 'free with any 10+ items' claim
-  assert.equal(JSON.stringify({ ...on, count: on.count(15) }).replace(/ \(rings not included\)/g, ''), JSON.stringify({ ...off, count: off.count(15) }))
+  // except the E1b/E1c note on every 10+ claim ('any 10+ non-ring items'; full scan: tests/rings-e1c.test.mjs)
+  assert.equal(JSON.stringify({ ...on, count: on.count(15) }).replace(/(Buy \d+\+) non-ring items,/g, '$1,').replace(/ non-ring(?= items?\b)/g, ''), JSON.stringify({ ...off, count: off.count(15) }))
 })
 
 test('sub-chips: spec hashes and labels (no unverified material words), hash round trip incl. #rings-steel-chunky', () => {
@@ -227,9 +230,9 @@ test('sub-chips: spec hashes and labels (no unverified material words), hash rou
   assert.match(SF, /id="klRSubs" role="tablist" aria-label="Ring styles"/)
 })
 
-test('E1b: "(rings not included)" on every 10+ free claim ONLY while a flat group (rings) is on', () => {
-  assert.match(HTML, /function klRingsNote\(\)\{ try\{ return \(typeof m1FlatKeys==='function' && m1FlatKeys\(\)\.length\) \? ' \(rings not included\)' : ''; \}catch\(e\)\{ return ''; \} \}/)
+test('E1b/E1c: "any 10+ non-ring items" on every 10+ claim ONLY while a flat group (rings) is on', () => {
+  assert.match(HTML, /function klRingsNote\(\)\{ try\{ return \(typeof m1FlatKeys==='function' && m1FlatKeys\(\)\.length\) \? ' non-ring' : ''; \}catch\(e\)\{ return ''; \} \}/)
   const on = page(publicLadders(ON)), off = page(publicLadders(LADDERS))
-  assert.match(on.shipSentence(), /free with any 10\+ items \(rings not included\)$/)
+  assert.match(on.shipSentence(), /free with any 10\+ non-ring items$/)
   assert.doesNotMatch(off.shipSentence(), /rings/)
 })
