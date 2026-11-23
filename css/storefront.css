@@ -73,7 +73,9 @@ html.kl-v2 .swatchbar{top:var(--kl-tb-h,54px)}
   .kl-tabs [role=tab]{flex:1 1 auto; padding:0 10px; font-size:13px; letter-spacing:.01em; min-width:44px}
   .kl-tabs [role=tab] .n{display:none}
   /* logo row a little tighter so the chips sit on the first screen (F1) */
-  html.kl-v2 body > nav:not(.kl-tabbar){padding:16px 0 12px}
+  html.kl-v2 body > nav:not(.kl-tabbar){padding:10px 0 8px}
+  /* 375x812: announce bar 60 -> 44 px so the first full card ends above the sticky bar (Komuta 23 Nov: overlap 0 at 812 + 844) */
+  html.kl-v2 .announce{padding:7px 10px; font-size:10.5px; letter-spacing:.1em; line-height:1.4}
 }
 /* hero: H1 + one short line (F3); the eyebrow and buttons are hidden by sfLayout */
 html.kl-v2 .hero-copy p{margin-bottom:0}
@@ -156,6 +158,11 @@ html.kl-v2 .klpop-skip{min-height:44px; padding:0 8px}
 html.kl-v2 .imgwrap .new, html.kl-v2 .imgwrap .zoom{display:none}
 html.kl-v2 .imgwrap .stk:not(:empty){font-size:14px; letter-spacing:.06em; text-transform:none; color:var(--ink); text-shadow:none;
   background:rgba(255,254,251,.95); padding:3px 8px}
+@media(max-width:560px){
+  /* one line, small, never more than the photo width (Komuta 23 Nov) */
+  html.kl-v2 .imgwrap .stk:not(:empty){font-size:10.5px; letter-spacing:.02em; padding:2px 6px; left:8px; bottom:8px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:calc(100% - 16px)}
+}
 html.kl-v2 .sold-out-badge{font-size:14px; letter-spacing:.06em; text-transform:none; background:#34302a; color:#faf7f1; backdrop-filter:none}
 
 /* ---- motion: respect the visitor's setting (V-25) ---- */

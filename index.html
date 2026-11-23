@@ -442,8 +442,11 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 .cb-btn.accept{ background:#faf7f1; color:#34302a; border-color:#faf7f1; }
 .cb-btn:hover{ opacity:.8; }
 @media(max-width:600px){
-  #cookie-banner{ flex-direction:column; align-items:flex-start; padding:18px 20px; }
-  .cb-btn{ padding:10px 16px; }
+  /* compact on phones (K&D #61 N1): 390x844 banner 155 -> 113 px, top 731 > first card's delivery line (701) */
+  #cookie-banner{ flex-direction:row; flex-wrap:wrap; align-items:center; padding:8px 12px; gap:6px 10px; font-size:11.5px; line-height:1.35; }
+  #cookie-banner .cb-text{ flex:1 1 100%; }
+  #cookie-banner .cb-btns{ flex:1 1 100%; justify-content:flex-end; gap:8px; }
+  .cb-btn{ padding:7px 14px; font-size:10.5px; min-height:32px; }
 }
 /* LIVE STOCK — sold-out state */
 .card.sold-out{display:none !important}
@@ -454,12 +457,12 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 .sw.sold-out{display:none !important}
 .hide{display:none}
 </style>
-<meta name="description" content="Karmi Laven bracelets, necklaces and hair pieces — £5, £8 or £13 each · 70% off every item when you buy any 10+ items (£1.50, £2.40 or £3.90 each). Shipped in 2–5 days. £1.49 UK delivery · free with any 10+ items.">
+<meta name="description" content="Karmi Laven bracelets and necklaces — £5, £8 or £13 each · 70% off every item when you buy any 10+ items (£1.50, £2.40 or £3.90 each). Shipped in 2–5 days. £1.49 UK delivery · free with any 10+ items.">
 <link rel="canonical" href="https://www.karmilaven.com/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Karmi Laven">
 <meta property="og:url" content="https://www.karmilaven.com/">
-<meta property="og:title" content="Karmi Laven — Bracelets, Necklaces &amp; Hair · from £5 each">
+<meta property="og:title" content="Karmi Laven — Bracelets &amp; Necklaces · from £5 each">
 <meta property="og:description" content="15 faceted bead shades. Champagne to cobalt — find your colour. £1.49 UK delivery · free with any 10+ items.">
 <meta property="og:image" content="https://www.karmilaven.com/og-image.jpg">
 <meta property="og:image:width" content="1200">
@@ -467,7 +470,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 <meta property="og:image:alt" content="Karmi Laven bracelets gradient collection">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@karmilaven">
-<meta name="twitter:title" content="Karmi Laven — Bracelets, Necklaces &amp; Hair · from £5 each">
+<meta name="twitter:title" content="Karmi Laven — Bracelets &amp; Necklaces · from £5 each">
 <meta name="twitter:description" content="15 faceted bead shades. Find your colour. £1.49 UK delivery · free with any 10+ items.">
 <meta name="twitter:image" content="https://www.karmilaven.com/og-image.jpg">
 </head>
@@ -806,8 +809,12 @@ function filter(col,btn){
 }
 function stockTxt(d){
   const t=d.total||0; if(!t) return '';
-  if(t<=6) return 'Only '+t+' left';
+  // never 'Only N left' from the baked DATA snapshot: scarcity comes from LIVE stock only (K&D #62: 0381 showed
+  // 'Only 3 left' with /api/stock down while live stock was 0). The live loader sets it from LIVEQTY.
+  if(t<=6) return '';
   const st=Object.keys(d.stock||{}).map(s=>STORENAMES[s]||s);
+  // phone (<=560px): one short line on the photo (Komuta 23 Nov: the 3-line label covered a third of the card photo)
+  if(typeof matchMedia==='function' && matchMedia('(max-width:560px)').matches) return 'Ships in 1–2 business days';
   return 'Ships within 1–2 business days'+(st.length?' · '+st[0]:'');
 }
 function priceTxt(bc){ const p=unitPrice(bc); return p?('£'+p.toFixed(2)):''; }
@@ -1483,9 +1490,9 @@ var SHOW_REVIEWS = false;
 {
   "@context": "https://schema.org/",
   "@type": "ProductCollection",
-  "name": "Karmi Laven Bracelets, Necklaces & Hair",
+  "name": "Karmi Laven Bracelets & Necklaces",
   "url": "https://www.karmilaven.com/",
-  "description": "Bracelets, necklaces and hair pieces, £5, £8 or £13 each, or £1.50, £2.40 or £3.90 each when you buy any 10 or more items.",
+  "description": "Bracelets and necklaces, £5, £8 or £13 each, or £1.50, £2.40 or £3.90 each when you buy any 10 or more items.",
   "brand": {
     "@type": "Brand",
     "name": "Karmi Laven"
@@ -1561,6 +1568,14 @@ function cookieChoice(accepted){
 (function(){
   var ENDPOINT='/api/stock';
   var LIVEQTY={};            // barcode -> available qty (live)
+  // strict scarcity rule (Komuta 23 Nov): an "Only N left" number is never older than one refresh period. LIVE_TS =
+  // time of the last successful live stock answer; a failed refresh, or no fresh answer within refresh_s + 5 s,
+  // clears every number (the label goes empty; buying is still checked against live stock at checkout).
+  var LIVE_TS=0;
+  function scarcityMaxAgeMs(){ var r=(window.klSF&&Number(window.klSF.refresh_s))||60; return Math.max(15,r)*1000+5000; }
+  function clearScarcity(){ document.querySelectorAll('.stk').forEach(function(e){ if(/^Only \d+ left$/.test(e.textContent)) e.textContent=''; }); }
+  window.klClearScarcity=clearScarcity;
+  setInterval(function(){ if(LIVE_TS && Date.now()-LIVE_TS>scarcityMaxAgeMs()) clearScarcity(); }, 5000);
   var SOLD=new Set();        // barcodes with available<=0
   var loaded=false;
   var LOWMAX=6;              // "Only N left" threshold — from real stock ONLY, never from an online cap
@@ -1605,7 +1620,8 @@ function cookieChoice(accepted){
         var iwb=iw&&iw.querySelector('.sold-out-badge'); if(iwb) iwb.remove();
         if(!lad && addBtn){ var pt=window.priceTxt?window.priceTxt(bc):''; addBtn.removeAttribute('disabled'); addBtn.style.display=''; addBtn.textContent='Add to bag — '+pt; var pr=card.querySelector('.pr'); if(pr){ if(typeof window.m1On==='function'&&window.m1On()) pr.innerHTML=window.m1PriceHtml(bc); else pr.textContent=pt; } }
         var q=LIVEQTY[bc];
-        if(stk && typeof q==='number'){ stk.textContent = q<=LOWMAX ? ('Only '+q+' left') : (stk.textContent||''); }
+        // live qty only: 1..LOWMAX -> 'Only N left'; anything else clears it (no stale static text survives)
+        if(stk){ stk.textContent = (typeof q==='number' && q>0 && q<=LOWMAX) ? ('Only '+q+' left') : ''; }
       }
     });
     // swatch bar: strike sold-out colours ONLY if every barcode of that colour is sold
@@ -1653,13 +1669,14 @@ function cookieChoice(accepted){
       var tid=setTimeout(function(){ctrl.abort();},5000);
       var res=await fetch(url,{signal:ctrl.signal});
       clearTimeout(tid);
-      if(!res.ok) return false;
+      if(!res.ok){ clearScarcity(); return false; }
       var data=await res.json();
       // delivery fee / threshold / ladder totals for the display texts (served even when stock is unavailable)
       try{ if(data && data.ladders && typeof window.klApplyLadders==='function') window.klApplyLadders(data.ladders); }catch(e){}
       try{ if(data && data.christmas && typeof window.klXmasApply==='function') window.klXmasApply(data.christmas); }catch(e){}   // Christmas last-order notice (js/christmas.js); no field = no notice
-      if(!data || !data.ok || !data.stock){ boot(data); return false; }   // fail open: leave all shown
+      if(!data || !data.ok || !data.stock){ clearScarcity(); boot(data); return false; }   // fail open: leave all shown (but no stale scarcity number)
       if(Array.isArray(extra)) extra.forEach(function(bc){ bc=String(bc); if(!window.isLadder||!window.isLadder(bc)){ SELLABLE[bc]=0; delete PRICEP[bc]; } });   // a refresh without caps data = not sellable (fail closed)
+      LIVE_TS=Date.now();
       Object.keys(data.stock).forEach(function(bc){
         var q=Number(data.stock[bc]); LIVEQTY[bc]=q;
         if(!(q>0)) SOLD.add(String(bc)); else SOLD.delete(String(bc));
@@ -1674,6 +1691,7 @@ function cookieChoice(accepted){
       return true;
     }catch(e){
       console.warn('[karmi-stock] live stock unavailable, showing all shades',e&&e.message);
+      clearScarcity();
       return false;
     }
   }

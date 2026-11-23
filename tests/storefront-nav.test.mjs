@@ -207,9 +207,71 @@ test('bundle builder static fallback: no pools-era ladder price left in the sour
 
 test('phone: first screen shows the chips + at least one full card (hero photo off, H1/panel titles visually hidden, not removed)', () => {
   const css = readFileSync(new URL('../css/storefront.css', import.meta.url), 'utf8')
-  const m = css.match(/@media\(max-width:560px\)\{([\s\S]*?)\n\}/)
+  const m = css.match(/@media\(max-width:560px\)\{([\s\S]*?)\r?\n\}/)
   assert.ok(m)
   assert.match(m[1], /html\.kl-v2 \.hero-img\{display:none\}/)
   assert.match(m[1], /html\.kl-v2 \.hero h1, html\.kl-v2 #palette \.col-head h2, html\.kl-v2 #klFam \.col-head h2\{position:absolute; width:1px; height:1px;/)
   assert.doesNotMatch(m[1], /\.hero h1\{display:none|col-head h2\{display:none/, 'titles stay for screen readers')
+})
+
+test('phone: card ship label is one short line (no 3-line block over the photo)', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  const css = readFileSync(new URL('../css/storefront.css', import.meta.url), 'utf8')
+  assert.match(html, /matchMedia\('\(max-width:560px\)'\)\.matches\) return 'Ships in 1–2 business days';/)
+  assert.match(css, /@media\(max-width:560px\)\{[\s\S]*?\.imgwrap \.stk:not\(:empty\)\{[^}]*white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:calc\(100% - 16px\)\}/)
+})
+
+test('N3: meta / og / JSON-LD name only categories on sale; hair wording added back only when hair is sellable', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  const head = [...html.matchAll(/<meta (?:name|property)="[^"]+" content="([^"]*)"/g)].map((m) => m[1]).join(' | ')
+    + [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => m[1]).join(' ')
+  assert.doesNotMatch(head, /hair/i, 'static head has no hair wording while hair is withdrawn')
+  const sfMetaCats = new Function(`${LAYOUT}; return sfMetaCats;`)()
+  const mk = () => { const metas = [{ c: 'Karmi Laven bracelets and necklaces — £5' }, { c: 'Karmi Laven — Bracelets & Necklaces · from £5 each' }]
+    const ld = { textContent: JSON.stringify({ name: 'Karmi Laven Bracelets & Necklaces', description: 'Bracelets and necklaces, £5' }) }
+    return { metas, ld, doc: { querySelectorAll: (s) => s.startsWith('meta') ? metas.map((m) => ({ getAttribute: () => m.c, setAttribute: (k, v) => { m.c = v } })) : [ld] } } }
+  const a = mk(); sfMetaCats(a.doc, true)
+  assert.equal(a.metas[0].c, 'Karmi Laven bracelets, necklaces and hair pieces — £5')
+  assert.equal(a.metas[1].c, 'Karmi Laven — Bracelets, Necklaces & Hair · from £5 each')
+  assert.equal(JSON.parse(a.ld.textContent).name, 'Karmi Laven Bracelets, Necklaces & Hair')
+  sfMetaCats(a.doc, false)
+  assert.equal(a.metas[1].c, 'Karmi Laven — Bracelets & Necklaces · from £5 each')
+  assert.match(SF, /sfMetaCats\(document, vis\.indexOf\('hair'\) >= 0\);/)
+})
+test('N1: phone cookie banner is compact (does not cover the first card price + delivery line)', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  assert.match(html, /@media\(max-width:600px\)\{\r?\n  \/\* compact on phones[\s\S]*?#cookie-banner\{ flex-direction:row; flex-wrap:wrap; align-items:center; padding:8px 12px;/)
+})
+
+test('375x812 + 390x844: first card ends above the sticky bar (compact announce + logo row on phones)', () => {
+  const css = readFileSync(new URL('../css/storefront.css', import.meta.url), 'utf8')
+  assert.match(css, /html\.kl-v2 body > nav:not\(\.kl-tabbar\)\{padding:10px 0 8px\}/)
+  assert.match(css, /html\.kl-v2 \.announce\{padding:7px 10px; font-size:10\.5px; letter-spacing:\.1em; line-height:1\.4\}/)
+})
+
+test('no false scarcity: "Only N left" comes from LIVE stock only (API down -> none; live q>6 -> cleared)', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  const src = html.match(/function stockTxt\(d\)\{[\s\S]*?\n\}/)[0]
+  const STORENAMES = { WAT: 'Watford' }
+  const stockTxt = new Function('STORENAMES', 'matchMedia', `${src}; return stockTxt;`)(STORENAMES, undefined)
+  assert.equal(stockTxt({ total: 3, stock: { WAT: 3 } }), '', 'baked DATA total 3 (0381 June snapshot) must not say Only 3 left')
+  assert.equal(stockTxt({ total: 0 }), '')
+  assert.doesNotMatch(src, /'Only '/)
+  assert.match(html, /if\(stk\)\{ stk\.textContent = \(typeof q==='number' && q>0 && q<=LOWMAX\) \? \('Only '\+q\+' left'\) : ''; \}/)
+  assert.doesNotMatch(html, /stk\.textContent\|\|''/)
+})
+
+test('strict scarcity: a failed refresh or an answer older than one refresh period clears every "Only N left"', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  const fn = html.match(/async function fetchLiveStock\(extra\)\{[\s\S]*?\n  \}\r?\n/)[0]
+  assert.match(fn, /if\(!res\.ok\)\{ clearScarcity\(\); return false; \}/)
+  assert.match(fn, /if\(!data \|\| !data\.ok \|\| !data\.stock\)\{ clearScarcity\(\);/)
+  assert.match(fn, /LIVE_TS=Date\.now\(\);/)
+  assert.match(fn, /console\.warn\('\[karmi-stock\][^\n]*\r?\n\s*clearScarcity\(\);/)
+  assert.match(html, /setInterval\(function\(\)\{ if\(LIVE_TS && Date\.now\(\)-LIVE_TS>scarcityMaxAgeMs\(\)\) clearScarcity\(\); \}, 5000\);/)
+  // clearScarcity empties only the scarcity text
+  const src = html.match(/function clearScarcity\(\)\{[^\n]*\}/)[0]
+  const els = [{ textContent: 'Only 3 left' }, { textContent: 'Ships in 1–2 business days' }, { textContent: '' }]
+  new Function('document', `${src}; clearScarcity();`)({ querySelectorAll: () => els })
+  assert.deepEqual(els.map((e) => e.textContent), ['', 'Ships in 1–2 business days', ''])
 })
