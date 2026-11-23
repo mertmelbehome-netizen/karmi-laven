@@ -297,7 +297,35 @@ test('pre-paint: <head> sets html.kl-v2 (default ON, remembered answer) and link
   assert.match(boot, /localStorage\.setItem\('kl_sf_fam', fam\?'1':'0'\)/)
   assert.match(boot, /if\(!fam&&typeof window\.klSfUndo==='function'\) window\.klSfUndo\(\);/)
   assert.match(boot, /window\.klSfUndo=function\(\)\{\r?\n  if\(window\.__klSfBooted\|\|!window\.__klSfPre\) return;/)
-  assert.match(HTML, /function firstLoad\(\)\{ fetchLiveStock\(\)\.then\(function\(ok\)\{ if\(!ok\) sfFail\(\); \}\); \}/)
+  assert.match(HTML, /function firstLoad\(\)\{ fetchLiveStock\(\)\.then\(function\(ok\)\{ if\(!ok\) sfFail\(\); klStockSettle\(\); \}, function\(\)\{ sfFail\(\); klStockSettle\(\); \}\); \}/)
+})
+
+test('return-visit CLS: the Gradient grid paints the remembered sold-out set; a different live set rebuilds the grid', () => {
+  // the last answer's sold-out Gradient barcodes are remembered right after applyAll (every successful answer)
+  assert.match(HTML, /hook\(\); applyAll\(\);\r?\n      try\{ localStorage\.setItem\('kl_sold', JSON\.stringify\(\{ t: Date\.now\(\), s: \(window\.DATA\|\|\[\]\)\.map\(function\(d\)\{return String\(d\.barcode\);\}\)\.filter\(function\(bc\)\{ return ladder\(bc\) && isSold\(bc\); \}\) \}\)\); \}catch\(e\)\{\}/)
+  // every render before the first answer applies the memory, never after it
+  assert.match(HTML, /function render\(list\)\{\r?\n  grid\.innerHTML=''; list\.forEach\(\(d,i\)=>grid\.appendChild\(card\(d,i\)\)\); if\(typeof syncLimits==='function'\) syncLimits\(\);\r?\n  klPreSold\(\);/)
+  const pre = HTML.match(/const KL_SOLD_MEM=[\s\S]*?\r?\nfunction klPreSold\(\)\{[\s\S]*?\r?\n\}\r?\n/)[0]
+  assert.match(pre, /Date\.now\(\)-Number\(m\.t\)<7\*864e5/, 'memory older than 7 days is ignored')
+  assert.match(pre, /if\(window\.__klStockSettled\|\|\(window\.klStockReady&&window\.klStockReady\(\)\)\) return;/)
+  const settle = HTML.match(/function klStockSettle\(\)\{[\s\S]*?\r?\n  \}\r?\n/)[0]
+  assert.match(settle, /if\(!loaded\)\{ document\.querySelectorAll\('\[data-kl-pre\]'\)\.forEach\(function\(e\)\{ e\.classList\.remove\('sold-out'\); \}\); \}/, 'fail open: no live data = every shade shown, as before')
+  assert.match(settle, /c\.hasAttribute\('data-kl-pre'\)!==\(ladder\(bcOf\(c\)\)&&isSold\(bcOf\(c\)\)\)/, 'rebuild only when the live set differs from the painted one')
+  assert.match(settle, /window\.render\(typeof active!=='undefined'&&active\?D\.filter\(function\(d\)\{return d\.color_en===active;\}\):D\)/, 'the rebuild keeps the colour filter')
+  assert.match(HTML, /setTimeout\(klStockSettle, 8000\);/)
+  assert.match(HTML, /function firstLoad\(\)\{ fetchLiveStock\(\)\.then\(function\(ok\)\{ if\(!ok\) sfFail\(\); klStockSettle\(\); \}, function\(\)\{ sfFail\(\); klStockSettle\(\); \}\); \}/)
+  // behaviour: run klPreSold on a tiny grid
+  const mk = (bc) => { const c = { cls: new Set(), attrs: {}, classList: null }; c.classList = { add: (x) => c.cls.add(x) }; c.setAttribute = (k, v) => { c.attrs[k] = v }; return { dataset: { bc }, closest: () => c, card: c } }
+  const runPre = (stored, settled) => {
+    const btns = ['1074', '1266'].map(mk)
+    const grid = { querySelectorAll: () => btns }, swatchbar = { querySelectorAll: () => [] }
+    new Function('window', 'localStorage', 'grid', 'swatchbar', 'DATA', pre + '; klPreSold();')({ __klStockSettled: settled }, { getItem: () => stored }, grid, swatchbar, [])
+    return btns.filter((b) => b.card.cls.has('sold-out') && b.card.attrs['data-kl-pre'] === '').map((b) => b.dataset.bc)
+  }
+  assert.deepEqual(runPre(null, false), [], 'first visit: everything painted (the first answer rebuilds the grid)')
+  assert.deepEqual(runPre(JSON.stringify({ t: Date.now(), s: ['1074'] }), false), ['1074'], 'return visit: last answer painted at once')
+  assert.deepEqual(runPre(JSON.stringify({ t: Date.now() - 8 * 864e5, s: ['1074'] }), false), [], 'stale memory ignored')
+  assert.deepEqual(runPre(JSON.stringify({ t: Date.now(), s: ['1074'] }), true), [], 'after the first answer the live data decides')
 })
 
 test('pre-paint: the layout runs right after the hero and is finished right after the Gradient panel (no later move)', () => {
