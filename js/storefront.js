@@ -12,9 +12,9 @@
   'use strict';
 
   /*KL-SF-CORE-START*/ // pure functions (no DOM); tests/storefront.test.mjs evaluates this block as-is
-  var SF_TABS = ['gradient', 'bracelets', 'necklaces', 'hair', 'rings'];   // Rings (K-069) after Hair; hidden like every tab while nothing in it is sellable
-  var SF_TITLE = { gradient: 'The Gradient Edit', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', rings: 'Rings' };
-  var SF_CHIP = { gradient: 'Gradient', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', rings: 'Rings' };   // short chip labels: the first 4 fit one 390 px row (nav fix F4); the row scrolls sideways when Rings shows; panel titles keep SF_TITLE
+  var SF_TABS = ['gradient', 'bracelets', 'necklaces', 'hair', 'gifts', 'rings'];   // Gifts (W49-A2) after Hair; Rings (K-069) last; hidden like every tab while nothing in it is sellable
+  var SF_TITLE = { gradient: 'The Gradient Edit', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };
+  var SF_CHIP = { gradient: 'Gradient', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };   // short chip labels: the first 4 fit one 390 px row (nav fix F4); the row scrolls sideways when Rings shows; panel titles keep SF_TITLE
   var SF_ORDER = { sellable: 0, single: 0, cap: 1, photo: 2, soldout: 3 };
   function sfMoney(p) { return '£' + (p / 100).toFixed(2); }
   /** Pool key exactly as the server (api/_pricing.js poolKey): Gradient Edit -> 'gradient'; any other product -> its
@@ -72,9 +72,12 @@
     var tq = P(q), b = sfFromBadge(ladders, key, cap), ex = tq % q === 0;
     return label + ': ' + q + ' for ' + sfMoney(tq) + (ex ? ' (' + sfMoney(tq / q) + ' each)' : '') + (b && ex && tq / q === b.each ? ', the lowest step' : '') + '.';
   }
-  /** Tabs shown: the Gradient Edit always (today's page); any other tab only with >= 1 sellable card (K-01). */
-  function sfVisibleTabs(cards, stateOf) {
+  /** Tabs shown: the Gradient Edit always (today's page); any other tab only with >= 1 sellable card (K-01); Gifts only
+   *  with >= SF_GIFTS_MIN sellable picks (giftN = sfGiftCount(sfGiftRows(...)); absent = hidden). */
+  var SF_GIFTS_MIN = 4;
+  function sfVisibleTabs(cards, stateOf, giftN) {
     return SF_TABS.filter(function (t) {
+      if (t === 'gifts') return giftN >= SF_GIFTS_MIN;
       return t === 'gradient' || cards.some(function (c) { var s = stateOf(c); return c.tab === t && (s === 'sellable' || s === 'single'); });
     });
   }
@@ -130,6 +133,21 @@
       return '<button type="button" role="tab" class="kl-sub" id="klsub-' + tab + '-' + x.k + '" data-subtab="' + tab + '" data-sub="' + x.k + '" aria-controls="' + ctl + '" aria-selected="' + (x.k === 'all') + '" tabindex="' + (x.k === 'all' ? 0 : -1) + '">' + sfEsc(x.label) + ' <span class="n"></span></button>';
     }).join('');
   }
+  /** Gifts tab (W49-A2): data/gifts.json {sections:[{heading?, items:[bc | {bc, ai_image}]}]} -> the rows shown, in order:
+   *  {bc} for every pick ok(bc) (sellable now) once, {h} for a section heading only when its section keeps >= 1 pick
+   *  and something is already above it (no heading above the first cards: V-01). No price text here: the cards carry it. */
+  function sfGiftRows(doc, ok) {
+    var out = [], seen = {}, secs = doc && Array.isArray(doc.sections) ? doc.sections : [];
+    secs.forEach(function (s) {
+      var bcs = (s && Array.isArray(s.items) ? s.items : []).map(function (x) { return String(x && typeof x === 'object' ? x.bc : x); })
+        .filter(function (bc) { return bc && !seen[bc] && ok(bc); });
+      if (!bcs.length) return;
+      if (s.heading && out.length) out.push({ h: String(s.heading) });
+      bcs.forEach(function (bc) { seen[bc] = 1; out.push({ bc: bc }); });
+    });
+    return out;
+  }
+  function sfGiftCount(rows) { return rows.filter(function (r) { return r.bc; }).length; }
   function sfEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]; }); }
   /** Price shown on a family card. M1 table (mode cart_qty_groups): the group single price + the same M1 text as the
    *  Gradient cards (index.html m1PriceHtml, so a percentage appears only when the table makes it exact); no group =
@@ -222,6 +240,29 @@
       sellable: window.klAvail ? window.klAvail(c.barcode) : 0,
       stock: window.klStockQty ? window.klStockQty(c.barcode) : 0, badge: !!sfFromBadge(L(), key) });
   }
+  /* ---------------- Gifts (data/gifts.json, W49-A2) ---------------- */
+  var GIFTDOC = null, GIFTBY = {};   // gift picks doc; barcode -> card identity for Gradient picks (family picks use FAMBY)
+  function giftMeta(bc) {
+    var m = null; ((GIFTDOC && GIFTDOC.sections) || []).forEach(function (s) { (s.items || []).forEach(function (x) { if (x && typeof x === 'object' && String(x.bc) === bc) m = x; }); });
+    return m || {};
+  }
+  function giftCard(bc) {
+    bc = String(bc); if (FAMBY[bc]) return FAMBY[bc]; if (GIFTBY[bc]) return GIFTBY[bc];
+    var d = (window.DATA || []).filter(function (x) { return String(x.barcode) === bc; })[0]; if (!d || !isGrad(bc)) return null;
+    var sk = sfSubOf('gradient', d.type), sl = SF_SUBS.gradient.filter(function (x) { return x.k === sk; })[0], real = !!d.img && String(d.img).indexOf('/img/tone/') !== 0;
+    return (GIFTBY[bc] = { barcode: bc, tab: 'gradient', grad: true, name: d.color_en, line: sl ? sl.label : SF_TITLE.gradient, swatch: d.swatch,
+      photo: real ? d.img : null, photo_qc: real, ai_image: giftMeta(bc).ai_image === true });
+  }
+  /** a gift pick's card state: a QC-passed photo only (never a colour tile, never a ring); Gradient picks: the M1 group
+   *  price, on sale once live stock says so */
+  function giftState(c) {
+    if (!c || c.tab === 'rings' || !(c.photo && c.photo_qc)) return 'hidden';
+    if (!c.grad) return famState(c);
+    var ok = !!(window.klStockReady && window.klStockReady()) && gradOk(c.barcode);
+    return sfState({ priceP: priceP(c.barcode), photoOk: true, sellable: ok ? 1 : 0, stock: ok ? 1 : 0, badge: !!sfFromBadge(L(), sfPoolKey(L(), true, 0)) });
+  }
+  function giftOk(bc) { var s = giftState(giftCard(bc)); return s === 'sellable' || s === 'single'; }
+  function giftRows() { return sfGiftRows(GIFTDOC, giftOk); }
   function poolLabel(key, bc) {
     if (key === 'gradient' || isGrad(bc)) return SF_TITLE.gradient;
     var c = FAMBY[bc]; return c ? (key ? 'Any ' + sfMoney(Number(key)) + ' piece' : c.line) : 'Your bag';
@@ -313,19 +354,19 @@
   }
   function renderTabs() {
     document.documentElement.setAttribute('data-kl-tab', tab);   // phone CSS: family tabs use a one-line hero price (V-01)
-    var vis = sfVisibleTabs(FAM, famState), seen = {};
+    var gn = sfGiftCount(giftRows()), vis = sfVisibleTabs(FAM, famState, gn), seen = {};
     SF_TABS.forEach(function (t) {
       var b = $('#kltab-' + t); if (!b) return;
       var v = vis.indexOf(t) >= 0; b.hidden = !v;
       b.setAttribute('aria-selected', String(t === tab && v)); b.tabIndex = t === tab ? 0 : -1;
-      var n = t === 'gradient' ? gradItems().filter(function (x) { return x.ok; }).length   // all Gradient pieces on sale, whatever sub-chip / colour is picked (was: DOM cards with a pool badge = 0 under the M1 table)
+      var n = t === 'gifts' ? gn : t === 'gradient' ? gradItems().filter(function (x) { return x.ok; }).length   // all Gradient pieces on sale, whatever sub-chip / colour is picked (was: DOM cards with a pool badge = 0 under the M1 table)
         : FAM.filter(function (c) { var s = famState(c); return c.tab === t && (s === 'sellable' || s === 'single'); }).length;
       var cnt = $('[data-count="' + t + '"]'); if (cnt) cnt.textContent = String(n);
       seen[t] = n;
     });
     var gsv = renderSubs('gradient', $('#klGSubs')); renderSubs('bracelets', $('#klBSubs'));
     var rsr = $('#klRSubs'); renderSubs('rings', rsr); if (rsr && tab !== 'rings') rsr.hidden = true;
-    if (tab === 'rings') { var bsr = $('#klBSubs'); if (bsr) bsr.hidden = true; }
+    if (tab !== 'bracelets') { var bsr = $('#klBSubs'); if (bsr) bsr.hidden = true; }   // bracelet style chips on the Bracelets tab only (they also showed on Necklaces)
     syncRingInfo();
     if (FAM.length) try { localStorage.setItem('kl_sf_tabs', JSON.stringify({ v: vis, n: seen,   // next visit's pre-paint chip bar + Gradient sub-chips (index.html)
       gs: gsv.reduce(function (o, x) { o[x.k] = x.n; return o; }, {}) })); } catch (e) {}
@@ -375,10 +416,10 @@
     if (!stickyOrig) stickyOrig = { text: btn.textContent, click: btn.onclick };
     if (totalQty() > 0) return;   // a bag with items: the page's bag total + View bag on every tab
     var minP = null;
-    FAM.forEach(function (c) {
-      if (c.tab !== tab) return; var s = famState(c); if (s !== 'sellable' && s !== 'single') return;
-      var p = priceP(c.barcode); if (p && (minP === null || p < minP)) minP = p;
-    });
+    var on = function (s) { return s === 'sellable' || s === 'single'; };
+    (tab === 'gifts' ? giftRows().filter(function (r) { return r.bc; }).map(function (r) { return giftCard(r.bc); })
+      : FAM.filter(function (c) { return c.tab === tab && on(famState(c)); }))
+      .forEach(function (c) { var p = priceP(c.barcode); if (p && (minP === null || p < minP)) minP = p; });
     var st = sfSticky(tab, minP, SHIP.feeP, tab === 'rings' ? ringTexts() : null);
     if (!st) {
       if (btn.textContent !== stickyOrig.text) { btn.textContent = stickyOrig.text; btn.onclick = stickyOrig.click; updateBag(); }
@@ -392,12 +433,13 @@
     try { render(typeof active !== 'undefined' && active ? DATA.filter(function (d) { return d.color_en === active; }) : DATA); } finally { inRerender = false; }
   }
   function famCardHTML(c, st) {
-    var line = sfPriceLine(c.barcode, window), key = sfPoolKey(L(), false, line.p), w = window.klWindow, R = isRing(c.barcode) ? ringTexts() : null;
+    var line = sfPriceLine(c.barcode, window), key = sfPoolKey(L(), !!c.grad, line.p), w = window.klWindow, R = isRing(c.barcode) ? ringTexts() : null;
     return sfFamCard(c, st, { line: line, badge: sfFromBadge(L(), key), ship: R ? R.ship : cardShipText(), shipKey: R ? 'ringship' : null, note: R ? R.design : null, dis: stockErr,
       full: inBag(c.barcode) >= (window.klAvail ? window.klAvail(c.barcode) : 0),
       why: w && w.open === false ? (w.message || 'Online orders are closed right now.') : 'This piece is fully reserved for now.' });
   }
   function renderFam(has) {
+    if (tab === 'gifts') return renderGifts(has);
     var sk = sub[tab] || 'all', sl = (SF_SUBS[tab] || []).filter(function (x) { return x.k === sk; })[0];
     $('#klFamTitle').textContent = SF_TITLE[tab] + (sl ? ' · ' + sl.label : '');
     $('#klErr').hidden = !stockErr;
@@ -411,9 +453,18 @@
     $('#klFamCount').textContent = list.length + ' pieces · ' + avail + ' available now';
     g.innerHTML = list.map(function (x) { return famCardHTML(x.c, x.s); }).join('');
   }
+  function renderGifts(has) {
+    $('#klFamTitle').textContent = SF_TITLE.gifts;
+    $('#klErr').hidden = !stockErr;
+    var g = $('#klFamGrid'), rows = has ? giftRows() : [];
+    $('#klEmpty').hidden = has;
+    if (!has) { g.innerHTML = ''; $('#klFamCount').textContent = ''; return; }
+    $('#klFamCount').textContent = 'Gift picks from across the shop';   // one line at 375 px (the chip carries the count); no % here: every card carries its single price + the 10+ condition (K-046)
+    g.innerHTML = rows.map(function (r) { if (r.h) return '<h3 class="kl-gh">' + sfEsc(r.h) + '</h3>'; var c = giftCard(r.bc); return famCardHTML(c, giftState(c)); }).join('');
+  }
   function refreshFamButtons() {   // in place: keeps keyboard focus (prototype fix D1)
     $$('#klFamGrid [data-kl-add]').forEach(function (b) {
-      var bc = b.dataset.bc, c = FAMBY[bc]; if (!c) return; var st = famState(c); if (st !== 'sellable' && st !== 'single') return;
+      var bc = b.dataset.bc, c = tab === 'gifts' ? giftCard(bc) : FAMBY[bc]; if (!c) return; var st = tab === 'gifts' ? giftState(c) : famState(c); if (st !== 'sellable' && st !== 'single') return;
       var full = inBag(bc) >= (window.klAvail ? window.klAvail(bc) : 0), dis = stockErr || full;
       b.disabled = dis; if (dis) b.setAttribute('aria-disabled', 'true'); else b.removeAttribute('aria-disabled');
       b.textContent = sfAddText(priceP(bc), full, stockErr);
@@ -557,7 +608,14 @@
       return ok;
     });
   }
+  function loadGifts() {   // no gifts file / a bad file = no Gifts chip; never blocks the other tabs
+    return fetch('/data/gifts.json', { cache: 'no-cache' }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { GIFTDOC = d && Array.isArray(d.sections) ? d : null; }, function () { GIFTDOC = null; });
+  }
   function loadCards() {
+    return Promise.all([loadGifts(), loadCardsJson()]);
+  }
+  function loadCardsJson() {
     return fetch('/data/cards.json', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error('cards ' + r.status); return r.json(); })
       .then(function (doc) {
         FAM = (doc && Array.isArray(doc.cards) ? doc.cards : []).filter(function (c) { return c && c.barcode && SF_TABS.indexOf(c.tab) > 0; });
