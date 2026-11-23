@@ -94,7 +94,9 @@ test('K-045/K-056: the referee-passed renders only (Karmi 08 A + L2 + 11 Showabl
   const { statSync } = await import('node:fs')
   const CARDS = JSON.parse(read('../data/cards.json')).cards
   // hair clips 1849-1865 + claws 0301xxxx withdrawn 23 Nov (owner: on-model renders do not sit right; tests/hair-no-onmodel)
-  const SHOW = '2023 2040 1468 1472 1474 1477 0624 6159 6170 6180 2000 6008 80012 80043 7058 7056 6095 6091 81004 81006 81009 81013 81014 6002 6009 6011 6017 6042 6058'.split(' ')
+  // G12-1 v2 (calibrated, 23 Nov, morning_review/36_g12_calibration): 0624 render cyan vs real navy -> measured-colour tile, still sellable
+  { const c = CARDS.find((x) => x.barcode === '0624'); assert.equal(c.photo, null); assert.equal(c.tile_sellable, true); assert.ok(!c.ai_image); assert.equal(c.swatch, '#3c637a') }
+  const SHOW = '2023 2040 1468 1472 1474 1477 6159 6170 6180 2000 6008 80012 80043 7058 7056 6095 6091 81004 81006 81009 81013 81014 6002 6009 6011 6017 6042 6058'.split(' ')
   assert.ok(!CARDS.some((c) => c.barcode === '6093'), '6093 failed the referees')
   assert.deepEqual(CARDS.filter((c) => c.photo_qc).map((c) => c.barcode).sort(), [...SHOW].sort())
   for (const c of CARDS.filter((x) => x.photo_qc)) {
