@@ -49,8 +49,10 @@ The default file = the live behaviour on 23 Nov 2026: nothing changes for custom
 
 1. Edit `ladders.json` only (and bump `version`). Adding a 20 step, keeping only 1 and 10, or removing 2/3/5 is a
    table change; no code change.
-2. Until the page reads `/api/stock` `ladders` (PR-2), also change `index.html` `DENOMS` / `PRICE` / `FREE_SHIP`
-   and the shipping text; `tests/ladders.test.mjs` fails if page and table disagree.
+2. Also change `index.html` `DENOMS` / `PRICE` (pricing block) and the `SHIP` fallback (delivery block). The page's
+   delivery texts, the rolling bag total and the "n for £x" prices read `/api/stock` `ladders` at runtime, but the static
+   texts (meta descriptions, footer/announce fallbacks, `shipping-returns.html`) must be edited by hand:
+   `tests/ladders.test.mjs` and `tests/delivery.test.mjs` fail if page and table disagree.
 3. `npm test`. A table that does not validate never charges: `/api/checkout` answers 503 before reserving anything,
    `/api/stock` serves `ladders: null`.
 
@@ -71,5 +73,7 @@ The default file = the live behaviour on 23 Nov 2026: nothing changes for custom
 
 ## Changelog
 
+- 2026-11-23 — Delivery fee display (CMA209 §5.14/5.17–5.21): delivery-inclusive rolling bag total, fee next to
+  every price and every free-delivery claim, "6 for £14.99" from the table. Display only; no price or amount changed.
 - 2026-11-23 — PR-1 ladder engine: table-driven pools, monotonic rule, shipping block, `rules` extension point,
   `progress()`, `ladders` in `/api/stock`. Default table = live behaviour (before/after diff empty).

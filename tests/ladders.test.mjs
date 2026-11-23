@@ -86,8 +86,11 @@ test('page pricing block mirrors the table: DENOMS, PRICE and FREE_SHIP in index
   const tableDenoms = [...Object.entries(gp.bundles).map(([q, c]) => [Number(q), c]), [1, gp.single]].sort((a, b) => b[0] - a[0])
   assert.deepEqual(pageDenoms, tableDenoms, 'change index.html DENOMS together with ladders.json (until the page reads /api/stock ladders)')
   assert.equal(Math.round(Number(html.match(/\],\s*PRICE=([\d.]+);/)[1]) * 100), gp.single)
-  assert.equal(Math.round(Number(html.match(/const FREE_SHIP=([\d.]+);/)[1]) * 100), RAW_LIVE.shipping.free_threshold_pence)
-  assert.ok(/£1\.49 <span class="note">· free over £12 or 5-stack/.test(html), 'page shipping text still matches the table (fee £1.49, £12, 5 items)')
+  // shipping: the page's fallback SHIP (KL-DELIVERY block) = the table; the texts themselves: tests/delivery.test.mjs
+  const ship = html.match(/const SHIP=\{freeP:(\d+), feeP:(\d+), freeQty:(\d+|null)\};/)
+  assert.equal(Number(ship[1]), RAW_LIVE.shipping.free_threshold_pence)
+  assert.equal(Number(ship[2]), RAW_LIVE.shipping.below_threshold_fee_pence)
+  assert.equal(ship[3] === 'null' ? null : Number(ship[3]), RAW_LIVE.shipping.free_at_qty.enabled ? RAW_LIVE.shipping.free_at_qty.qty : null)
 })
 
 // ---------- 2. the same checks on fixtures A / B / C ----------
