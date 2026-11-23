@@ -2,7 +2,7 @@
 //   1. LIVE DEFAULT UNCHANGED: what index.html shows/charges with today's ladders.json is byte-identical to the page before
 //      the M1 code (sha256 of tests/fixtures/page-snapshot.mjs liveRecord, taken on c3be709).
 //   2. M1 (mode cart_qty_groups) page = server: cart total, cartSummary, delivery, the "Add 1 more" cliff line, penny-exact.
-//   3. S1 texts: "£8 each · £2.40 each when you buy 10 or more"; every "free with 10+" names the £1.49 fee; no %,
+//   3. S1 texts: "£8 each · £2.40 each when you buy any 10 or more items"; every "free with 10+" names the £1.49 fee; no %,
 //      no strike-through, no "save".
 //   4. Go-live guard: M1 runs only when ladders.json (or a preview table) is in mode cart_qty_groups; the page's
 //      M1_FALLBACK must equal the served table once ladders.json is switched (docs/GO_LIVE_M1.md).
@@ -133,16 +133,16 @@ test('M1 cart lines (Komuta rule): figure from THIS cart; "drops/becomes" only w
 
 test('M1 texts (S1): card/modal price, delivery, static swaps; no %, strike-through or "save"', () => {
   const p = m1Page()
-  assert.equal(p.m1PriceText(G1), '£8 each · £2.40 each when you buy 10 or more')
-  assert.equal(p.m1PriceText('SA'), '£5 each · £1.50 each when you buy 10 or more')
+  assert.equal(p.m1PriceText(G1), '£8 each · £2.40 each when you buy any 10 or more items')
+  assert.equal(p.m1PriceText('SA'), '£5 each · £1.50 each when you buy any 10 or more items')
   assert.equal(p.m1PriceText('NG'), '')
-  assert.equal(p.shipSentence(), '£1.49 UK delivery · free with 10+ items')
-  assert.equal(p.cardShipText(), '+ £1.49 UK delivery · free with 10+ items')
+  assert.equal(p.shipSentence(), '£1.49 UK delivery · free with any 10+ items')
+  assert.equal(p.cardShipText(), '+ £1.49 UK delivery · free with any 10+ items')
   assert.deepEqual({ ...p.SHIP }, { freeP: null, feeP: 149, freeQty: 10 })
   const T = p.m1Texts()
   assert.equal(T.hero, '£8')
-  assert.equal(T.count(38), '38 shades · £8 each · £2.40 each when you buy 10 or more')
-  assert.match(T.cta, /£8 each · £2\.40 each when you buy 10 or more · <span data-kl="ship">£1\.49 UK delivery · free with 10\+ items<\/span>/)
+  assert.equal(T.count(38), '38 shades · £8 each · £2.40 each when you buy any 10 or more items')
+  assert.match(T.cta, /£8 each · £2\.40 each when you buy any 10 or more items · <span data-kl="ship">£1\.49 UK delivery · free with any 10\+ items<\/span>/)
   assert.match(T.each, /data-kl="fee1">\+ £1\.49 UK delivery</)
   const all = [T.hero, T.cta, T.each, T.faqq, T.faqa, p.m1PriceText(G1), p.shipSentence(), p.cardShipText(), p.m1Lines([{ bc: G1, qty: 9 }]).progress].join(' | ')
   assert.doesNotMatch(all, /%|<s>|<del>|\bsave|saving|was £|instead of/i)

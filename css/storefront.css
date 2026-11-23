@@ -19,6 +19,24 @@ html.kl-v2, html.kl-v2 body{overflow-x:clip}
 .kl-tabs [role=tab]:focus-visible{outline:2px solid var(--ink); outline-offset:-4px}
 html.kl-v2 .swatchbar{top:50px}
 @media(max-width:860px){.kl-tabs{justify-content:flex-start; padding:0 16px}}
+/* the row scrolls sideways (only the row, never the page); a fade + chevron on the side that has more (set by
+   storefront.js tabScroll from the row's scroll position); the selected tab is scrolled into view */
+.kl-tabs{position:relative; overscroll-behavior-x:contain}
+.kl-tabbar::before, .kl-tabbar::after{position:absolute; top:0; bottom:0; width:44px; pointer-events:none; opacity:0;
+  transition:opacity .2s; z-index:1; display:flex; align-items:center; font-size:22px; line-height:1; color:var(--ink)}
+.kl-tabbar::before{content:"\2039"; left:0; justify-content:flex-start; padding-left:5px;
+  background:linear-gradient(90deg, rgba(250,247,241,1) 40%, rgba(250,247,241,0))}
+.kl-tabbar::after{content:"\203A"; right:0; justify-content:flex-end; padding-right:5px;
+  background:linear-gradient(270deg, rgba(250,247,241,1) 40%, rgba(250,247,241,0))}
+.kl-tabbar.kl-more-l::before, .kl-tabbar.kl-more-r::after{opacity:1}
+@media(max-width:560px){
+  .kl-tabs{gap:2px}
+  .kl-tabs [role=tab]{padding:0 10px; letter-spacing:.1em; min-width:44px}
+}
+/* K-045: a referee-passed AI-styled render is labelled in real text under the image (12 px, #6b6457 = 5.5:1 on the page) */
+.kl-ai{font-size:12px; line-height:1.3; color:#6b6457; letter-spacing:.02em; margin:0 0 6px}
+/* Gradient-only copy (story band, bracelet FAQs) is hidden on the other tabs (storefront.js renderTabs) */
+.kl-goff{display:none !important}
 
 /* ---- colour chips: 44 px targets, the bundle chip first on mobile (V-01) ---- */
 html.kl-v2 .sw{min-height:44px}

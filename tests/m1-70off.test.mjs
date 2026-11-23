@@ -43,8 +43,8 @@ test('#1 the % comes from the data: A 500/150, B 800/240, C 1300/390 = 70; any o
   assert.equal(pctOff(T.groups.B, T), null)
   assert.equal(pctOff(T.groups.A, T), 70)
   const p = page(T)
-  assert.equal(p.m1PriceText(G1), '£8 each · £2.50 each when you buy 10 or more')
-  assert.equal(p.m1PriceText('SA'), '£5 each · 70% off when you buy 10+ (£1.50 each)')
+  assert.equal(p.m1PriceText(G1), '£8 each · £2.50 each when you buy any 10 or more items')
+  assert.equal(p.m1PriceText('SA'), '£5 each · 70% off when you buy any 10+ items (£1.50 each)')
   for (let q = 1; q <= 14; q++) {
     const L = p.m1Lines([{ bc: G1, qty: q }])
     assert.doesNotMatch([L.progress, L.applied].join(' '), /%/, `B@£2.50 q=${q}`)
@@ -61,19 +61,19 @@ test('#1 the % comes from the data: A 500/150, B 800/240, C 1300/390 = 70; any o
   assert.doesNotMatch(page(T60).m1PriceText(G1), /%/)
 })
 
-test('#2 card: "£8 each · 70% off when you buy 10+ (£2.40 each)" - single price first, condition + 10+ price on the same line', () => {
+test('#2 card: "£8 each · 70% off when you buy any 10+ items (£2.40 each)" - single price first, condition + 10+ price on the same line', () => {
   const p = page(M1P)
-  assert.equal(p.m1PriceText(G1), '£8 each · 70% off when you buy 10+ (£2.40 each)')
-  assert.equal(p.m1PriceText('SA'), '£5 each · 70% off when you buy 10+ (£1.50 each)')
-  assert.equal(p.m1PriceText('SC'), '£13 each · 70% off when you buy 10+ (£3.90 each)')
-  assert.match(p.m1PriceHtml(G1), /<span class="m1p">£8<\/span> each<\/span><span class="m1t"> · 70% off when you buy 10\+ \(£2\.40 each\)<\/span>/)
+  assert.equal(p.m1PriceText(G1), '£8 each · 70% off when you buy any 10+ items (£2.40 each)')
+  assert.equal(p.m1PriceText('SA'), '£5 each · 70% off when you buy any 10+ items (£1.50 each)')
+  assert.equal(p.m1PriceText('SC'), '£13 each · 70% off when you buy any 10+ items (£3.90 each)')
+  assert.match(p.m1PriceHtml(G1), /<span class="m1p">£8<\/span> each<\/span><span class="m1t"> · 70% off when you buy any 10\+ items \(£2\.40 each\)<\/span>/)
   const T = p.m1Texts()
-  assert.equal(T.count(38), '38 shades · £8 each · 70% off when you buy 10+ (£2.40 each)')
-  assert.equal(T.meta, '£8 each · 70% off when you buy 10+ (£2.40 each)')
-  assert.match(T.each, /<b>£8<\/b> each · 70% off at 10\+ \(£2\.40 each\) <span class="dl" data-kl="fee1">\+ £1\.49 UK delivery<\/span>/)
-  assert.equal(T.faqq, 'How does 70% off at 10+ work?')
+  assert.equal(T.count(38), '38 shades · £8 each · 70% off when you buy any 10+ items (£2.40 each)')
+  assert.equal(T.meta, '£8 each · 70% off when you buy any 10+ items (£2.40 each)')
+  assert.match(T.each, /<b>£8<\/b> each · 70% off when you buy any 10\+ items \(£2\.40 each\) <span class="dl" data-kl="fee1">\+ £1\.49 UK delivery<\/span>/)
+  assert.equal(T.faqq, 'How does 70% off when you buy any 10+ items work?')
   assert.match(T.faqa, /Every bracelet is <b>£8 each<\/b>.*you get <b>70% off every item<\/b>: <b>£2\.40 each<\/b>.*Under 10 items, UK delivery is £1\.49/)
-  assert.equal(p.m1TierHint(3), '£8 each · 70% off when you buy 10+ (£2.40 each) · + £1.49 UK delivery · free with 10+ items')
+  assert.equal(p.m1TierHint(3), '£8 each · 70% off when you buy any 10+ items (£2.40 each) · + £1.49 UK delivery · free with any 10+ items')
   assert.equal(p.m1TierHint(10), '£2.40 each (70% off) · free UK delivery included')
 })
 
@@ -152,12 +152,12 @@ test('#9 K-08 words: no "Diamond" / "Lux Stone" in the served group labels', () 
 
 test('page CTA: card form + the delivery sentence once (the ad line stays out of the page copy)', () => {
   const T = page(M1P).m1Texts()
-  assert.equal(T.cta, 'Mix any shades · £8 each · 70% off when you buy 10+ (£2.40 each) · <span data-kl="ship">£1.49 UK delivery · free with 10+ items</span>')
+  assert.equal(T.cta, 'Mix any shades · £8 each · 70% off when you buy any 10+ items (£2.40 each) · <span data-kl="ship">£1.49 UK delivery · free with any 10+ items</span>')
   assert.equal((T.cta.match(/delivery/g) || []).length, 1)
   // ad line (marketing, K&D #8): condition + from-price + delivery in one frame
   assert.equal(T.ad, 'Buy 10+, get 70% off · from £2.40 each · free UK delivery')
   const S = page(NOPCT).m1Texts()
-  assert.equal(S.cta, 'Mix any shades · £8 each · £2.40 each when you buy 10 or more · <span data-kl="ship">£1.49 UK delivery · free with 10+ items</span>')
+  assert.equal(S.cta, 'Mix any shades · £8 each · £2.40 each when you buy any 10 or more items · <span data-kl="ship">£1.49 UK delivery · free with any 10+ items</span>')
   assert.equal(S.ad, null)
 })
 

@@ -392,9 +392,11 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 @keyframes rise{to{opacity:1; transform:none}}
 .fadein{opacity:0; animation:rise 1s forwards}
 .d1{animation-delay:.1s}.d2{animation-delay:.26s}.d3{animation-delay:.42s}.d4{animation-delay:.58s}
-@media(max-width:840px){.hero{grid-template-columns:1fr; gap:24px}.hero-img{order:-1}}
+@media(max-width:840px){.hero{grid-template-columns:1fr; gap:24px}.hero-img{order:-1} .hero-copy{padding:0 26px}}
 @media(max-width:560px){
   .wrap{padding:0 16px} .grid{grid-template-columns:repeat(2,1fr); gap:20px 12px}
+  .hero-copy{padding:0 16px}   /* side gutter for the hero text + buttons (the photo stays edge to edge) */
+  .logo{font-size:min(58px,12.5vw)}   /* the logo clears the BAG pill at 360-430 px */
   .cbody .nm{font-size:18px} .sbi{gap:16px}
   .bundlecta{flex-direction:column; align-items:stretch; text-align:center}
 }
@@ -452,13 +454,13 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 .sw.sold-out{display:none !important}
 .hide{display:none}
 </style>
-<meta name="description" content="Karmi Laven crystal bracelets — 15 gradient shades, £8 each · £2.40 each when you buy 10 or more (mix any shades). Faceted crystal beads, shipped in 2–5 days. £1.49 UK delivery · free with 10+ items.">
+<meta name="description" content="Karmi Laven crystal bracelets — 15 gradient shades, £8 each · £2.40 each when you buy any 10 or more items (mix any shades). Faceted crystal beads, shipped in 2–5 days. £1.49 UK delivery · free with any 10+ items.">
 <link rel="canonical" href="https://www.karmilaven.com/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Karmi Laven">
 <meta property="og:url" content="https://www.karmilaven.com/">
 <meta property="og:title" content="Karmi Laven — The Gradient Edit · Crystal Bracelets · £8 each">
-<meta property="og:description" content="15 hand-strung crystal shades. Champagne to cobalt — find your colour. £1.49 UK delivery · free with 10+ items.">
+<meta property="og:description" content="15 hand-strung crystal shades. Champagne to cobalt — find your colour. £1.49 UK delivery · free with any 10+ items.">
 <meta property="og:image" content="https://www.karmilaven.com/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -466,7 +468,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@karmilaven">
 <meta name="twitter:title" content="Karmi Laven — Crystal Bracelets · £8 each">
-<meta name="twitter:description" content="15 hand-strung crystal shades. Find your colour. £1.49 UK delivery · free with 10+ items.">
+<meta name="twitter:description" content="15 hand-strung crystal shades. Find your colour. £1.49 UK delivery · free with any 10+ items.">
 <meta name="twitter:image" content="https://www.karmilaven.com/og-image.jpg">
 </head>
 <body>
@@ -477,7 +479,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
     <button class="cb-btn accept" onclick="cookieChoice(true)">Accept</button>
   </div>
 </div>
-<div class="announce">Ships within 1–2 business days · <span data-kl="ship">£1.49 UK delivery · free with 10+ items</span></div>
+<div class="announce">Ships within 1–2 business days · <span data-kl="ship">£1.49 UK delivery · free with any 10+ items</span></div>
 
 <nav>
   <div class="logo">Karmi Laven</div>
@@ -496,7 +498,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
       <button class="btn ghost" onclick="document.getElementById('palette').scrollIntoView({behavior:'smooth'})">Shop by colour</button>
     </div>
     <div class="launch fadein d3"><span>Online price</span><span class="p" data-kl-m1="hero">£8</span><span class="lbl">Ships within 1–2 business days</span></div>
-    <div class="launchfee fadein d3" data-kl="cardship">+ £1.49 UK delivery · free with 10+ items</div>
+    <div class="launchfee fadein d3" data-kl="cardship">+ £1.49 UK delivery · free with any 10+ items</div>
     <div class="spectrum fadein d4" id="spectrum"></div>
   </div>
   <div class="hero-img fadein d2">
@@ -527,7 +529,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 
 <main class="wrap collection" id="palette">
   <div class="bundlecta">
-    <div><div class="t">Build your <em>gradient stack</em></div><div class="s" data-kl-m1="cta">Mix any shades · £8 each · 70% off when you buy 10+ (£2.40 each) · <span data-kl="ship">£1.49 UK delivery · free with 10+ items</span></div></div>
+    <div><div class="t">Build your <em>gradient stack</em></div><div class="s" data-kl-m1="cta">Mix any shades · £8 each · 70% off when you buy any 10+ items (£2.40 each) · <span data-kl="ship">£1.49 UK delivery · free with any 10+ items</span></div></div>
     <button class="btn" onclick="openBundle()">Build your bundle</button>
   </div>
   <div class="bundletrust">Backed by <b>Melbe Home</b> · shops in Watford &amp; Guildford · secure Stripe checkout · 14-day returns</div>
@@ -544,7 +546,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
   <div class="row">
     <div class="it"><b>15</b> shades</div>
     <div class="it"><b>4mm</b> crystal</div>
-    <div class="it" data-kl-m1="each"><b>£8</b> each · 70% off at 10+ (£2.40 each) <span class="dl" data-kl="fee1">+ £1.49 UK delivery</span></div>
+    <div class="it" data-kl-m1="each"><b>£8</b> each · 70% off when you buy any 10+ items (£2.40 each) <span class="dl" data-kl="fee1">+ £1.49 UK delivery</span></div>
   </div>
 </section>
 
@@ -553,7 +555,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
   <details class="faqitem"><summary>When will my order arrive?</summary><p>Orders ship within 1–2 business days and arrive in 2–5 business days via Royal Mail. You're charged securely at checkout.</p></details>
   <details class="faqitem"><summary>What size are they?</summary><p data-kl-m1="faqsize">Each bracelet sits on a fine gold-tone chain that fastens with a clasp and a loop extender chain, comfortable from roughly 14–19cm.</p></details>
   <details class="faqitem"><summary>What are they made of?</summary><p data-kl-m1="faqmade">4mm faceted crystal beads on a gold-tone chain with a single delicate charm.</p></details>
-  <details class="faqitem"><summary>Shipping &amp; delivery?</summary><p><span data-kl="ship">£1.49 UK delivery · free with 10+ items</span>. Delivery 2–5 business days after dispatch.</p></details>
+  <details class="faqitem"><summary>Shipping &amp; delivery?</summary><p><span data-kl="ship">£1.49 UK delivery · free with any 10+ items</span>. Delivery 2–5 business days after dispatch.</p></details>
 </section>
 
 <section class="reviews wrap hide" id="reviews">
@@ -591,13 +593,13 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
       </div>
 
       <div class="faq">
-        <p class="faq-q" data-kl-m1="faqq">How does 70% off at 10+ work?</p>
-        <p class="faq-a" data-kl-m1="faqa">Every bracelet is <b>£8 each</b>. Put <b>10 or more</b> items in your bag (mix any shades) and you get <b>70% off every item</b>: <b>£2.40 each</b>, with free UK delivery. Under 10 items, UK delivery is £1.49. The 10+ price is applied automatically in your bag; promo codes can’t be added to it.</p>
+        <p class="faq-q" data-kl-m1="faqq">How does 70% off when you buy any 10+ items work?</p>
+        <p class="faq-a" data-kl-m1="faqa">Every bracelet is <b>£8 each</b>. Put <b>any 10 or more items</b> in your bag (mix any shades) and you get <b>70% off every item</b>: <b>£2.40 each</b>, with free UK delivery. Under 10 items, UK delivery is £1.49. The 10+ price is applied automatically in your bag; promo codes can’t be added to it.</p>
       </div>
 
       <div class="faq">
         <p class="faq-q">When will my order arrive?</p>
-        <p class="faq-a">We ship from our Watford shop within 1–2 business days. Standard UK delivery takes 2–5 days. <b data-kl="ship">£1.49 UK delivery · free with 10+ items</b>.</p>
+        <p class="faq-a">We ship from our Watford shop within 1–2 business days. Standard UK delivery takes 2–5 days. <b data-kl="ship">£1.49 UK delivery · free with any 10+ items</b>.</p>
       </div>
 
       <div class="faq">
@@ -629,7 +631,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
     <a href="https://www.instagram.com/karmilaven/" target="_blank" rel="noopener">Instagram</a>
   </div>
   <div class="legal">Karmi Laven is operated by <b>Melbe Home UK Ltd</b>, registered in England and Wales, company number 15549022. Registered office: 8 Turner Court, High Street, Berkhamsted, HP4 3ZE. · VAT 513559785 · hello@karmilaven.com · We reply within 1 business day.</div>
-  <div class="fbot">© 2026 Karmi Laven · <a href="/terms.html">Terms</a> · <span data-kl="ship">£1.49 UK delivery · free with 10+ items</span> · <a href="/">karmilaven.com</a></div>
+  <div class="fbot">© 2026 Karmi Laven · <a href="/terms.html">Terms</a> · <span data-kl="ship">£1.49 UK delivery · free with any 10+ items</span> · <a href="/">karmilaven.com</a></div>
 </footer>
 
 <div class="ovl" id="ovl"></div>
@@ -672,7 +674,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
   <div class="cart-items" id="cartItems"></div>
   <div class="cart-foot">
     <div class="shipbar"><i id="shipFill"></i></div>
-    <div class="cart-ship" id="cartShip" data-kl-progress aria-live="polite">£1.49 UK delivery · free with 10+ items</div>
+    <div class="cart-ship" id="cartShip" data-kl-progress aria-live="polite">£1.49 UK delivery · free with any 10+ items</div>
     <div class="cart-m1" id="cartM1" aria-live="polite" hidden></div>
     <div class="cart-sub"><span>Subtotal</span><span id="cartSub">£0.00</span></div>
     <div class="cart-shipline" id="cartShipLine"><span>UK delivery</span><span id="cartShipVal">£1.49</span></div>
@@ -978,8 +980,8 @@ function deliveryFor(subP, units){
 }
 function gbpP(p){ return '£'+(p/100).toFixed(2); }
 function gbpShort(p){ return p%100===0 ? '£'+(p/100) : gbpP(p); }
-function shipSentence(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with '+SHIP.freeQty+'+ items':''); return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery, free on orders of '+gbpShort(SHIP.freeP)+'+'+(SHIP.freeQty?' (or '+SHIP.freeQty+'+ items)':''); }
-function cardShipText(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with '+SHIP.freeQty+'+ items':''); return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery · free on orders of '+gbpShort(SHIP.freeP)+'+'+(SHIP.freeQty?' or '+SHIP.freeQty+'+ items':''); }
+function shipSentence(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with any '+SHIP.freeQty+'+ items':''); return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery, free on orders of '+gbpShort(SHIP.freeP)+'+'+(SHIP.freeQty?' (or '+SHIP.freeQty+'+ items)':''); }
+function cardShipText(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with any '+SHIP.freeQty+'+ items':''); return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery · free on orders of '+gbpShort(SHIP.freeP)+'+'+(SHIP.freeQty?' or '+SHIP.freeQty+'+ items':''); }
 function rollingText(subP, units){
   if(!(units>0)) return '';
   const d=deliveryFor(subP,units);
@@ -1064,10 +1066,10 @@ function m1Lines(lines){
   }
   return out;
 }
-// Card / modal price (S1): "£8 each · £2.40 each when you buy 10 or more".
-// with an exact owner-approved percentage (K-046) the tier part reads "<pct>% off when you buy 10+ (£2.40 each)"
+// Card / modal price (S1): "£8 each · £2.40 each when you buy any 10 or more items" (K-047 'any 10 items').
+// with an exact owner-approved percentage (K-046) the tier part reads "<pct>% off when you buy any 10+ items (£2.40 each)"
 function m1TierText(gr){ const t=m1T(), from=t.cart_qty_tier.from, p=m1Pct(gr);
-  return p!==null ? p+'% off when you buy '+from+'+ ('+gbpShort(gr.tier_each)+' each)' : gbpShort(gr.tier_each)+' each when you buy '+from+' or more'; }
+  return p!==null ? p+'% off when you buy any '+from+'+ items ('+gbpShort(gr.tier_each)+' each)' : gbpShort(gr.tier_each)+' each when you buy any '+from+' or more items'; }
 function m1PriceText(bc){ const t=m1T(), g=m1Group(bc); if(!g) return '';
   const gr=t.groups[g]; return gbpShort(gr.single)+' each · '+m1TierText(gr); }
 function m1PriceHtml(bc){ const t=m1T(), g=m1Group(bc); if(!g) return '';
@@ -1093,9 +1095,9 @@ function m1Texts(){
     mdesc: 'A single thread of 4mm crystal beads on a gold-tone chain with a delicate charm. Wear it alone, or stack it into the gradient.',
     // the ad line (T.ad) is for ads/marketing only; on the page the CTA keeps the card form + the delivery sentence once
     cta: 'Mix any shades · '+s+' each · '+tt+' · <span data-kl="ship">'+shipSentence()+'</span>',
-    each: '<b>'+s+'</b> each · '+(p!==null?p+'% off at '+from+'+ ('+e+' each)':e+' each at '+from+'+')+' <span class="dl" data-kl="fee1">'+fee+'</span>',
-    faqq: p!==null ? 'How does '+p+'% off at '+from+'+ work?' : 'How does the '+from+'+ price work?',
-    faqa: 'Every bracelet is <b>'+s+' each</b>. Put <b>'+from+' or more</b> items in your bag (mix any shades) and '+(p!==null?'you get <b>'+p+'% off every item</b>: <b>'+e+' each</b>':'every item is <b>'+e+' each</b>')+', with free UK delivery. Under '+from+' items, UK delivery is '+gbpP(SHIP.feeP)+'. The '+from+'+ price is applied automatically in your bag; promo codes can’t be added to it.',
+    each: '<b>'+s+'</b> each · '+(p!==null?p+'% off when you buy any '+from+'+ items ('+e+' each)':e+' each when you buy any '+from+' or more items')+' <span class="dl" data-kl="fee1">'+fee+'</span>',
+    faqq: p!==null ? 'How does '+p+'% off when you buy any '+from+'+ items work?' : 'How does the '+from+'+ price work?',
+    faqa: 'Every bracelet is <b>'+s+' each</b>. Put <b>any '+from+' or more items</b> in your bag (mix any shades) and '+(p!==null?'you get <b>'+p+'% off every item</b>: <b>'+e+' each</b>':'every item is <b>'+e+' each</b>')+', with free UK delivery. Under '+from+' items, UK delivery is '+gbpP(SHIP.feeP)+'. The '+from+'+ price is applied automatically in your bag; promo codes can’t be added to it.',
     count: (n)=>n+' shades · '+s+' each · '+tt,
   };
 }
@@ -1142,7 +1144,7 @@ function m1Foot(){
   document.getElementById('cartSub').textContent=q?gbpP(s.charged_pence):'—';   // K-11: no '£0.00' on screen
   // CMA209 §5.21: the fee sits in the SAME element as the 'free with 10+' claim
   document.getElementById('cartShipVal').innerHTML = dlv.free ? '<span class="free">FREE ✓</span>'
-    : (SHIP.freeQty?'<span class="note">'+gbpP(SHIP.feeP)+' UK delivery · free with '+SHIP.freeQty+'+ items</span>':gbpP(SHIP.feeP));
+    : (SHIP.freeQty?'<span class="note">'+gbpP(SHIP.feeP)+' UK delivery · free with any '+SHIP.freeQty+'+ items</span>':gbpP(SHIP.feeP));
   document.getElementById('cartTotal').textContent=q?gbpP(dlv.totalP):'—';
   const band=document.getElementById('cartShip');
   if(L.progress) band.innerHTML='<b>'+L.progress+'</b> <button class="nudge-add" type="button" onclick="nudgeAddOne()">＋ Add</button>';
@@ -1459,7 +1461,7 @@ var SHOW_REVIEWS = false;
   "@type": "ProductCollection",
   "name": "Karmi Laven Crystal Bracelets",
   "url": "https://www.karmilaven.com/",
-  "description": "Faceted crystal bracelets in 15 gradient shades, £8 each or £2.40 each when you buy 10 or more.",
+  "description": "Faceted crystal bracelets in 15 gradient shades, £8 each or £2.40 each when you buy any 10 or more items.",
   "brand": {
     "@type": "Brand",
     "name": "Karmi Laven"
@@ -1473,7 +1475,7 @@ var SHOW_REVIEWS = false;
       "@type": "OfferShippingDetails",
       "shippingRate": { "@type": "MonetaryAmount", "value": "1.49", "currency": "GBP" },
       "shippingDestination": { "@type": "DefinedRegion", "addressCountry": "GB" },
-      "description": "£1.49 UK delivery · free with 10+ items"
+      "description": "£1.49 UK delivery · free with any 10+ items"
     },
     "seller": {
       "@type": "Organization",
