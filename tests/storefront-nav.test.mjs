@@ -173,3 +173,15 @@ test('CMA209: every priced card (Gradient + family) and the bag keep the deliver
   for (const e of lines) assert.match(e.textContent, DELIVERY)
   for (const e of [...doc.body.walk()].filter((x) => x.tagName === '#TEXT' && /\bfree\b/i.test(x.text))) assert.match(e.parentNode.textContent, /£1\.49/, e.text)
 })
+
+test('CMA209: every fee1 delivery span (card each-line, sticky bar, family sticky) names the 10+ free condition', async () => {
+  const { readFileSync } = await import('node:fs')
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  const spans = [...html.matchAll(/data-kl="fee1">([^<]*)</g)].map((m) => m[1])
+  assert.ok(spans.length >= 2)
+  for (const s of spans.filter((x) => !x.startsWith("'+"))) assert.match(s, /£1\.49 UK delivery · free with any 10\+ items/, s)   // static spans; JS-built ones use cardShipText() (asserted below)
+  assert.match(html, /const fee=cardShipText\(\);/)
+  assert.match(html, /\[data-kl="fee1"\]'\)\.forEach\(e=>\{e\.textContent=cardShipText\(\);/)
+  const sf = readFileSync(new URL('../js/storefront.js', import.meta.url), 'utf8')
+  assert.match(sf, /data-kl="fee1">' \+ \(typeof window !== 'undefined' && typeof window\.cardShipText === 'function' \? window\.cardShipText\(\)/)
+})

@@ -118,7 +118,7 @@
    *  the button takes the shopper back to the tab's pieces (the bundle builder is Gradient-only). */
   function sfSticky(tab, minP, feeP) {
     if (tab === 'gradient' || SF_TABS.indexOf(tab) < 0) return null;
-    var fee = '<span class="dl" data-kl="fee1">' + (feeP ? '+ ' + sfMoney(feeP) + ' UK delivery' : 'Free UK delivery') + '</span>';
+    var fee = '<span class="dl" data-kl="fee1">' + (typeof window !== 'undefined' && typeof window.cardShipText === 'function' ? window.cardShipText() : (feeP ? '+ ' + sfMoney(feeP) + ' UK delivery' : 'Free UK delivery')) + '</span>';   // CMA209: fee + 10+ condition
     return { info: (minP > 0 ? 'From <b>' + sfMoney(minP) + '</b> each' : '') + fee, btn: 'Shop ' + SF_TITLE[tab] };
   }
   /*KL-SF-CORE-END*/
