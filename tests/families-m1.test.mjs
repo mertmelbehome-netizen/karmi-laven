@@ -93,7 +93,8 @@ test('new storefront copy keeps K-08 wording rules', () => {
 test('K-045/K-056: the referee-passed renders only (Karmi 08 A + L2 + 11 Showable + Komuta 23 Nov A(7) wholesale cards); each labelled "AI-styled image"; web-sized; final line names', async () => {
   const { statSync } = await import('node:fs')
   const CARDS = JSON.parse(read('../data/cards.json')).cards
-  const SHOW = '2023 2040 1468 1470 1472 1474 1477 1849 1850 1854 1859 1863 1864 1865 0624 6159 6170 6180 2000 6008 80012 80043 7058 7056 6095 6091 03010013 03010035 03010009 03010025 03010002 81004 81006 81009 81013 81014 6002 6009 6011 6017 6042 6058'.split(' ')
+  // hair clips 1849-1865 + claws 0301xxxx withdrawn 23 Nov (owner: on-model renders do not sit right; tests/hair-no-onmodel)
+  const SHOW = '2023 2040 1468 1470 1472 1474 1477 0624 6159 6170 6180 2000 6008 80012 80043 7058 7056 6095 6091 81004 81006 81009 81013 81014 6002 6009 6011 6017 6042 6058'.split(' ')
   assert.ok(!CARDS.some((c) => c.barcode === '6093'), '6093 failed the referees')
   assert.deepEqual(CARDS.filter((c) => c.photo_qc).map((c) => c.barcode).sort(), [...SHOW].sort())
   for (const c of CARDS.filter((x) => x.photo_qc)) {
