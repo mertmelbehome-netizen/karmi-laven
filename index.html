@@ -157,6 +157,10 @@ nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
   text-transform:uppercase; color:var(--ink); background:none; border:1px solid var(--hair); padding:10px 0;
   width:100%; cursor:pointer; transition:.3s}
 .cbody .add:hover{background:var(--ink); color:var(--bg); border-color:var(--ink)}
+.cbody .add[aria-disabled="true"], .ci-q button[aria-disabled="true"]{opacity:.5; cursor:not-allowed}
+.cbody .add[aria-disabled="true"]:hover{background:none; color:var(--ink); border-color:var(--hair)}
+.lim{font-size:12px; line-height:1.4; color:var(--ink); margin-top:8px; text-align:left}
+.lim:empty{margin:0}
 
 /* STORY */
 .story{margin-top:40px; padding:clamp(50px,7vw,90px) 0; text-align:center; border-top:1px solid var(--hair)}
@@ -818,12 +822,13 @@ function card(d,i){
       <div class="pr">${m1On()?m1PriceHtml(d.barcode):pt}</div>
       <div class="fee" data-kl="cardship">${cardShipText()}</div>
       <div class="ship24">Ships within 1–2 business days; delivery usually 2–5 business days after dispatch</div>
-      <button class="add" data-kl-add onclick="addToCart('${d.barcode}')"${lad?'':' disabled'}>${lad?'Add to bag — '+pt:NA_TXT}</button>
+      <button class="add" data-kl-add data-bc="${d.barcode}" aria-describedby="lim-${d.barcode}" onclick="addToCart('${d.barcode}')"${lad?'':' disabled'}>${lad?'Add to bag — '+pt:NA_TXT}</button>
+      <div class="lim" id="lim-${d.barcode}" role="status" aria-live="polite"></div>
     </div>`;
   return el;
 }
 function render(list){
-  grid.innerHTML=''; list.forEach((d,i)=>grid.appendChild(card(d,i)));
+  grid.innerHTML=''; list.forEach((d,i)=>grid.appendChild(card(d,i))); if(typeof syncLimits==='function') syncLimits();
   countEl.textContent=countText(list.length);
   requestAnimationFrame(()=>{const cs=[...grid.children];
     cs.forEach((c,i)=>c.style.transitionDelay=(i*40)+'ms');
@@ -842,7 +847,7 @@ function openModal(bc){
   document.getElementById('mAdd').textContent='Add to bag — '+priceTxt(bc);
   updateModalBag();
   document.getElementById('mStock').textContent='Ships within 1–2 business days; delivery usually 2–5 business days after dispatch';
-  document.getElementById('mAdd').onclick=()=>{addToCart(bc);closeModal();};
+  document.getElementById('mAdd').onclick=()=>{ if(atLimit(bc)){ const mb=document.getElementById('mBag'); if(mb) mb.textContent=limitText(bc); return; } addToCart(bc);closeModal();};
   document.getElementById('modal').classList.add('open');
   document.getElementById('ovl').classList.add('open');
   track('ViewContent','view_item',{value:unitPrice(bc)||0,currency:'GBP',content_name:d.color_en,content_ids:[bc],content_type:'product'});
@@ -1147,7 +1152,7 @@ window.klApplyLadders=function(l){
 function itemWord(n){ const lad=cart.every(c=>isLadder(c.bc)); return n+' '+(lad?'bracelet':'item')+(n!==1?'s':''); }
 function totalQty(){return cart.reduce((a,c)=>a+c.qty,0);}
 function updateBag(){
-  const q=totalQty();
+  const q=totalQty(); if(typeof syncLimits==='function') setTimeout(syncLimits,0);
   document.getElementById('bagN').textContent=q;
   const sn=document.getElementById('stickyN'); if(sn) sn.textContent=q;
   const hasItems=q>0;
@@ -1169,14 +1174,40 @@ function updateBag(){
   document.body.classList.toggle('has-bar',hasItems); document.documentElement.classList.toggle('has-bar',hasItems);
 }
 function addToCartSilent(bc){const a=(typeof window.klAvail==='function'?window.klAvail(bc):Infinity); const f=cart.find(c=>c.bc===bc); if(f){ if(f.qty<a) f.qty++; } else if(a>0){ cart.push({bc,qty:1}); }}
+/* Online sell limit per colour (Komuta + K&D 23 Nov). klAvail = what we can sell online now (stock or online cap,
+   whichever is lower), so the text never claims scarcity and never shows a number (DMCC). The 2nd sentence only
+   when the M1 10+ price applies, the bag is under 10 and another colour can still be added. */
+var LIMIT_TXT="That’s the most we can sell online in this colour right now.";
+function limitOf(bc){ return typeof window.klAvail==='function' ? window.klAvail(bc) : Infinity; }
+function inCartQty(bc){ const f=cart.find(c=>c.bc===bc); return f ? f.qty : 0; }
+function atLimit(bc){ const a=limitOf(bc); return a>0 && a!==Infinity && inCartQty(bc)>=a; }
+function limitText(bc){
+  const t=(typeof m1T==='function')?m1T():null; if(!t) return LIMIT_TXT;
+  const from=t.cart_qty_tier.from; if(totalQty()>=from) return LIMIT_TXT;
+  const other=DATA.some(d=>d.barcode!==bc && limitOf(d.barcode)>inCartQty(d.barcode));
+  return other ? LIMIT_TXT+' Add another colour to reach '+from+'.' : LIMIT_TXT;
+}
+function syncLimits(){
+  document.querySelectorAll('.card [data-kl-add][data-bc]').forEach(b=>{
+    const bc=b.dataset.bc, at=atLimit(bc), m=document.getElementById('lim-'+bc);
+    if(b.disabled) return;
+    b.setAttribute('aria-disabled', at ? 'true' : 'false');
+    if(m){ const txt=at ? limitText(bc) : ''; if(m.textContent!==txt) m.textContent=txt; }   // K&D A1: region stays un-hidden, only the text changes (announced)
+  });
+}
 function addToCart(bc){
+  if(atLimit(bc)){ syncLimits();   // nothing added: the message beside the button says why; focus stays on the button
+    const m=document.getElementById('lim-'+bc);   // keep it above the sticky bag bar (html scroll-padding-bottom, #39)
+    if(m && m.scrollIntoView) requestAnimationFrame(()=>m.scrollIntoView({block:'nearest'}));
+    return; }
   addToCartSilent(bc); save();updateBag();renderCart();openCart();
   track('AddToCart','add_to_cart',{value:unitPrice(bc)||0,currency:'GBP',content_name:BY[bc].color_en,content_ids:[bc],content_type:'product'});
   flTrack('add_to_cart',{product_bc:bc,product_name:BY[bc].color_en,qty:1,value:unitPrice(bc)||0,cart_qty:totalQty(),cart_value:subtotal()});
   kl('Added to Cart',{$value:subtotal(),AddedItemProductName:BY[bc].color_en,AddedItemSKU:bc,ItemNames:cart.map(c=>BY[c.bc].color_en),CheckoutURL:'https://karmilaven.com/'});
 }
-function setQty(i,v){const q=Math.max(1,Math.min(99,parseInt(v)||1)); if(cart[i])cart[i].qty=q; save();updateBag();renderCart();}
-function changeQty(i,delta){const c=cart[i]; if(!c)return; c.qty+=delta; if(c.qty<=0)cart.splice(i,1); save();updateBag();renderCart();}
+function capQty(bc,q){ const a=limitOf(bc); return (a>0 && a!==Infinity) ? Math.min(q,a) : q; }
+function setQty(i,v){const c=cart[i]; if(!c)return; c.qty=capQty(c.bc,Math.max(1,Math.min(99,parseInt(v)||1))); save();updateBag();renderCart();}
+function changeQty(i,delta){const c=cart[i]; if(!c)return; if(delta>0 && atLimit(c.bc)) return; /* K&D A2: no re-render, focus stays on +; the line message + describedby are already there */ c.qty+=delta; if(c.qty<=0)cart.splice(i,1); save();updateBag();renderCart();}
 function removeItem(i){cart.splice(i,1);save();updateBag();renderCart();}
 function subtotal(){return cartTotal(cart);}
 function hasFreeShip(){return deliveryFor(Math.round(subtotal()*100), totalQty()).free;}
@@ -1190,9 +1221,11 @@ function renderCart(){
       <div class="ci-p">${m1On()?m1LineText(c.bc):isLadder(c.bc)?'Crystal bracelet':(d.type||'')+' · '+priceTxt(c.bc)}</div>
       <div class="ci-q"><button onclick="changeQty(${i},-1)">−</button>
       <input type="number" inputmode="numeric" min="1" value="${c.qty}" onchange="setQty(${i},this.value)" aria-label="Quantity">
-      <button onclick="changeQty(${i},1)">+</button>
-      <button class="ci-x" onclick="removeItem(${i})">Remove</button></div></div></div>`;
+      <button onclick="changeQty(${i},1)" aria-label="Add one more" aria-describedby="cilim-${i}" aria-disabled="${atLimit(c.bc)?'true':'false'}">+</button>
+      <button class="ci-x" onclick="removeItem(${i})">Remove</button></div>
+      <div class="lim" id="cilim-${i}" role="status" aria-live="polite"></div></div></div>`;
   }).join('');
+  setTimeout(()=>cart.forEach((c,i)=>{ const m=document.getElementById('cilim-'+i); if(m){ const t=atLimit(c.bc)?limitText(c.bc):''; if(m.textContent!==t) m.textContent=t; } }),50);   // K&D A1
   if(m1On()){ m1Foot(); return; }
   const q=totalQty(), s=subtotal(), lq=ladderQty(cart), saved=Math.max(0,Math.round((lq*PRICE-bestPrice(lq))*100)/100), free=hasFreeShip();   // savings: Gradient Edit units only
   document.getElementById('cartSub').textContent='£'+s.toFixed(2);
