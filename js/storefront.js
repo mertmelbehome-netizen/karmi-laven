@@ -2,7 +2,7 @@
  *
  * Loaded by index.html (window.klStorefrontBoot) ONLY when /api/stock says storefront.families === true, or when the
  * served ladder table has ui.progress_line === true. With both OFF (the defaults) this file is never requested and the
- * page is exactly the pre-PR-2 page.
+ * page is exactly the pre-PR-2 page (index.html undoes its pre-paint families layout then: klSfUndo).
  *
  * Data: card identity from /data/cards.json (static); every price, stock, cap and ladder number from /api/stock
  * (window.klPrice / klAvail / klStockQty / klLadders). No price is hard-coded here. Checkout, Stripe and pricing code
@@ -123,55 +123,14 @@
   }
   /*KL-SF-CORE-END*/
 
-  /*KL-SF-LAYOUT-START*/ // families view first screen (nav fix 23 Nov, 15_nav_findability F1/F3/F7); tests evaluate this block
-  /** Moves, never deletes: chip bar directly under the logo/Bag row (before the hero); hero keeps H1 + one short line;
-   *  the price + delivery line ("+ £1.49 UK delivery · free with any 10+ items"), the Christmas notice, the Melbe Home
-   *  line, the trust strip and the company/VAT line go into one block right after the product grids. */
-  function sfLayout(doc, bar) {
-    var q = function (s) { return doc.querySelector(s); };
-    var top = q('nav'), hero = q('header.hero');
-    if (top && top.parentNode) top.parentNode.insertBefore(bar, top.nextSibling);
-    var k = q('.hero-copy .k'); if (k) k.hidden = true;        // the dead "Bracelets · Necklaces · Hair" eyebrow: the chips above replace it
-    var cta = q('.hero .cta'); if (cta) cta.hidden = true;     // bundle / colour buttons stay in the Gradient panel + sticky bar
-    var p = q('.hero-copy p'); if (p) { p.textContent = sfHeroLine(['gradient', 'bracelets', 'necklaces', 'hair']); p.removeAttribute('data-kl-m1'); }
-    var info = doc.createElement('section'); info.className = 'wrap kl-info'; info.id = 'klInfo';
-    info.setAttribute('aria-label', 'Prices, delivery and company details');
-    ['.hero .launch', '.hero .launchfee', '#klXmasHero', '.hero-copy .stars'].forEach(function (s) { var e = q(s); if (e) info.appendChild(e); });
-    var tb = q('.trustband'), tw = tb && tb.parentNode;
-    if (tw && tw !== hero) info.appendChild(tw);                 // trust strip + company/VAT line (tb-legal) together
-    var at = q('#klFam') || q('#palette');
-    if (at && at.parentNode) at.parentNode.insertBefore(info, at.nextSibling);
-    return info;
-  }
-  /** Hero line names only the categories on sale now (visible tabs): no 'hair pieces' while the Hair tab is hidden;
-   *  it comes back by itself when a hair card is sellable again (Komuta 23 Nov). */
-  function sfHeroLine(vis) {
-    var w = ['Bracelets'];
-    if (vis.indexOf('necklaces') >= 0) w.push('necklaces');
-    if (vis.indexOf('hair') >= 0) w.push('hair pieces');
-    var list = w.length < 2 ? w[0] : w.slice(0, -1).join(', ') + ' and ' + w[w.length - 1];
-    return list + '. Build your own stack.';
-  }
-  /** Meta / og / twitter / JSON-LD name only the categories on sale: the static page says bracelets + necklaces
-   *  (hair withdrawn 23 Nov); when a hair card is sellable again the hair wording is added, and removed when it goes. */
-  function sfMetaCats(doc, hair) {
-    var sw = function (s) {
-      return hair
-        ? s.replace(/bracelets and necklaces/g, 'bracelets, necklaces and hair pieces').replace(/Bracelets and necklaces/g, 'Bracelets, necklaces and hair pieces').replace(/Bracelets & Necklaces/g, 'Bracelets, Necklaces & Hair')
-        : s.replace(/bracelets, necklaces and hair pieces/g, 'bracelets and necklaces').replace(/Bracelets, necklaces and hair pieces/g, 'Bracelets and necklaces').replace(/Bracelets, Necklaces & Hair/g, 'Bracelets & Necklaces');
-    };
-    Array.prototype.forEach.call(doc.querySelectorAll('meta[name="description"],meta[property="og:title"],meta[name="twitter:title"]'), function (m) {
-      var c = m.getAttribute('content'); if (c) m.setAttribute('content', sw(c));
-    });
-    Array.prototype.forEach.call(doc.querySelectorAll('script[type="application/ld+json"]'), function (sc) {
-      try { var j = JSON.parse(sc.textContent); if (!j.name || !/Karmi Laven Bracelets/.test(j.name)) return;
-        j.name = sw(j.name); if (j.description) j.description = sw(j.description); sc.textContent = JSON.stringify(j, null, 2); } catch (e) {}
-    });
-  }
-  /*KL-SF-LAYOUT-END*/
+  /* families view first screen (nav fix 23 Nov, 15_nav_findability F1/F3/F7): sfBar / sfLayout / sfHeroLine / sfMetaCats
+     live in index.html (KL-SF-LAYOUT block, window.klSfL) since the CLS fix (18_cls_prepaint): they run BEFORE the first
+     paint there; this file binds the pre-built chip bar and re-runs sfLayout (idempotent). */
 
   if (typeof document === 'undefined') return;
   var CFG = window.klSF || { families: false, progress: false };
+  var KL = window.klSfL || {};
+  var sfLayout = KL.sfLayout, sfHeroLine = KL.sfHeroLine, sfMetaCats = KL.sfMetaCats;
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var L = function () { return window.klLadders || null; };
@@ -214,10 +173,8 @@
     // names for icon-only controls (V-15 / WCAG 4.1.2)
     [['.mclose', 'Close'], ['.bundle-h .x', 'Close bundle builder'], ['.cart-head button', 'Close bag'], ['#klpopEmail', 'Email address']]
       .forEach(function (x) { var e = $(x[0]); if (e && !e.getAttribute('aria-label')) e.setAttribute('aria-label', x[1]); });
-    var nav = document.createElement('nav'); nav.className = 'kl-tabbar'; nav.setAttribute('aria-label', 'Shop by category');
-    nav.innerHTML = '<div class="kl-tabs" role="tablist" aria-label="Categories">' + SF_TABS.map(function (t) {
-      return '<button role="tab" type="button" id="kltab-' + t + '" data-tab="' + t + '" aria-controls="' + (t === 'gradient' ? 'palette' : 'klFam') + '" aria-selected="' + (t === 'gradient') + '"' + (t === 'gradient' ? '' : ' hidden') + '>' + SF_CHIP[t] + ' <span class="n" data-count="' + t + '"></span></button>';
-    }).join('') + '</div>';
+    // the chip bar: already in the page when index.html laid the families view out before the first paint; else built now
+    var nav = $('nav.kl-tabbar') || KL.sfBar(document, ['gradient'], null, 'gradient');
     nav.querySelector('.kl-tabs').addEventListener('scroll', function () { tabScroll(false); }, { passive: true });
     window.addEventListener('resize', function () { tabScroll(true); });
     var pal = $('#palette'); pal.setAttribute('role', 'tabpanel'); pal.setAttribute('aria-labelledby', 'kltab-gradient');
@@ -228,11 +185,10 @@
       + '<div class="kl-empty" id="klEmpty" hidden><p class="et">Nothing here yet</p><p class="es">This category opens once its pieces are photographed.</p><a class="btn ghost" href="#gradient">See The Gradient Edit</a></div>'
       + '<div class="grid" id="klFamGrid"></div>';
     pal.parentNode.insertBefore(sec, pal.nextSibling);
-    sfLayout(document, nav);   // chips under the logo row, hero short, delivery/Christmas/trust/VAT after the grids
+    sfLayout(document, nav, KL.vis);   // chips under the logo row, hero short, delivery/Christmas/trust/VAT after the grids
     // mobile: the bundle builder moves into the colour chip row so the first cards are on the first screen (V-01)
-    var chip = document.createElement('button'); chip.type = 'button'; chip.className = 'sw kl-bundlechip'; chip.textContent = 'Build your bundle';
-    chip.setAttribute('aria-haspopup', 'dialog'); chip.onclick = function () { openBundle(); };
-    var sbi = $('#swatchbar'); sbi.insertBefore(chip, sbi.firstChild);
+    KL.sfBundleChip(document);
+    var chip = $('#swatchbar .kl-bundlechip'); chip.onclick = function () { openBundle(); };
     var lbl = $('#swatchbar .sbl'); if (lbl) lbl.setAttribute('aria-hidden', 'true');
     $$('#swatchbar .sw').forEach(function (b) { if (!b.getAttribute('aria-pressed') && b !== chip) b.setAttribute('aria-pressed', String(b.classList.contains('active'))); });
     // bundle builder: a 10 step (one tap) from the table; tier labels are plain quantities (no "Save")
@@ -249,7 +205,7 @@
     renderTabs();
   }
   function renderTabs() {
-    var vis = sfVisibleTabs(FAM, famState);
+    var vis = sfVisibleTabs(FAM, famState), seen = {};
     SF_TABS.forEach(function (t) {
       var b = $('#kltab-' + t); if (!b) return;
       var v = vis.indexOf(t) >= 0; b.hidden = !v;
@@ -257,7 +213,9 @@
       var n = t === 'gradient' ? $$('#grid [data-kl-card]').filter(function (c) { return c.dataset.klState === 'sellable'; }).length
         : FAM.filter(function (c) { var s = famState(c); return c.tab === t && (s === 'sellable' || s === 'single'); }).length;
       var cnt = $('[data-count="' + t + '"]'); if (cnt) cnt.textContent = String(n);
+      seen[t] = n;
     });
+    if (FAM.length) try { localStorage.setItem('kl_sf_tabs', JSON.stringify({ v: vis, n: seen })); } catch (e) {}   // next visit's pre-paint chip bar (index.html)
     var isG = tab === 'gradient', wasG = !$('#palette').hidden;
     $('#palette').hidden = !isG; $('.swatchbar').hidden = !isG;   // colour bar on the Gradient Edit only (K-11)
     $('#klFam').hidden = isG;

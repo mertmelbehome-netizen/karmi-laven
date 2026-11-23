@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Karmi Laven — The Gradient Edit</title>
 <link href="/fonts/fonts.css" rel="stylesheet">
+<!-- families view BEFORE first paint (CLS fix, morning_review/18_cls_prepaint): storefront.css is scoped to html.kl-v2 /
+     kl-* elements, so it does nothing on the old page; the class is set here (default ON, production runs families ON;
+     the last /api/stock answer is remembered) and removed again by the boot switch if the server says OFF or fails. -->
+<link href="/css/storefront.css?v=pr3" rel="stylesheet">
+<script>/*KL-SF-PRE-START*/(function(){var on=true;try{on=localStorage.getItem('kl_sf_fam')!=='0';}catch(e){}
+if(on){document.documentElement.classList.add('kl-v2');window.__klSfPre=true;}})();/*KL-SF-PRE-END*/</script>
 <style>
 :root{
   --bg:#faf7f1; --paper:#fffefb; --ink:#34302a; --soft:#928979; --hair:rgba(52,48,42,.13);
@@ -509,8 +515,123 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
     <div class="cap"><div class="n" id="heroName">Champagne</div><div class="s">The Gradient Edit</div></div>
   </div>
 </header>
+<script>
+/* ---- families view layout BEFORE first paint (CLS fix 23 Nov, morning_review/18_cls_prepaint). Runs here, right after
+   the hero (chip bar under the logo row, hero = H1 + one short line, price/delivery/Melbe lines out of the hero), and is
+   finished right after the Gradient panel (trust strip + company/VAT line, #klInfo after the grids, bundle chip), so no
+   node moves after the first paint. js/storefront.js re-runs sfLayout (idempotent) and binds the chips; the boot switch
+   undoes it (sfUnlayout = today's old page) when /api/stock says families OFF or fails. Elements still waiting to move
+   are hidden by css/storefront.css (html.kl-v2 .hero .launch ..., body > .kl-trust). tests/storefront-nav.test.mjs
+   evaluates the KL-SF-LAYOUT block as-is. ---- */
+(function(){
+/*KL-SF-LAYOUT-START*/
+var SFL_TABS = ['gradient', 'bracelets', 'necklaces', 'hair'];
+var SFL_CHIP = { gradient: 'Gradient', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair' };   // = storefront.js SF_CHIP (test-checked)
+/** The chip bar (storefront.js binds it). vis = tabs shown (the Gradient Edit always), n = counts, sel = selected tab. */
+function sfBar(doc, vis, n, sel) {
+  vis = vis || ['gradient']; n = n || {}; if (SFL_TABS.indexOf(sel) < 0 || (sel !== 'gradient' && vis.indexOf(sel) < 0)) sel = 'gradient';
+  var nav = doc.createElement('nav'); nav.className = 'kl-tabbar'; nav.setAttribute('aria-label', 'Shop by category');
+  nav.innerHTML = '<div class="kl-tabs" role="tablist" aria-label="Categories">' + SFL_TABS.map(function (t) {
+    var v = t === 'gradient' || vis.indexOf(t) >= 0;
+    return '<button role="tab" type="button" id="kltab-' + t + '" data-tab="' + t + '" aria-controls="' + (t === 'gradient' ? 'palette' : 'klFam') + '" aria-selected="' + (t === sel) + '" tabindex="' + (t === sel ? 0 : -1) + '"' + (v ? '' : ' hidden') + '>' + SFL_CHIP[t] + ' <span class="n" data-count="' + t + '">' + (n[t] != null ? String(n[t]).replace(/\D/g, '') : '') + '</span></button>';
+  }).join('') + '</div>';
+  return nav;
+}
+/** Moves, never deletes: chip bar directly under the logo/Bag row (before the hero); hero keeps H1 + one short line;
+ *  the price + delivery line ("+ £1.49 UK delivery · free with any 10+ items"), the Christmas notice, the Melbe Home
+ *  line, the trust strip and the company/VAT line go into one block right after the product grids. Idempotent and
+ *  resumable: called while the page is still being parsed, it does what the parsed part allows (a detached #klInfo
+ *  collects the moved nodes until #palette exists). Every move is recorded so sfUnlayout can put it back. */
+function sfLayout(doc, bar, vis) {
+  var q = function (s) { return doc.querySelector(s); };
+  var top = q('nav'), hero = q('header.hero');
+  var mv = doc.__klMoved || (doc.__klMoved = []);
+  if (bar && !bar.parentNode && !q('nav.kl-tabbar') && top && top.parentNode) top.parentNode.insertBefore(bar, top.nextSibling);
+  var k = q('.hero-copy .k'); if (k) k.hidden = true;        // the dead "Bracelets · Necklaces · Hair" eyebrow: the chips above replace it
+  var cta = q('.hero .cta'); if (cta) cta.hidden = true;     // bundle / colour buttons stay in the Gradient panel + sticky bar
+  var p = q('.hero-copy p');
+  if (p && !p.hasAttribute('data-kl-p0')) {                   // once: later lines come from storefront.js renderTabs
+    p.setAttribute('data-kl-p0', p.textContent); var m1 = p.getAttribute('data-kl-m1'); if (m1 != null) p.setAttribute('data-kl-p0m1', m1);
+    p.textContent = sfHeroLine(vis || SFL_TABS); p.removeAttribute('data-kl-m1');
+  }
+  var info = q('#klInfo') || doc.__klInfo;
+  if (!info) {
+    info = doc.createElement('section'); info.className = 'wrap kl-info'; info.id = 'klInfo';
+    info.setAttribute('aria-label', 'Prices, delivery and company details'); doc.__klInfo = info;
+  }
+  var move = function (e) { if (!e || e.parentNode === info) return; mv.push([e, e.parentNode, e.nextSibling]); info.appendChild(e); };
+  ['.hero .launch', '.hero .launchfee', '#klXmasHero', '.hero-copy .stars'].forEach(function (s) { move(q(s)); });
+  var tb = q('.trustband'), tw = tb && tb.parentNode;
+  if (tw && tw !== hero && tw !== info) move(tw);              // trust strip + company/VAT line (tb-legal) together
+  var at = q('#klFam') || q('#palette');
+  if (at && at.parentNode && !info.parentNode) at.parentNode.insertBefore(info, at.nextSibling);
+  return info;
+}
+/** Families OFF after a pre-paint layout (server says OFF, or /api/stock failed): today's old page, every node back. */
+function sfUnlayout(doc) {
+  var q = function (s) { return doc.querySelector(s); };
+  var mv = doc.__klMoved || [], info = q('#klInfo') || doc.__klInfo;
+  for (var i = mv.length - 1; i >= 0; i--) {
+    var e = mv[i][0], par = mv[i][1], nx = mv[i][2];
+    if (nx && nx.parentNode === par) par.insertBefore(e, nx); else par.appendChild(e);
+  }
+  doc.__klMoved = [];
+  var x = q('#klXmasHero'), lf = q('.hero .launchfee');      // a notice added while the line was in #klInfo: back next to it
+  if (x && lf && x.parentNode !== lf.parentNode) lf.parentNode.insertBefore(x, lf.nextSibling);
+  if (info && info.parentNode) info.parentNode.removeChild(info); doc.__klInfo = null;
+  var bar = q('nav.kl-tabbar'); if (bar && bar.parentNode) bar.parentNode.removeChild(bar);
+  var ch = q('#swatchbar .kl-bundlechip'); if (ch && ch.parentNode) ch.parentNode.removeChild(ch);
+  var k = q('.hero-copy .k'); if (k) k.hidden = false;
+  var cta = q('.hero .cta'); if (cta) cta.hidden = false;
+  var p = q('.hero-copy p');
+  if (p && p.hasAttribute('data-kl-p0')) {
+    p.textContent = p.getAttribute('data-kl-p0'); p.removeAttribute('data-kl-p0');
+    if (p.hasAttribute('data-kl-p0m1')) { p.setAttribute('data-kl-m1', p.getAttribute('data-kl-p0m1')); p.removeAttribute('data-kl-p0m1'); }
+  }
+  var de = doc.documentElement; if (de && de.classList) de.classList.remove('kl-v2');
+}
+/** mobile: the bundle builder sits first in the colour chip row (V-01); storefront.js keeps it */
+function sfBundleChip(doc) {
+  var sbi = doc.getElementById('swatchbar'); if (!sbi || sbi.querySelector('.kl-bundlechip')) return;
+  var chip = doc.createElement('button'); chip.type = 'button'; chip.className = 'sw kl-bundlechip'; chip.textContent = 'Build your bundle';
+  chip.setAttribute('aria-haspopup', 'dialog'); chip.onclick = function () { if (typeof openBundle === 'function') openBundle(); };
+  sbi.insertBefore(chip, sbi.firstChild);
+}
+/** Hero line names only the categories on sale now (visible tabs): no 'hair pieces' while the Hair tab is hidden;
+ *  it comes back by itself when a hair card is sellable again (Komuta 23 Nov). */
+function sfHeroLine(vis) {
+  var w = ['Bracelets'];
+  if (vis.indexOf('necklaces') >= 0) w.push('necklaces');
+  if (vis.indexOf('hair') >= 0) w.push('hair pieces');
+  var list = w.length < 2 ? w[0] : w.slice(0, -1).join(', ') + ' and ' + w[w.length - 1];
+  return list + '. Build your own stack.';
+}
+/** Meta / og / twitter / JSON-LD name only the categories on sale: the static page says bracelets + necklaces
+ *  (hair withdrawn 23 Nov); when a hair card is sellable again the hair wording is added, and removed when it goes. */
+function sfMetaCats(doc, hair) {
+  var sw = function (s) {
+    return hair
+      ? s.replace(/bracelets and necklaces/g, 'bracelets, necklaces and hair pieces').replace(/Bracelets and necklaces/g, 'Bracelets, necklaces and hair pieces').replace(/Bracelets & Necklaces/g, 'Bracelets, Necklaces & Hair')
+      : s.replace(/bracelets, necklaces and hair pieces/g, 'bracelets and necklaces').replace(/Bracelets, necklaces and hair pieces/g, 'Bracelets and necklaces').replace(/Bracelets, Necklaces & Hair/g, 'Bracelets & Necklaces');
+  };
+  Array.prototype.forEach.call(doc.querySelectorAll('meta[name="description"],meta[property="og:title"],meta[name="twitter:title"]'), function (m) {
+    var c = m.getAttribute('content'); if (c) m.setAttribute('content', sw(c));
+  });
+  Array.prototype.forEach.call(doc.querySelectorAll('script[type="application/ld+json"]'), function (sc) {
+    try { var j = JSON.parse(sc.textContent); if (!j.name || !/Karmi Laven Bracelets/.test(j.name)) return;
+      j.name = sw(j.name); if (j.description) j.description = sw(j.description); sc.textContent = JSON.stringify(j, null, 2); } catch (e) {}
+  });
+}
+/*KL-SF-LAYOUT-END*/
+  // the chips last shown (storefront.js renderTabs remembers them): the pre-paint bar matches what the visitor will see
+  var m = {}; try { m = JSON.parse(localStorage.getItem('kl_sf_tabs') || '{}') || {}; } catch (e) {}
+  var vis = Array.isArray(m.v) ? m.v.filter(function (t) { return SFL_TABS.indexOf(t) >= 0; }) : ['gradient', 'bracelets', 'necklaces'];
+  window.klSfL = { sfBar: sfBar, sfLayout: sfLayout, sfUnlayout: sfUnlayout, sfBundleChip: sfBundleChip, sfHeroLine: sfHeroLine, sfMetaCats: sfMetaCats, vis: vis };
+  if (window.__klSfPre) { try { sfLayout(document, sfBar(document, vis, m.n, location.hash.slice(1)), vis); } catch (e) {} }
+})();
+</script>
 
-<div class="wrap">
+<div class="wrap kl-trust">
   <div class="trustband">
     <div class="tb-item">
       <span class="tb-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l1.5-4.5h15L21 9M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9M3 9h18M9 20v-5h6v5"/></svg></span>
@@ -542,6 +663,8 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
   </div>
   <div class="grid" id="grid"></div>
 </main>
+<script>/* families view, pre-paint part 2 (see above): trust + company/VAT line into #klInfo, #klInfo after the grid, bundle chip */
+try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vis); klSfL.sfBundleChip(document); } }catch(e){}</script>
 
 <section class="story">
   <div class="lg">Karmi Laven</div>
@@ -1554,11 +1677,21 @@ function cookieChoice(accepted){
   var sf=(data&&data.storefront)||{}, lad=(data&&data.ladders)||null, dev=false;
   try{ var h=location.hostname; dev=(h==='localhost'||h==='127.0.0.1'||sf.preview===true) && new URLSearchParams(location.search).get('sf')==='families'; }catch(e){}
   var fam=sf.families===true||dev, prog=!!(lad&&lad.ui&&lad.ui.progress_line===true);
+  try{ localStorage.setItem('kl_sf_fam', fam?'1':'0'); }catch(e){}   // next visit: pre-paint layout only if families was ON
+  if(!fam&&typeof window.klSfUndo==='function') window.klSfUndo();
   if(!fam&&!prog) return;
   window.__klSfBooted=true;
   window.klSF={families:fam, progress:prog, sold_out:sf.sold_out==='last'?'last':'hide', refresh_s:Number(sf.refresh_s)||60};
-  if(fam){ var l=document.createElement('link'); l.rel='stylesheet'; l.href='/css/storefront.css?v=pr2'; document.head.appendChild(l); }
-  var s=document.createElement('script'); s.src='/js/storefront.js?v=pr2'; s.async=true; document.body.appendChild(s);
+  // css/storefront.css is linked statically in <head> (pre-paint layout); added here only if that link is missing
+  if(fam&&!(document.querySelector&&document.querySelector('link[href^="/css/storefront.css"]'))){ var l=document.createElement('link'); l.rel='stylesheet'; l.href='/css/storefront.css?v=pr3'; document.head.appendChild(l); }
+  var s=document.createElement('script'); s.src='/js/storefront.js?v=pr3'; s.async=true; document.body.appendChild(s);
+};
+/* families OFF (or /api/stock failed) after the pre-paint families layout: back to today's old page, once */
+window.klSfUndo=function(){
+  if(window.__klSfBooted||!window.__klSfPre) return;
+  window.__klSfPre=false;
+  try{ window.klSfL.sfUnlayout(document); }catch(e){ try{ document.documentElement.classList.remove('kl-v2'); }catch(e2){} }
+  try{ if(window.klLadders&&typeof window.klApplyLadders==='function') window.klApplyLadders(window.klLadders); }catch(e){}   // hero line back to its M1 text
 };/*KL-SF-BOOT-END*/
 </script>
 
@@ -1695,11 +1828,14 @@ function cookieChoice(accepted){
       return false;
     }
   }
+  function sfFail(){ try{ if(typeof window.klSfUndo==='function') window.klSfUndo(); }catch(e){} }   // no answer = old page (no-op once booted)
   function boot(data){ try{ if(typeof window.klStorefrontBoot==='function') window.klStorefrontBoot(data); }catch(e){} }
   window.klRefreshStock=fetchLiveStock;
 
-  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded',fetchLiveStock); }
-  else { fetchLiveStock(); }
+  // first load: no usable answer (HTTP error, timeout, network) = the old page (undo the pre-paint families layout)
+  function firstLoad(){ fetchLiveStock().then(function(ok){ if(!ok) sfFail(); }); }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded',firstLoad); }
+  else { firstLoad(); }
 })();
 </script>
 </body>

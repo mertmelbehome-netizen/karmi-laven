@@ -14,7 +14,8 @@ const HTML = read('../index.html')
 const SF = read('../js/storefront.js')
 const CSS = read('../css/storefront.css')
 const XMAS = read('../js/christmas.js')
-const LAYOUT = SF.match(/\/\*KL-SF-LAYOUT-START\*\/([\s\S]*?)\/\*KL-SF-LAYOUT-END\*\//)[1]
+// since the CLS fix (18_cls_prepaint) the layout block lives inline in index.html and runs before the first paint
+const LAYOUT = HTML.match(/\/\*KL-SF-LAYOUT-START\*\/([\s\S]*?)\/\*KL-SF-LAYOUT-END\*\//)[1]
 const sfLayout = new Function(`${LAYOUT}; return sfLayout;`)()
 const CORE = SF.match(/\/\*KL-SF-CORE-START\*\/([\s\S]*?)\/\*KL-SF-CORE-END\*\//)[1]
 const core = new Function(`${CORE}; return { SF_TITLE, SF_CHIP, sfFamCard };`)()
@@ -57,7 +58,7 @@ const VOID = new Set(['img', 'br', 'input', 'meta', 'link', 'hr', 'source'])
 /** index.html body from the announcement bar to the first section after the grids, as a DOM */
 function pageDoc() {
   const from = HTML.indexOf('<div class="announce">'), to = HTML.indexOf('<section class="story">')
-  const src = HTML.slice(from, to)
+  const src = HTML.slice(from, to).replace(/<script>[\s\S]*?<\/script>/g, '')   // inline pre-paint scripts are not markup
   const body = new El('body'), html = new El('html'), head = new El('head'); html.appendChild(head); html.appendChild(body)
   let cur = body
   for (const m of src.matchAll(/<(\/?)([a-z0-9]+)([^>]*?)(\/?)>|([^<]+)/gi)) {
@@ -149,7 +150,8 @@ test('F2: chip bar sticky top:0 and <= 56 px; colour bar sticks under it (deskto
 test('F4/F6: short chip labels, panel titles and tab roles unchanged', () => {
   assert.deepEqual(core.SF_CHIP, { gradient: 'Gradient', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair' })
   assert.equal(core.SF_TITLE.gradient, 'The Gradient Edit')
-  assert.match(SF, /role="tab" type="button" id="kltab-' \+ t \+ '"[^\n]*aria-selected[^\n]*SF_CHIP\[t\]/)
+  assert.match(LAYOUT, /role="tab" type="button" id="kltab-' \+ t \+ '"[^\n]*aria-selected[^\n]*SFL_CHIP\[t\]/)
+  assert.deepEqual(new Function(`${LAYOUT}; return SFL_CHIP;`)(), core.SF_CHIP, 'pre-paint chip labels = storefront.js labels')
   assert.match(SF, /\['ArrowRight', 'ArrowLeft', 'Home', 'End'\]/)
 })
 
@@ -274,4 +276,76 @@ test('strict scarcity: a failed refresh or an answer older than one refresh peri
   const els = [{ textContent: 'Only 3 left' }, { textContent: 'Ships in 1–2 business days' }, { textContent: '' }]
   new Function('document', `${src}; clearScarcity();`)({ querySelectorAll: () => els })
   assert.deepEqual(els.map((e) => e.textContent), ['', 'Ships in 1–2 business days', ''])
+})
+
+// ---------- CLS fix (morning_review/18_cls_prepaint): the families layout exists BEFORE the first paint ----------
+test('pre-paint: <head> sets html.kl-v2 (default ON, remembered answer) and links storefront.css statically', () => {
+  const head = HTML.slice(0, HTML.indexOf('</head>'))
+  assert.match(head, /<link href="\/css\/storefront\.css\?v=pr3" rel="stylesheet">/)
+  const pre = head.match(/\/\*KL-SF-PRE-START\*\/([\s\S]*?)\/\*KL-SF-PRE-END\*\//)[1]
+  const run = (stored) => {
+    const cls = new Set(), window = {}
+    const localStorage = { getItem: () => stored }
+    new Function('window', 'document', 'localStorage', pre)(window, { documentElement: { classList: { add: (c) => cls.add(c) } } }, localStorage)
+    return { v2: cls.has('kl-v2'), pre: window.__klSfPre === true }
+  }
+  assert.deepEqual(run(null), { v2: true, pre: true }, 'first visit: families layout (production runs families ON)')
+  assert.deepEqual(run('1'), { v2: true, pre: true })
+  assert.deepEqual(run('0'), { v2: false, pre: false }, 'last answer was OFF: the old page from the start')
+  // the boot switch remembers the answer and undoes the pre-paint layout when OFF; a failed first load undoes it too
+  const boot = HTML.match(/\/\*KL-SF-BOOT-START\*\/([\s\S]*?)\/\*KL-SF-BOOT-END\*\//)[1]
+  assert.match(boot, /localStorage\.setItem\('kl_sf_fam', fam\?'1':'0'\)/)
+  assert.match(boot, /if\(!fam&&typeof window\.klSfUndo==='function'\) window\.klSfUndo\(\);/)
+  assert.match(boot, /window\.klSfUndo=function\(\)\{\r?\n  if\(window\.__klSfBooted\|\|!window\.__klSfPre\) return;/)
+  assert.match(HTML, /function firstLoad\(\)\{ fetchLiveStock\(\)\.then\(function\(ok\)\{ if\(!ok\) sfFail\(\); \}\); \}/)
+})
+
+test('pre-paint: the layout runs right after the hero and is finished right after the Gradient panel (no later move)', () => {
+  assert.match(HTML, /<\/header>\r?\n<script>[\s\S]*?\/\*KL-SF-LAYOUT-START\*\//)
+  assert.match(HTML, /<\/main>\r?\n<script>[^\n]*\r?\ntry\{ if\(window\.__klSfPre&&window\.klSfL\)\{ klSfL\.sfLayout\(document, null, klSfL\.vis\); klSfL\.sfBundleChip\(document\); \} \}catch\(e\)\{\}<\/script>/)
+  // part 1 sees only the page up to the hero; part 2 the whole first screen: same result as one call
+  const doc = pageDoc()
+  const pal = doc.querySelector('#palette'), fam = doc.querySelector('#klFam'), tw = doc.querySelector('.trustband').parentNode, sb = doc.querySelector('.swatchbar')
+  const later = [tw, sb, pal, fam]; later.forEach((e) => e._detach())                    // not parsed yet
+  sfLayout(doc, tabbar(), ['gradient', 'bracelets', 'necklaces'])
+  assert.equal(doc.querySelector('#klInfo'), null, '#klInfo waits (detached) until the grid exists')
+  assert.ok(doc.__klInfo.querySelector('.launchfee') && !doc.querySelector('.hero .launchfee'))
+  later.forEach((e) => doc.body.appendChild(e))                                          // parsed
+  sfLayout(doc, null, ['gradient', 'bracelets', 'necklaces'])
+  const o = order(doc)
+  assert.deepEqual(o.slice(0, 4), ['div.announce', 'nav', 'nav.kl-tabbar', 'header.hero'])
+  assert.ok(o.indexOf('#klInfo') > o.indexOf('#klFam'), o.join(' > '))
+  for (const s of ['.launch', '.launchfee', '.stars', '.trustband', '.tb-legal']) assert.ok(doc.querySelector('#klInfo').querySelector(s), s)
+  assert.equal(doc.querySelector('.hero-copy p').textContent, 'Bracelets and necklaces. Build your own stack.')
+  sfLayout(doc, tabbar())                                                                 // storefront.js re-run: idempotent
+  assert.deepEqual(order(doc), o, 'a second call (even with a new bar) changes nothing: one chip bar, one #klInfo')
+  assert.equal(doc.querySelectorAll('#klInfo').length, 1)
+  assert.equal(doc.querySelector('.hero-copy p').textContent, 'Bracelets and necklaces. Build your own stack.', 'the line is set once (renderTabs owns it later)')
+})
+
+test('families OFF after a pre-paint layout: sfUnlayout gives back today\'s page exactly (order, texts, M1 key, notice)', () => {
+  const sfUnlayout = new Function(`${LAYOUT}; return sfUnlayout;`)()
+  const snap = (doc) => JSON.stringify([...doc.body.walk()].filter((e) => e.tagName !== '#TEXT')
+    .map((e) => [e.tagName, e.id, e.className, !!e.hidden, e.attrs['data-kl-m1'] || '', e.parentNode.tagName, e.textContent.replace(/\s+/g, ' ').trim()]))
+  const ref = pageDoc(); ref.querySelector('#klFam')._detach(); const W0 = xmasApi(ref); W0.klXmasApply(XC)
+  const doc = pageDoc(); doc.querySelector('#klFam')._detach()
+  const p0 = doc.querySelector('.hero-copy p').textContent
+  sfLayout(doc, tabbar(), ['gradient', 'bracelets', 'necklaces'])
+  xmasApi(doc).klXmasApply(XC)                                                           // notice lands in #klInfo meanwhile
+  assert.ok(doc.querySelector('#klInfo #klXmasHero'))
+  sfUnlayout(doc)
+  assert.equal(doc.querySelector('.kl-tabbar'), null); assert.equal(doc.querySelector('#klInfo'), null)
+  assert.equal(doc.querySelector('.hero-copy p').textContent, p0)
+  assert.equal(doc.querySelector('.hero-copy p').getAttribute('data-kl-m1'), 'herop', 'M1 can set the hero line again')
+  assert.equal(doc.querySelector('.hero-copy p').getAttribute('data-kl-p0'), null)
+  assert.equal(snap(doc), snap(ref))
+})
+
+test('pre-paint css: nodes waiting to move out of the hero are never painted there first', () => {
+  assert.match(CSS, /html\.kl-v2 \.hero \.launch, html\.kl-v2 \.hero \.launchfee, html\.kl-v2 \.hero \.kl-xmas-hero, html\.kl-v2 \.hero-copy \.stars,\r?\nhtml\.kl-v2 \.hero \.cta, html\.kl-v2 \.hero-copy \.k, html\.kl-v2 body > \.kl-trust\{display:none\}/)
+  assert.match(HTML, /<div class="wrap kl-trust">\r?\n  <div class="trustband">/)
+  // storefront.js binds the pre-built bar instead of building a second one, and keeps the pre-built bundle chip
+  assert.match(SF, /var nav = \$\('nav\.kl-tabbar'\) \|\| KL\.sfBar\(document, \['gradient'\], null, 'gradient'\);/)
+  assert.match(SF, /KL\.sfBundleChip\(document\);/)
+  assert.match(SF, /localStorage\.setItem\('kl_sf_tabs', JSON\.stringify\(\{ v: vis, n: seen \}\)\)/)
 })
