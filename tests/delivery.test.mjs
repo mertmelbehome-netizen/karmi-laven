@@ -204,12 +204,13 @@ test('M1: every static free-delivery claim is the quantity sentence with the fee
   assert.ok(SHIP_PAGE.includes(`UK standard delivery — ${gbp(RAW_TABLE.shipping.below_threshold_fee_pence)}.`))
   assert.ok(SHIP_PAGE.includes(`Free with any ${RAW_TABLE.shipping.free_at_qty.qty}+ items in your order`))
 })
-test('M1: JSON-LD offer price = the Gradient group single price; delivery fee = the table', { skip: !M1MODE && 'ladders.json is the pools table' }, () => {
-  const gr = RAW_TABLE.groups[RAW_TABLE.gradient_group]
+test('M1: JSON-LD offer price range = the table groups (lowest..highest single price); delivery fee = the table', { skip: !M1MODE && 'ladders.json is the pools table' }, () => {
+  const singles = Object.values(RAW_TABLE.groups).map((g) => g.single)
+  const range = { lowPrice: Math.min(...singles), highPrice: Math.max(...singles), price: Math.min(...singles) }
   const offers = [...TEXT.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1])).map((b) => b.offers).filter(Boolean)
   assert.ok(offers.length >= 1)
   for (const o of offers) {
-    for (const k of ['lowPrice', 'highPrice', 'price']) if (k in o) assert.equal(o[k], (gr.single / 100).toFixed(2), k)
+    for (const k of ['lowPrice', 'highPrice', 'price']) if (k in o) assert.equal(o[k], (range[k] / 100).toFixed(2), k)
     assert.equal(o.shippingDetails?.shippingRate?.value, (RAW_TABLE.shipping.below_threshold_fee_pence / 100).toFixed(2))
     if (o.shippingDetails?.description) assert.equal(o.shippingDetails.description, M1_SHIP)
   }
