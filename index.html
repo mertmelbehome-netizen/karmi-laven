@@ -366,9 +366,11 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 /* rolling bag total (CMA209 §5.17-5.18): always on screen from the first item, on every width; the page gets bottom
    padding + scroll-padding so the bar never hides an add button or a focused control (WCAG 1.4.10 / 2.4.11) */
 .stickybar.has{display:flex}
-body.has-bar{padding-bottom:84px} html.has-bar{scroll-padding-bottom:96px}
+/* --bar-h = the height the fixed bar really takes (measured by the bar-sync script below; 84px until measured), so the
+   padding follows the bar when its text wraps (PR-2): padding-bottom = bar height, scroll-padding-bottom = bar + 12px */
+body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-bottom:calc(var(--bar-h,84px) + 12px)}
 @media(min-width:841px){.stickybar{padding-left:max(14px,calc(50vw - 560px)); padding-right:max(14px,calc(50vw - 560px))}}
-@media(max-width:840px){.stickybar{display:flex} body{padding-bottom:84px} html{scroll-padding-bottom:96px}}
+@media(max-width:840px){.stickybar{display:flex} body{padding-bottom:var(--bar-h,84px)} html{scroll-padding-bottom:calc(var(--bar-h,84px) + 12px)}}
 
 /* toast */
 .toast{position:fixed; z-index:95; bottom:84px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
@@ -631,7 +633,7 @@ body.has-bar{padding-bottom:84px} html.has-bar{scroll-padding-bottom:96px}
     <div class="mstock" id="mStock"></div>
     <div class="mdesc">A single thread of 4mm crystal beads, hand-strung on gold with a delicate charm. Wear it alone, or stack it into the gradient.</div>
     <div class="mbag" id="mBag" aria-live="polite"></div>
-    <button class="madd" id="mAdd">Add to bag — £2.99</button>
+    <button class="madd" id="mAdd">Add to bag</button>
     <button class="mbundle" onclick="closeModal();openBundle(window._mbc)">Save more — build a bundle</button>
   </div>
 </div>
@@ -794,6 +796,7 @@ function priceTxt(bc){ const p=unitPrice(bc); return p?('£'+p.toFixed(2)):''; }
 function card(d,i){
   const isNew=d.added==='2026-06-12', lad=isLadder(d.barcode), pt=priceTxt(d.barcode);
   const el=document.createElement('article');el.className='card';
+  el.setAttribute('data-kl-card',''); el.dataset.bc=d.barcode; el.dataset.klState=lad?'sellable':'single';   // measurement hooks (vitrin rule audit), no visual change
   el.innerHTML=`<div class="imgwrap" onclick="openModal('${d.barcode}')">${isNew?'<span class="new">New</span>':''}
     <img loading="lazy" src="${d.img}" srcset="${d.img.replace('/img/gradient/','/img/gradient/w480/')} 480w, ${d.img} 1000w" sizes="(max-width:560px) 50vw, 300px" alt="${d.color_en} bracelet, worn">
     <span class="stk">${stockTxt(d)}</span><span class="zoom">View</span></div>
@@ -803,7 +806,7 @@ function card(d,i){
       <div class="pr">${pt}</div>
       <div class="fee" data-kl="cardship">${cardShipText()}</div>
       <div class="ship24">Ships within 1–2 business days; delivery usually 2–5 business days after dispatch</div>
-      <button class="add" onclick="addToCart('${d.barcode}')"${lad?'':' disabled'}>${lad?'Add to bag — '+pt:NA_TXT}</button>
+      <button class="add" data-kl-add onclick="addToCart('${d.barcode}')"${lad?'':' disabled'}>${lad?'Add to bag — '+pt:NA_TXT}</button>
     </div>`;
   return el;
 }
@@ -913,7 +916,8 @@ function addBundle(){
 
 /* ---- CART (unified multi-buy: best price auto-applied by TOTAL bracelet count) ---- */
 let cart=[]; try{cart=JSON.parse(localStorage.getItem('klcart')||'[]');}catch(e){cart=[];}
-(function migrateCart(){const out=[];const push=(bc,q)=>{if(!BY[bc])return;const f=out.find(o=>o.bc===bc);if(f)f.qty+=q;else out.push({bc,qty:q});};
+window.__klPendingCart=[];   // saved lines this page does not know yet (family pieces; restored only if the storefront flag loads their cards)
+(function migrateCart(){const out=[];const push=(bc,q)=>{if(!BY[bc]){ if(bc&&q>0) window.__klPendingCart.push({bc:String(bc),qty:q}); return; }const f=out.find(o=>o.bc===bc);if(f)f.qty+=q;else out.push({bc,qty:q});};
   cart.forEach(c=>{ if(!c)return;
     if(c.type==='bundle'&&Array.isArray(c.cols)){c.cols.forEach(nm=>{const col=colours.find(x=>x.name===nm); if(col)push(col.bc,1);});}
     else if(c.bc)push(c.bc,c.qty||1); });
@@ -926,7 +930,13 @@ function isLadder(bc){ const d=BY[bc]; return !!d && LADDER_TYPES.indexOf(d.type
 // Any other product: its WAT till single price as served by /api/stock (window.klPrice). Unknown = not sellable.
 function unitPrice(bc){ if(isLadder(bc)) return PRICE; const p=(typeof window.klPrice==='function')?window.klPrice(bc):null; return (typeof p==='number'&&p>0)?p:null; }
 function ladderQty(lines){ return lines.reduce((a,c)=>a+(isLadder(c.bc)?c.qty:0),0); }
-function cartTotal(lines){ let otherP=0; lines.forEach(c=>{ if(!isLadder(c.bc)) otherP+=Math.round((unitPrice(c.bc)||0)*100)*c.qty; }); return Math.round(bestPrice(ladderQty(lines))*100+otherP)/100; }
+// Other units are grouped by single price (the server's pool key); a price with a pool in the served table
+// (window.klLadders.pools[pence].totals, from /api/stock) costs that pool total, else n × single. The live table has no
+// family pool, so today this is exactly n × single per product (PR-2; tests/storefront.test.mjs checks page = server).
+function cartTotal(lines){ const byP={}; lines.forEach(c=>{ if(!isLadder(c.bc)){ const p=Math.round((unitPrice(c.bc)||0)*100); byP[p]=(byP[p]||0)+c.qty; } });
+  const pools=(window.klLadders&&window.klLadders.pools)||{}; let otherP=0;
+  for(const k in byP){ const n=byP[k], t=pools[k]&&pools[k].totals; otherP+=(t&&Number.isInteger(t[n]))?t[n]:Number(k)*n; }
+  return Math.round(bestPrice(ladderQty(lines))*100+otherP)/100; }
 /*KL-PRICING-END*/
 /*KL-DELIVERY-START*/ // DISPLAY ONLY (CMA209 §5.14, §5.17 route 2, §5.18, §5.21): the delivery-inclusive rolling total and the
 // delivery texts. The server charges (api/_pricing.js shippingFeeP); these numbers come from /api/stock ladders.shipping at
@@ -991,9 +1001,12 @@ function updateBag(){
   if(cBtn){ cBtn.style.display=hasItems?'':'none'; }
   // §5.18 rolling total: delivery-inclusive, on screen on every width from the first item, updated on every change
   if(inf){
-    if(hasItems){ const d=deliveryFor(Math.round(subtotal()*100), q);
-      inf.innerHTML='Bag <b>'+gbpP(d.totalP)+'</b><span class="dl">'+(d.free?'free UK delivery ✓':'inc. '+gbpP(d.feeP)+' UK delivery')+'</span>'; }
-    else inf.innerHTML='Each <b>£'+PRICE.toFixed(2)+'</b><span class="dl" data-kl="fee1">'+(SHIP.feeP?'+ '+gbpP(SHIP.feeP)+' UK delivery':'Free UK delivery')+'</span>';
+    if(hasItems){ const subP=Math.round(subtotal()*100), d=deliveryFor(subP, q);
+      inf.innerHTML='Bag <b>'+gbpP(d.totalP)+'</b><span class="dl">'+(d.free?'free UK delivery ✓':'inc. '+gbpP(d.feeP)+' UK delivery')+'</span>';
+      // measurement hooks for the CMA209 check (total = items + delivery), no visual change
+      inf.setAttribute('data-kl-total',''); inf.dataset.klItemsP=subP; inf.dataset.klShipP=d.feeP; inf.dataset.klTotalP=d.totalP; }
+    else { inf.removeAttribute('data-kl-total'); }
+    if(!hasItems) inf.innerHTML='Each <b>£'+PRICE.toFixed(2)+'</b><span class="dl" data-kl="fee1">'+(SHIP.feeP?'+ '+gbpP(SHIP.feeP)+' UK delivery':'Free UK delivery')+'</span>';
   }
   const bar=document.getElementById('stickybar'); if(bar) bar.classList.toggle('has',hasItems);
   document.body.classList.toggle('has-bar',hasItems); document.documentElement.classList.toggle('has-bar',hasItems);
@@ -1026,7 +1039,8 @@ function renderCart(){
   const q=totalQty(), s=subtotal(), lq=ladderQty(cart), saved=Math.max(0,Math.round((lq*PRICE-bestPrice(lq))*100)/100), free=hasFreeShip();   // savings: Gradient Edit units only
   document.getElementById('cartSub').textContent='£'+s.toFixed(2);
   const dlv=deliveryFor(Math.round(s*100), q);
-  document.getElementById('cartShipVal').innerHTML = free ? '<span class="free">FREE ✓</span>' : gbpP(dlv.feeP)+' <span class="note">· free from '+gbpShort(SHIP.freeP)+(SHIP.freeQty?' or '+SHIP.freeQty+' items':'')+'</span>';
+  // §5.21: the "free from" note sits in the SAME text element as the fee it waives (PR-2; it was a separate span)
+  document.getElementById('cartShipVal').innerHTML = free ? '<span class="free">FREE ✓</span>' : gbpP(dlv.feeP)+' delivery · free from '+gbpShort(SHIP.freeP)+(SHIP.freeQty?' or '+SHIP.freeQty+' items':'');
   document.getElementById('cartTotal').textContent = gbpP(dlv.totalP);
   // Value-forward bundle nudge: positive momentum toward the next real deal (replaces the "£X away" scold)
   const cshEl=document.getElementById('cartShip');
@@ -1266,6 +1280,35 @@ function cookieChoice(accepted){
 </script>
 
 <script>
+/* ---- STICKY BAG BAR never covers content: --bar-h = the space the fixed bar takes at the viewport bottom (PR-2) ---- */
+(function(){
+  var bar=document.getElementById('stickybar'); if(!bar) return;
+  function sync(){
+    var vis=getComputedStyle(bar).display!=='none';
+    var h=vis?Math.max(0,Math.ceil(window.innerHeight-bar.getBoundingClientRect().top)):0;
+    if(vis&&h>0) document.documentElement.style.setProperty('--bar-h',h+'px');
+  }
+  try{ if(window.ResizeObserver) new ResizeObserver(sync).observe(bar); new MutationObserver(sync).observe(bar,{attributes:true,attributeFilter:['class','style']}); }catch(e){}
+  window.addEventListener('resize',sync); sync();
+})();
+/* ---- STOREFRONT PR-2 switch: OFF unless /api/stock says storefront.families === true (api/_storefront.js) or the
+   served ladder table turns the bag progress line on. OFF = nothing below loads; the page stays as it was. On a
+   Vercel PREVIEW build (the server says so: storefront.preview, from VERCEL_ENV) or localhost, ?sf=families turns the
+   families view on for testing; never on production, incl. prod's *.vercel.app alias. ---- */
+/*KL-SF-BOOT-START*/window.klStorefrontBoot=function(data){
+  if(window.__klSfBooted) return;
+  var sf=(data&&data.storefront)||{}, lad=(data&&data.ladders)||null, dev=false;
+  try{ var h=location.hostname; dev=(h==='localhost'||h==='127.0.0.1'||sf.preview===true) && new URLSearchParams(location.search).get('sf')==='families'; }catch(e){}
+  var fam=sf.families===true||dev, prog=!!(lad&&lad.ui&&lad.ui.progress_line===true);
+  if(!fam&&!prog) return;
+  window.__klSfBooted=true;
+  window.klSF={families:fam, progress:prog, sold_out:sf.sold_out==='last'?'last':'hide', refresh_s:Number(sf.refresh_s)||60};
+  if(fam){ var l=document.createElement('link'); l.rel='stylesheet'; l.href='/css/storefront.css?v=pr2'; document.head.appendChild(l); }
+  var s=document.createElement('script'); s.src='/js/storefront.js?v=pr2'; s.async=true; document.body.appendChild(s);
+};/*KL-SF-BOOT-END*/
+</script>
+
+<script>
 /* ---- LIVE STOCK — same-origin /api/stock (WAT, holds-aware), matched by BARCODE ---- */
 (function(){
   var ENDPOINT='/api/stock';
@@ -1281,6 +1324,7 @@ function cookieChoice(accepted){
   window.klStockReady=function(){ return loaded; };
   window.klIsSold=isSold; window.klAvail=function(bc){ bc=String(bc); if(!ladder(bc)) return loaded ? (SELLABLE[bc]||0) : 0; return loaded ? (LIVEQTY[bc] ?? 0) : Infinity; };
   window.klPrice=function(bc){ var p=PRICEP[String(bc)]; return p>0 ? p/100 : null; };
+  window.klStockQty=function(bc){ var q=LIVEQTY[String(bc)]; return typeof q==='number' ? q : 0; };   // real stock (cap vs sold-out on family cards)
 
   /* Re-skin the grid + swatch bar after stock loads (or after every render()). */
   function applyAll(){
@@ -1346,32 +1390,41 @@ function cookieChoice(accepted){
     }
   }
 
-  async function fetchLiveStock(){
+  // extra = more barcodes to ask for (family pieces; only when the storefront flag is on). Returns true when live data
+  // was applied. The first call (page load) is the same request as before PR-2.
+  async function fetchLiveStock(extra){
     try{
       var bcs=(window.DATA||[]).map(function(d){return d.barcode;}).filter(Boolean);
+      if(Array.isArray(extra)) extra.forEach(function(b){ b=String(b); if(bcs.indexOf(b)<0) bcs.push(b); });
       var url=ENDPOINT+(bcs.length?('?bc='+encodeURIComponent(bcs.join(','))):'');
       var ctrl=new AbortController();
       var tid=setTimeout(function(){ctrl.abort();},5000);
       var res=await fetch(url,{signal:ctrl.signal});
       clearTimeout(tid);
-      if(!res.ok) return;
+      if(!res.ok) return false;
       var data=await res.json();
       // delivery fee / threshold / ladder totals for the display texts (served even when stock is unavailable)
       try{ if(data && data.ladders && typeof window.klApplyLadders==='function') window.klApplyLadders(data.ladders); }catch(e){}
-      if(!data || !data.ok || !data.stock) return;   // fail open: leave all shown
+      if(!data || !data.ok || !data.stock){ boot(data); return false; }   // fail open: leave all shown
+      if(Array.isArray(extra)) extra.forEach(function(bc){ bc=String(bc); if(!window.isLadder||!window.isLadder(bc)){ SELLABLE[bc]=0; delete PRICEP[bc]; } });   // a refresh without caps data = not sellable (fail closed)
       Object.keys(data.stock).forEach(function(bc){
         var q=Number(data.stock[bc]); LIVEQTY[bc]=q;
-        if(!(q>0)) SOLD.add(String(bc));
+        if(!(q>0)) SOLD.add(String(bc)); else SOLD.delete(String(bc));
       });
       Object.keys(data.sellable||{}).forEach(function(bc){ SELLABLE[bc]=Number(data.sellable[bc])||0; });
       Object.keys(data.price_pence||{}).forEach(function(bc){ PRICEP[bc]=Number(data.price_pence[bc])||0; });
       window.klWindow=data.window||null;
       loaded=true;
       hook(); applyAll();
+      boot(data);
+      return true;
     }catch(e){
       console.warn('[karmi-stock] live stock unavailable, showing all shades',e&&e.message);
+      return false;
     }
   }
+  function boot(data){ try{ if(typeof window.klStorefrontBoot==='function') window.klStorefrontBoot(data); }catch(e){} }
+  window.klRefreshStock=fetchLiveStock;
 
   if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded',fetchLiveStock); }
   else { fetchLiveStock(); }

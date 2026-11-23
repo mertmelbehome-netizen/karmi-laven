@@ -34,6 +34,7 @@ import { isGradient } from './_gradient.js';
 import Stripe from 'stripe';
 import { status as capsStatus, resolveStaleHolds } from './_caps-lib.js';
 import { publicLadders } from './_pricing.js';
+import { storefrontConfig } from './_storefront.js';
 
 // `ladders` (23 Nov 2026, additive): the multi-buy table /api/checkout charges from (ladders.json via
 // api/_pricing.js publicLadders(): pools, bundles, tail, totals[q] per pool, shipping, rules, ui). null = the table did not
@@ -41,6 +42,10 @@ import { publicLadders } from './_pricing.js';
 let ladderView = publicLadders();
 /** Test hook: replace the served table view (null = invalid table). */
 export function _setLadders(view) { ladderView = view; }
+
+// `storefront` (PR-2, additive): page feature flags from api/_storefront.js. Default { families:false } = today's page.
+// Computed per request so a Vercel env change applies on the next cold start without code changes.
+const sf = () => storefrontConfig();
 
 // Stripe client for the hold resolver only (F1): created on first use, never when the key is not set.
 let stripeClient;
@@ -60,7 +65,7 @@ export default async function handler(req, res) {
   if (!base || !key) {
     // Fail OPEN: if mis-configured, return empty stock map so the site shows all
     // products rather than hiding the catalogue. ok:false signals "no live data".
-    return res.status(200).json({ ok: false, store: STORE, stock: {}, error: 'ops supabase env not set', ladders: ladderView });
+    return res.status(200).json({ ok: false, store: STORE, stock: {}, error: 'ops supabase env not set', ladders: ladderView, storefront: sf() });
   }
 
   const H = { apikey: key, Authorization: `Bearer ${key}` };
@@ -162,9 +167,9 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.status(200).json({ ok: true, store: STORE, stock, sellable, price_pence, window, ts: new Date().toISOString(), ladders: ladderView });
+    return res.status(200).json({ ok: true, store: STORE, stock, sellable, price_pence, window, ts: new Date().toISOString(), ladders: ladderView, storefront: sf() });
   } catch (e) {
     // Fail OPEN on any error: empty stock + ok:false → storefront shows all products.
-    return res.status(200).json({ ok: false, store: STORE, stock: {}, error: String(e.message || e), ladders: ladderView });
+    return res.status(200).json({ ok: false, store: STORE, stock: {}, error: String(e.message || e), ladders: ladderView, storefront: sf() });
   }
 }
