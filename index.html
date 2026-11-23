@@ -1195,7 +1195,10 @@ function syncLimits(){
   });
 }
 function addToCart(bc){
-  if(atLimit(bc)){ syncLimits(); return; }   // nothing added: the message beside the button says why; focus stays on the button
+  if(atLimit(bc)){ syncLimits();   // nothing added: the message beside the button says why; focus stays on the button
+    const m=document.getElementById('lim-'+bc);   // keep it above the sticky bag bar (html scroll-padding-bottom, #39)
+    if(m && m.scrollIntoView) requestAnimationFrame(()=>m.scrollIntoView({block:'nearest'}));
+    return; }
   addToCartSilent(bc); save();updateBag();renderCart();openCart();
   track('AddToCart','add_to_cart',{value:unitPrice(bc)||0,currency:'GBP',content_name:BY[bc].color_en,content_ids:[bc],content_type:'product'});
   flTrack('add_to_cart',{product_bc:bc,product_name:BY[bc].color_en,qty:1,value:unitPrice(bc)||0,cart_qty:totalQty(),cart_value:subtotal()});
