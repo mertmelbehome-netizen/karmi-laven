@@ -215,7 +215,7 @@
     $('#palette').hidden = !isG; $('.swatchbar').hidden = !isG;   // colour bar on the Gradient Edit only (K-11)
     $('#klFam').hidden = isG;
     $$('[data-kl-gonly]').forEach(function (e) { e.classList.toggle('kl-goff', !isG); });
-    tabScroll(true); syncSticky();
+    tabScroll(true); syncSticky(); syncHero();
     // only the open tab's cards are in the page (no hidden duplicate buttons / texts)
     if (isG) { $('#klFamGrid').innerHTML = ''; if (!wasG || !grid.children.length) rerenderGradient(); }
     else { if (grid.children.length) grid.innerHTML = ''; renderFam(vis.indexOf(tab) >= 0); }
@@ -231,6 +231,18 @@
     var max = row.scrollWidth - row.clientWidth;
     bar.classList.toggle('kl-more-l', max > 1 && row.scrollLeft > 1);
     bar.classList.toggle('kl-more-r', max > 1 && row.scrollLeft < max - 1);
+  }
+  /* hero price with families on: the Gradient-only '£8' would mislead next to £5 / £13 pieces, so it reads
+   *  'Online prices from £x' = the lowest single price among everything sellable now (Gradient + family cards). */
+  function syncHero() {
+    var hp = $('.hero .launch .p'), lb = $('.hero .launch > span'); if (!hp) return;
+    var minP = null, t = L(), g = t && t.groups && t.gradient_group ? t.groups[t.gradient_group] : null;
+    if (g && Number.isInteger(g.single)) minP = g.single;
+    FAM.forEach(function (c) { var s = famState(c); if (s !== 'sellable' && s !== 'single') return;
+      var p = priceP(c.barcode); if (p && (minP === null || p < minP)) minP = p; });
+    if (minP === null) return;
+    hp.removeAttribute('data-kl-m1'); hp.textContent = 'from ' + sfMoney(minP);
+    if (lb) lb.textContent = 'Online prices';
   }
   /* mobile sticky bar, empty bag: per tab (sfSticky). The Gradient Edit keeps the page's own text and bundle button. */
   var stickyOrig = null;
