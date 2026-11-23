@@ -233,7 +233,10 @@ test('performance: index.html has no embedded base64 images (was 4.28 MB) and st
   assert.ok(!/data:image\//.test(HTML), 'no data:image in index.html')
   assert.ok(Buffer.byteLength(HTML) <= 300 * 1024, `index.html ${Buffer.byteLength(HTML)} bytes`)
   const imgs = [...HTML.matchAll(/"img": "(\/img\/gradient\/[0-9A-Za-z]+\.jpg)"/g)].map((m) => m[1])
-  assert.equal(imgs.length, 38)
+  // 7 renders withdrawn 23 Nov (2 referees: invented extender ball/disc, wrong bead colour/shape/shells) -> colour tiles
+  const tones = [...HTML.matchAll(/"img": "(\/img\/tone\/[0-9]+\.svg)"/g)].map((m) => m[1])
+  assert.equal(imgs.length + tones.length, 38)
+  for (const p of tones) assert.ok(existsSync(new URL('..' + p, import.meta.url)), p)
   for (const p of imgs) {
     assert.ok(existsSync(new URL('..' + p, import.meta.url)), p)
     assert.ok(existsSync(new URL('..' + p.replace('/img/gradient/', '/img/gradient/w480/'), import.meta.url)), 'card-size variant ' + p)
