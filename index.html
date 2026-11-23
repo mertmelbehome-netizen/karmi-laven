@@ -990,21 +990,28 @@ function m1Group(bc){ const t=m1T(); if(!t) return null;
   const k=isLadder(bc)?t.gradient_group:((typeof window!=='undefined'&&typeof window.klGroup==='function')?window.klGroup(bc):null);
   return (typeof k==='string'&&Object.prototype.hasOwnProperty.call(t.groups,k))?k:null; }
 // = cartSummary() for page lines [{bc,qty}] (cart order = unit order). Ungrouped lines are not priced (counted apart).
+// Unlock (Komuta rule 23 Nov): THIS cart completed to the threshold with the cheapest group already IN the cart.
 function m1Summary(lines){
-  const t=m1T(), by={}; let n=0, single=0, tier=0, last=null, ungrouped=0;
+  const t=m1T(), by={}; let n=0, single=0, tier=0, ungrouped=0;
   lines.forEach(c=>{ const q=c.qty|0; if(q<=0) return; const g=m1Group(c.bc); if(!g){ ungrouped+=q; return; }
-    const gr=t.groups[g]; n+=q; single+=q*gr.single; tier+=q*gr.tier_each; last=g;
+    const gr=t.groups[g]; n+=q; single+=q*gr.single; tier+=q*gr.tier_each;
     const b=by[g]||(by[g]={group:g,qty:0,single:gr.single,tier_each:gr.tier_each,each_charged:0}); b.qty+=q; });
   const from=t.cart_qty_tier.from, on=n>=from, toUnlock=on?0:from-n, charged=on?tier:single;
-  Object.values(by).forEach(b=>{ b.each_charged=on?b.tier_each:b.single; });
+  const groups=Object.values(by).sort((a,b)=>a.group<b.group?-1:1);
+  groups.forEach(b=>{ b.each_charged=on?b.tier_each:b.single; });
+  let pad=null; groups.forEach(g=>{ if(!pad||g.tier_each<pad.tier_each) pad=g; });
+  const unlock=(toUnlock&&pad)?tier+toUnlock*pad.tier_each:null;
+  const ship=n?deliveryFor(charged,n).feeP:0, uship=unlock===null?null:deliveryFor(unlock,from).feeP;
   return {units:n, tier_from:from, tier_unlocked:on, single_total_pence:single, tier_total_pence:tier, charged_pence:charged,
-    difference_pence:single-charged, to_unlock:toUnlock, unlock_group:(toUnlock&&last)?last:null,
-    unlock_total_pence:(toUnlock&&last)?tier+toUnlock*t.groups[last].tier_each:null,
-    groups:Object.values(by).sort((a,b)=>a.group<b.group?-1:1), ungrouped};
+    difference_pence:single-charged, shipping_pence:ship, to_unlock:toUnlock, unlock_group:(toUnlock&&pad)?pad.group:null,
+    unlock_tier_each_pence:(toUnlock&&pad)?pad.tier_each:null, unlock_total_pence:unlock, unlock_shipping_pence:uship,
+    unlock_lowers_total:unlock!==null&&unlock+uship<charged+ship, groups, ungrouped};
 }
 function m1CartTotalP(lines){ return m1Summary(lines).charged_pence; }
-// Cart texts. progress: below the threshold ("every item drops", and at from-1 the cliff with the 10-unit total);
-// applied + promo: from the threshold (promotion codes and recovery links are off then: api/checkout.js).
+// Cart texts = engine progress() lines (+ an "e.g." product name from THIS cart). progress below the threshold;
+// applied + promo from it (promotion codes and recovery links are off then: api/checkout.js).
+function m1Example(lines, g){ for(let i=lines.length-1;i>=0;i--){ const c=lines[i]; if((c.qty|0)>0&&m1Group(c.bc)===g)
+  return isLadder(c.bc)?'Crystal bracelets':String((BY[c.bc]&&BY[c.bc].type)||'items').replace(/s?$/,'s'); } return null; }
 function m1Lines(lines){
   const s=m1Summary(lines), out={progress:null, applied:null, promo:null};
   if(!s.units) return out;
@@ -1012,13 +1019,16 @@ function m1Lines(lines){
     const each=[...new Set(s.groups.map(g=>g.tier_each))];
     out.applied=s.tier_from+'+ price applied: '+(each.length===1?gbpP(each[0])+' each':'every item at its '+s.tier_from+'+ price');
     out.promo='Promo codes can’t be used with the '+s.tier_from+'+ price.';
-  } else if(s.unlock_total_pence!==null&&(s.to_unlock===1||s.unlock_total_pence<s.charged_pence)){
-    // CTSI §20 (K&D 23 Nov): the shopper must not have to work out the value: say the total it drops to.
-    const freeToo=SHIP.freeP===null&&SHIP.freeQty!==null&&SHIP.freeQty-s.units===s.to_unlock;   // = engine progress()
-    out.progress=s.to_unlock===1 ? 'Add 1 more: all '+s.tier_from+' for '+gbpP(s.unlock_total_pence)+(freeToo?' with free delivery':'')
-      : 'Add '+s.to_unlock+' more: total drops to '+gbpP(s.unlock_total_pence)+(freeToo?' with free delivery':'');
-  } else {
-    out.progress='Add '+s.to_unlock+' more: every item drops to its '+s.tier_from+'+ price';
+  } else if(s.unlock_total_pence!==null){
+    const freeToo=s.unlock_shipping_pence===0&&s.shipping_pence>0, fd=freeToo?' with free delivery':'';
+    if(s.unlock_lowers_total){
+      // CTSI §20 / Komuta: the shopper does not have to work out the value; the figure is THIS cart at the threshold
+      const eg=m1Example(lines, s.unlock_group);
+      out.progress = s.to_unlock===1 ? 'Add 1 more: total drops to '+gbpP(s.unlock_total_pence)+fd
+        : 'Add '+s.to_unlock+' more'+(eg?' (e.g. '+eg+')':'')+': your total becomes '+gbpP(s.unlock_total_pence)+fd;
+    } else {
+      out.progress='Add '+s.to_unlock+' more to unlock '+s.tier_from+'+ prices (from '+gbpP(s.unlock_tier_each_pence)+' each)'+(freeToo?' and free UK delivery':'');
+    }
   }
   return out;
 }

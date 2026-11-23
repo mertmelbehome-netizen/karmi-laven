@@ -444,9 +444,13 @@ const copyUnits = (units) => units.map((u) => ({ ladder: !!u.ladder, unitP: u.un
 /**
  * mode cart_qty_groups: BOTH prices and the difference, for the cart (Mert, 23 Nov: "cart must show both prices and
  * the saving"). single_total = every unit at its group single; tier_total = every unit at its group tier price;
- * charged = what the bag costs now (single_total below the threshold, tier_total from it). to_unlock = units still
- * needed; unlock_total = what the bag would cost with `to_unlock` more units of the last-touched group.
- * Wording of a "saving" line on the page is LEGAL-CHECK (CMA/DMCC reference price) — numbers only here.
+ * charged = what the bag costs now (single_total below the threshold, tier_total from it).
+ * Unlock (Komuta rule, 23 Nov 2026: the figure comes from THIS cart, never a generic "cheapest 10"): to_unlock = units
+ * still needed; unlock_group = the group IN THIS CART with the lowest tier_each (tie: alphabetical; a group that is not
+ * in the cart is never assumed); unlock_total = tier_total + to_unlock x that tier_each = what the bag would cost at the
+ * threshold. shipping_pence = delivery charged now; unlock_shipping_pence = delivery at the threshold;
+ * unlock_lowers_total = unlock_total + unlock_shipping < charged + shipping (only then may the cart say "drops").
+ * Wording of a "saving" line on the page is LEGAL-CHECK (CMA/DMCC reference price): numbers only here.
  */
 export function cartSummary(units, table = LADDERS) {
   const t = need(table);
@@ -462,9 +466,13 @@ export function cartSummary(units, table = LADDERS) {
     b.qty++;
   }
   const n = priced.length;
+  const groups = Object.values(byGroup).sort((a, b) => (a.group < b.group ? -1 : 1));
   const toUnlock = n >= t.tierFrom ? 0 : t.tierFrom - n;
-  const last = priced[n - 1];
-  const unlockTotal = toUnlock && last ? tierTotal + toUnlock * t.groups[last.pool].tier_each : null;
+  let pad = null;
+  for (const g of groups) if (!pad || g.tier_each < pad.tier_each) pad = g;
+  const unlockTotal = toUnlock && pad ? tierTotal + toUnlock * pad.tier_each : null;
+  const shipping = n ? shippingFeeP(charged, n, t) : 0;
+  const unlockShipping = unlockTotal === null ? null : shippingFeeP(unlockTotal, t.tierFrom, t);
   return {
     units: n,
     tier_from: t.tierFrom,
@@ -473,10 +481,14 @@ export function cartSummary(units, table = LADDERS) {
     tier_total_pence: tierTotal,
     charged_pence: charged,
     difference_pence: singleTotal - charged, // 0 below the threshold
+    shipping_pence: shipping,
     to_unlock: toUnlock,
-    unlock_group: toUnlock && last ? last.pool : null,
+    unlock_group: toUnlock && pad ? pad.group : null,
+    unlock_tier_each_pence: toUnlock && pad ? pad.tier_each : null,
     unlock_total_pence: unlockTotal,
-    groups: Object.values(byGroup).sort((a, b) => (a.group < b.group ? -1 : 1)),
+    unlock_shipping_pence: unlockShipping,
+    unlock_lowers_total: unlockTotal !== null && unlockTotal + unlockShipping < charged + shipping,
+    groups,
   };
 }
 
@@ -494,11 +506,19 @@ function groupProgress(units, t) {
   }
   const bestUnlocked = s.tier_unlocked;
   const lines = [];
-  // "Add 1 more: all 10 for £24.00" — the 10-unit total is LOWER than the 9-unit total by design (non-monotonic).
-  const deliveryToo = gap && gap.units !== null && next && gap.units === next.add && f.fromP === null;
-  if (next) lines.push(`Add ${next.add} more: all ${next.qty} for ${gbp(next.total_pence)}${deliveryToo ? ' with free delivery' : ''}`);
-  else if (bestUnlocked) lines.push('Best multi-buy price unlocked');
-  if (gap && !deliveryToo) {
+  const freeAtTier = s.unlock_shipping_pence === 0 && s.shipping_pence > 0;
+  if (next) {
+    // Komuta rule (23 Nov): the figure is THIS cart at the threshold (cheapest group already in the cart). "drops" /
+    // "becomes" only when that total (delivery included) is lower than the bag now; otherwise only name the unlock.
+    if (s.unlock_lowers_total) {
+      lines.push(next.add === 1
+        ? `Add 1 more: total drops to ${gbp(next.total_pence)}${freeAtTier ? ' with free delivery' : ''}`
+        : `Add ${next.add} more: your total becomes ${gbp(next.total_pence)}${freeAtTier ? ' with free delivery' : ''}`);
+    } else {
+      lines.push(`Add ${next.add} more to unlock ${t.tierFrom}+ prices (from ${gbp(s.unlock_tier_each_pence)} each)${freeAtTier ? ' and free UK delivery' : ''}`);
+    }
+  } else if (bestUnlocked) lines.push('Best multi-buy price unlocked');
+  if (gap && !freeAtTier) {
     if (gap.pence !== null) lines.push(`Add ${gbp(gap.pence)} for free delivery`);
     else if (gap.units !== null) lines.push(`Add ${gap.units} more for free delivery`);
   }
