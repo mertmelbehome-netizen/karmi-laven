@@ -242,3 +242,9 @@ test('N1: phone cookie banner is compact (does not cover the first card price + 
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
   assert.match(html, /@media\(max-width:600px\)\{\n  \/\* compact on phones[\s\S]*?#cookie-banner\{ flex-direction:row; flex-wrap:wrap; align-items:center; padding:8px 12px;/)
 })
+
+test('375x812 + 390x844: first card ends above the sticky bar (compact announce + logo row on phones)', () => {
+  const css = readFileSync(new URL('../css/storefront.css', import.meta.url), 'utf8')
+  assert.match(css, /html\.kl-v2 body > nav:not\(\.kl-tabbar\)\{padding:10px 0 8px\}/)
+  assert.match(css, /html\.kl-v2 \.announce\{padding:7px 10px; font-size:10\.5px; letter-spacing:\.1em; line-height:1\.4\}/)
+})

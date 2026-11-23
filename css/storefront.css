@@ -73,7 +73,9 @@ html.kl-v2 .swatchbar{top:var(--kl-tb-h,54px)}
   .kl-tabs [role=tab]{flex:1 1 auto; padding:0 10px; font-size:13px; letter-spacing:.01em; min-width:44px}
   .kl-tabs [role=tab] .n{display:none}
   /* logo row a little tighter so the chips sit on the first screen (F1) */
-  html.kl-v2 body > nav:not(.kl-tabbar){padding:16px 0 12px}
+  html.kl-v2 body > nav:not(.kl-tabbar){padding:10px 0 8px}
+  /* 375x812: announce bar 60 -> 44 px so the first full card ends above the sticky bar (Komuta 23 Nov: overlap 0 at 812 + 844) */
+  html.kl-v2 .announce{padding:7px 10px; font-size:10.5px; letter-spacing:.1em; line-height:1.4}
 }
 /* hero: H1 + one short line (F3); the eyebrow and buttons are hidden by sfLayout */
 html.kl-v2 .hero-copy p{margin-bottom:0}
