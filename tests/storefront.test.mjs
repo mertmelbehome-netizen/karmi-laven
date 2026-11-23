@@ -230,17 +230,17 @@ test('performance: index.html has no embedded base64 images (was 4.28 MB) and st
   assert.ok(/<img id="heroImg" src="\/img\/gradient\/1074\.jpg" fetchpriority="high"/.test(HTML), 'hero (LCP) image requested from the HTML, not after JS')
 })
 
-test('Vercel CJS guard: no import.meta in api/*.js; ladders.json is the only JSON file the functions read', () => {
+test('Vercel CJS guard: no import.meta in api/*.js; ladders.json (+ ladders-preview/*.json, M1 preview) are the only JSON files the functions read', () => {
   for (const f of readdirSync(new URL('../api/', import.meta.url)).filter((x) => x.endsWith('.js'))) {
     const src = read('../api/' + f)
     assert.ok(!/import\.meta/.test(src.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')), `import.meta in api/${f}`)
     const all = (src.match(/readFileSync\(/g) || []).length
-    const ok = (src.match(/readFileSync\(join\(process\.cwd\(\), 'ladders\.json'\)/g) || []).length
-    assert.equal(all, ok, `api/${f}: every readFileSync reads <cwd>/ladders.json`)
+    const ok = (src.match(/readFileSync\(join\(process\.cwd\(\), ('ladders\.json'|'ladders-preview', `\$\{n\}\.json`)\)/g) || []).length
+    assert.equal(all, ok, `api/${f}: every readFileSync reads <cwd>/ladders.json or <cwd>/ladders-preview/<allow-listed>.json`)
   }
   const vj = JSON.parse(read('../vercel.json'))
-  assert.equal(vj.functions['api/stock.js'].includeFiles, 'ladders.json')
-  assert.equal(vj.functions['api/checkout.js'].includeFiles, 'ladders.json')
+  assert.equal(vj.functions['api/stock.js'].includeFiles, '{ladders.json,ladders-preview/*.json}')
+  assert.equal(vj.functions['api/checkout.js'].includeFiles, '{ladders.json,ladders-preview/*.json}')
 })
 
 test('sticky bag bar: bottom padding follows the measured bar height (+ scroll padding), never a fixed guess only', () => {
