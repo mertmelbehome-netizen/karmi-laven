@@ -941,6 +941,7 @@ function stockTxt(d){
   if(typeof matchMedia==='function' && matchMedia('(max-width:560px)').matches) return 'Ships in 1–2 business days';
   return 'Ships within 1–2 business days'+(st.length?' · '+st[0]:'');
 }
+function imgAlt(d){ return (!d.img||d.img.indexOf('/img/tone/')===0) ? (d.color_en+' colour tile, not a photo') : (d.color_en+(d.family?(', '+(d.type||'')):' bracelet, worn')); }
 function priceTxt(bc){ const p=unitPrice(bc); return p?('£'+p.toFixed(2)):''; }
 function card(d,i){
   const isNew=d.added==='2026-06-12', lad=isLadder(d.barcode), pt=priceTxt(d.barcode);
@@ -973,7 +974,7 @@ const BY={}; DATA.forEach(d=>BY[d.barcode]=d);
 /* ---- PRODUCT MODAL ---- */
 function openModal(bc){
   const d=BY[bc]; if(!d) return; window._mbc=bc;
-  document.getElementById('mImg').src=d.img;
+  { const mi=document.getElementById('mImg'); mi.src=d.img||''; mi.alt=imgAlt(d); }
   document.getElementById('mName').textContent=d.color_en;
   document.getElementById('mDot').style.background=d.swatch;
   document.getElementById('mPrice').innerHTML=`<span class="p">${m1On()?m1PriceHtml(bc):priceTxt(bc)}</span><div class="fee" data-kl="cardship">${cardShipText()}</div>`;
@@ -1401,7 +1402,7 @@ function renderCart(){
   if(!cart.length){box.innerHTML='<div class="cart-empty">Your bag is empty.</div>';}
   else box.innerHTML=cart.map((c,i)=>{
     const d=BY[c.bc];
-    return `<div class="ci"><img src="${d.img}">
+    return `<div class="ci">${d.img?`<img src="${d.img}" alt="${imgAlt(d)}">`:`<span class="ci-tone" role="img" aria-label="${imgAlt(d)}" style="display:block;width:72px;height:90px;flex:0 0 auto;background:${d.swatch}"></span>`}
       <div class="ci-m"><div class="ci-n">${d.color_en}</div>
       <div class="ci-p">${m1On()?m1LineText(c.bc):isLadder(c.bc)?'Bead bracelet':(d.type||'')+' · '+priceTxt(c.bc)}</div>
       <div class="ci-q"><button onclick="changeQty(${i},-1)">−</button>
