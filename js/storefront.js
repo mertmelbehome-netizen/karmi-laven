@@ -78,6 +78,50 @@
       return t === 'gradient' || cards.some(function (c) { var s = stateOf(c); return c.tab === t && (s === 'sellable' || s === 'single'); });
     });
   }
+  /* Sub-categories (owner 23 Nov: bracelets split, each its own sub-tab + URL). A card's sub-category comes from its
+   * product line (cards.json `line`; Gradient: index.html DATA `type`), never from `family` (0624 is family "Stretch
+   * Double" but labelled and sold as "Stretch Bracelet"). Customer labels never say Lux / crystal / diamond / stone:
+   * the Gradient Edit's two DB types read "Gradient" and "Gradient Cobra". Hash = '#<tab>-<key>' (ASCII, hyphen);
+   * 'all' is never written to the URL ('#bracelets' = All). */
+  var SF_SUBS = {
+    // Gradient: index.html LADDER_TYPES (the two DB types of the Gradient Edit) told apart by the word Cobra; regexes, so
+    // no DB type name sits in this file as a string (K-08 wording test)
+    gradient: [{ k: 'classic', label: 'Gradient', re: /^(?!.*\bcobra\b).*\bbracelet$/i }, { k: 'cobra', label: 'Gradient Cobra', re: /\bcobra bracelet$/i }],
+    bracelets: [{ k: 'stretch', label: 'Stretch', re: /\bstretch bracelet$/i }, { k: 'charm', label: 'Stretch Charm', re: /^stretch charm bracelet$/i },
+      { k: 'bangle', label: 'Bangle', re: /^bangle$/i }, { k: 'double', label: 'Stretch Double', re: /^stretch double bracelet$/i },
+      { k: 'sparkle', label: 'Sparkle Line', re: /^sparkle line$/i }]
+  };
+  /** sub-category key of a line/type inside a tab; null = shown under All only */
+  function sfSubOf(tab, line) {
+    var L = SF_SUBS[tab] || [];
+    for (var i = 0; i < L.length; i++) if (L[i].re.test(String(line || ''))) return L[i].k;
+    return null;
+  }
+  /** '#bracelets-bangle' -> {tab:'bracelets', sub:'bangle'}; unknown tab -> null; unknown sub -> 'all' */
+  function sfParseHash(h) {
+    h = String(h || '').replace(/^#/, '').toLowerCase();
+    var i = h.indexOf('-'), t = i < 0 ? h : h.slice(0, i), s = i < 0 ? '' : h.slice(i + 1);
+    if (SF_TABS.indexOf(t) < 0) return null;
+    var ok = (SF_SUBS[t] || []).some(function (x) { return x.k === s; });
+    return { tab: t, sub: ok ? s : 'all' };
+  }
+  function sfHash(tab, sub) { return '#' + tab + (sub && sub !== 'all' && (SF_SUBS[tab] || []).some(function (x) { return x.k === sub; }) ? '-' + sub : ''); }
+  /** Sub-chips of a tab: [{k,label,n}] with All first; only subs with >= 1 sellable item (like the main tabs, K-01).
+   *  items = [{line, ok}] (ok = sellable now). Fewer than 2 sub-categories to choose from = no row ([]). */
+  function sfVisibleSubs(tab, items) {
+    var subs = (SF_SUBS[tab] || []).map(function (x) {
+      return { k: x.k, label: x.label, n: items.filter(function (it) { return it.ok && sfSubOf(tab, it.line) === x.k; }).length };
+    }).filter(function (x) { return x.n > 0; });
+    if (subs.length < 2) return [];
+    return [{ k: 'all', label: 'All', n: items.filter(function (it) { return it.ok; }).length }].concat(subs);
+  }
+  /** Sub-chip row buttons (all of a tab's subs are built once; renderTabs toggles hidden / counts / selection in place,
+   *  so keyboard focus survives the 60 s stock refresh). */
+  function sfSubButtons(tab, ctl) {
+    return [{ k: 'all', label: 'All' }].concat(SF_SUBS[tab] || []).map(function (x) {
+      return '<button type="button" role="tab" class="kl-sub" id="klsub-' + tab + '-' + x.k + '" data-subtab="' + tab + '" data-sub="' + x.k + '" aria-controls="' + ctl + '" aria-selected="' + (x.k === 'all') + '" tabindex="' + (x.k === 'all' ? 0 : -1) + '">' + sfEsc(x.label) + ' <span class="n"></span></button>';
+    }).join('');
+  }
   function sfEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]; }); }
   /** Price shown on a family card. M1 table (mode cart_qty_groups): the group single price + the same M1 text as the
    *  Gradient cards (index.html m1PriceHtml, so a percentage appears only when the table makes it exact); no group =
@@ -140,6 +184,7 @@
   var FAM = [];            // family cards from /data/cards.json
   var FAMBY = {};          // barcode -> family card
   var tab = 'gradient', lastPool = null, showOther = false, stockErr = false;
+  var sub = { gradient: 'all', bracelets: 'all' }, lastGSub = 'all';   // selected sub-chip per tab (SF_SUBS)
 
   function priceP(bc) { return sfPriceLine(bc, window).p; }   // M1: group single (no group = null = hidden); else till price
   function isGrad(bc) { return typeof window.isLadder === 'function' && window.isLadder(String(bc)); }
@@ -187,12 +232,14 @@
     sec.innerHTML = '<div class="kl-err" id="klErr" role="alert" hidden><span>Prices are not loading. Try again.</span> <button type="button" class="btn" id="klRetry">Try again</button></div>'
       + '<div class="col-head"><h2 id="klFamTitle"></h2><div class="c" id="klFamCount" aria-live="polite"></div><div class="kl-dlv" data-kl="ship"></div></div>'
       + '<div class="kl-empty" id="klEmpty" hidden><p class="et">Nothing here yet</p><p class="es">This category opens once its pieces are photographed.</p><a class="btn ghost" href="#gradient">See The Gradient Edit</a></div>'
+      + '<div class="kl-subs" id="klBSubs" role="tablist" aria-label="Bracelet styles" hidden>' + sfSubButtons('bracelets', 'klFamGrid') + '</div>'
       + '<div class="grid" id="klFamGrid"></div>';
     pal.parentNode.insertBefore(sec, pal.nextSibling);
     sfLayout(document, nav, KL.vis);   // chips under the logo row, hero short, delivery/Christmas/trust/VAT after the grids
     // mobile: the bundle builder moves into the colour chip row so the first cards are on the first screen (V-01)
     KL.sfBundleChip(document);
     var chip = $('#swatchbar .kl-bundlechip'); chip.onclick = function () { openBundle(); };
+    if (!$('#klGSubs') && KL.sfGradSubs) KL.sfGradSubs(document);   // Gradient / Gradient Cobra, first in the colour row (no extra row)
     var lbl = $('#swatchbar .sbl'); if (lbl) lbl.setAttribute('aria-hidden', 'true');
     $$('#swatchbar .sw').forEach(function (b) { if (!b.getAttribute('aria-pressed') && b !== chip) b.setAttribute('aria-pressed', String(b.classList.contains('active'))); });
     // bundle builder: a 10 step (one tap) from the table; tier labels are plain quantities (no "Save")
@@ -202,11 +249,41 @@
     } catch (e) { /* bundle stays as today */ }
     applyShipTexts();
   }
-  function setTab(t, push) {
+  function setTab(t, push, s) {
     if (SF_TABS.indexOf(t) < 0) t = 'gradient';
     tab = t;
-    if (push && location.hash !== '#' + t) history.pushState(null, '', location.pathname + location.search + '#' + t);
-    renderTabs();
+    if (s !== undefined && sub[t] !== undefined) sub[t] = s || 'all';
+    renderTabs();   // may fall back to 'All' when the asked sub-category has nothing on sale (hidden)
+    var sb = $('.kl-subs [data-subtab="' + tab + '"][aria-selected="true"]'), sc = sb && (sb.closest('#klBSubs') || $('#swatchbar'));
+    if (sc) {   // 390 px: the selected sub-chip is brought into view inside its own row (deep link #gradient-cobra)
+      var r = sb.getBoundingClientRect(), cr = sc.getBoundingClientRect();
+      if (r.right > cr.right || r.left < cr.left) sc.scrollLeft += (r.left - cr.left) - (cr.width - r.width) / 2;
+    }
+    var h = sfHash(tab, sub[tab]), url = location.pathname + location.search + h;
+    if (push && location.hash !== h) history.pushState(null, '', url);
+    else if (!push && location.hash && location.hash !== h) history.replaceState(null, '', url);   // deep link to a hidden sub-tab
+  }
+  /* Gradient Edit pieces on sale now (same rule as decorateGradient: not sold out) */
+  function gradOk(bc) { return !(typeof window.klIsSold === 'function' && window.klStockReady && window.klStockReady() && window.klIsSold(bc)); }
+  function gradItems() {
+    return (window.DATA || []).filter(function (d) { return isGrad(d.barcode); }).map(function (d) { return { line: d.type, ok: gradOk(d.barcode) }; });
+  }
+  function famItems(t) {
+    return FAM.filter(function (c) { return c.tab === t; }).map(function (c) { var s = famState(c); return { line: c.line, ok: s === 'sellable' || s === 'single' }; });
+  }
+  /** one sub-chip row in place: hidden when < 2 sub-categories are on sale; the selected sub falls back to All when its
+   *  sub-tab is hidden. Returns the visible subs. */
+  function renderSubs(t, row) {
+    var vs = sfVisibleSubs(t, t === 'gradient' ? gradItems() : famItems(t)), keys = vs.map(function (x) { return x.k; });
+    if (keys.indexOf(sub[t]) < 0) sub[t] = 'all';
+    if (!row) return vs;
+    row.hidden = !vs.length;
+    $$('[role=tab]', row).forEach(function (b) {
+      var x = vs.filter(function (v) { return v.k === b.dataset.sub; })[0], on = !!x && b.dataset.sub === sub[t];
+      b.hidden = !x; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1;
+      var n = b.querySelector('.n'); if (n) n.textContent = x ? String(x.n) : '';
+    });
+    return vs;
   }
   function renderTabs() {
     var vis = sfVisibleTabs(FAM, famState), seen = {};
@@ -214,12 +291,14 @@
       var b = $('#kltab-' + t); if (!b) return;
       var v = vis.indexOf(t) >= 0; b.hidden = !v;
       b.setAttribute('aria-selected', String(t === tab && v)); b.tabIndex = t === tab ? 0 : -1;
-      var n = t === 'gradient' ? $$('#grid [data-kl-card]').filter(function (c) { return c.dataset.klState === 'sellable'; }).length
+      var n = t === 'gradient' ? gradItems().filter(function (x) { return x.ok; }).length   // all Gradient pieces on sale, whatever sub-chip / colour is picked (was: DOM cards with a pool badge = 0 under the M1 table)
         : FAM.filter(function (c) { var s = famState(c); return c.tab === t && (s === 'sellable' || s === 'single'); }).length;
       var cnt = $('[data-count="' + t + '"]'); if (cnt) cnt.textContent = String(n);
       seen[t] = n;
     });
-    if (FAM.length) try { localStorage.setItem('kl_sf_tabs', JSON.stringify({ v: vis, n: seen })); } catch (e) {}   // next visit's pre-paint chip bar (index.html)
+    var gsv = renderSubs('gradient', $('#klGSubs')); renderSubs('bracelets', $('#klBSubs'));
+    if (FAM.length) try { localStorage.setItem('kl_sf_tabs', JSON.stringify({ v: vis, n: seen,   // next visit's pre-paint chip bar + Gradient sub-chips (index.html)
+      gs: gsv.reduce(function (o, x) { o[x.k] = x.n; return o; }, {}) })); } catch (e) {}
     var isG = tab === 'gradient', wasG = !$('#palette').hidden;
     $('#palette').hidden = !isG; $('.swatchbar').hidden = !isG;   // colour bar on the Gradient Edit only (K-11)
     $('#klFam').hidden = isG;
@@ -228,7 +307,7 @@
     sfMetaCats(document, vis.indexOf('hair') >= 0);
     tabScroll(true); syncSticky(); syncHero();
     // only the open tab's cards are in the page (no hidden duplicate buttons / texts)
-    if (isG) { $('#klFamGrid').innerHTML = ''; if (!wasG || !grid.children.length) rerenderGradient(); }
+    if (isG) { $('#klFamGrid').innerHTML = ''; if (!wasG || !grid.children.length || lastGSub !== sub.gradient) { lastGSub = sub.gradient; rerenderGradient(); } }
     else { if (grid.children.length) grid.innerHTML = ''; renderFam(vis.indexOf(tab) >= 0); }
   }
   /* 390 px: the tab row scrolls sideways by itself (never the page); edge fades show there is more; the selected tab
@@ -286,9 +365,10 @@
       why: w && w.open === false ? (w.message || 'Online orders are closed right now.') : 'This piece is fully reserved for now.' });
   }
   function renderFam(has) {
-    $('#klFamTitle').textContent = SF_TITLE[tab];
+    var sk = sub[tab] || 'all', sl = (SF_SUBS[tab] || []).filter(function (x) { return x.k === sk; })[0];
+    $('#klFamTitle').textContent = SF_TITLE[tab] + (sl ? ' · ' + sl.label : '');
     $('#klErr').hidden = !stockErr;
-    var g = $('#klFamGrid'), list = FAM.filter(function (c) { return c.tab === tab; }).map(function (c) { return { c: c, s: famState(c) }; })
+    var g = $('#klFamGrid'), list = FAM.filter(function (c) { return c.tab === tab && (sk === 'all' || sfSubOf(tab, c.line) === sk); }).map(function (c) { return { c: c, s: famState(c) }; })
       .filter(function (x) { return x.s !== 'hidden' && (x.s !== 'soldout' || CFG.sold_out !== 'hide'); });
     $('#klEmpty').hidden = has;
     if (!has) { g.innerHTML = ''; $('#klFamCount').textContent = ''; return; }
@@ -391,7 +471,10 @@
     window.addToCartSilent = function (bc) { var r = origS.apply(this, arguments); try { lastPool = poolOfBc(bc) || ('single:' + bc); } catch (e) {} return r; };
     if (CFG.families) {
       var origR = window.render;
-      window.render = function () { origR.apply(this, arguments); try { decorateGradient(); renderTabs(); } catch (e) {} };
+      window.render = function (list) {   // Gradient sub-chip: only that type's cards (the colour filter still applies on top)
+        if (Array.isArray(list) && tab === 'gradient' && sub.gradient !== 'all') list = list.filter(function (d) { return sfSubOf('gradient', d.type) === sub.gradient; });
+        origR.call(this, list); try { decorateGradient(); renderTabs(); } catch (e) {}
+      };
       var origUB = window.updateBag;
       window.updateBag = function () { origUB.apply(this, arguments); try { syncSticky(); } catch (e) {} };
       // Gradient count line: the shades actually on sale (sold-out hidden), not every shade in the page data
@@ -408,21 +491,24 @@
       var t = e.target.closest && e.target.closest('button,a'); if (!t) return;
       if (t.id === 'klOg') { showOther = !showOther; renderCart(); return; }
       if (!CFG.families) return;
-      if (t.matches('[role=tab]') && t.dataset.tab) { setTab(t.dataset.tab, true); scrollToTabs(); return; }
+      if (t.matches('[role=tab]') && t.dataset.tab) { setTab(t.dataset.tab, true, 'all'); scrollToTabs(); return; }
+      if (t.matches('[role=tab]') && t.dataset.sub) { setTab(t.dataset.subtab, true, t.dataset.sub); return; }
       if (t.matches('#klFamGrid [data-kl-add]')) { if (!t.disabled) addToCart(t.dataset.bc); return; }
       if (t.id === 'klRetry') { refresh(); return; }
       var href = t.getAttribute && t.getAttribute('href');
-      if (t.tagName === 'A' && href && href.charAt(0) === '#' && SF_TABS.indexOf(href.slice(1)) >= 0) { e.preventDefault(); setTab(href.slice(1), true); scrollToTabs(); }
+      var ph = t.tagName === 'A' && href && href.charAt(0) === '#' ? sfParseHash(href) : null;
+      if (ph) { e.preventDefault(); setTab(ph.tab, true, ph.sub); scrollToTabs(); }
     });
     document.addEventListener('keydown', function (e) {
       if (!CFG.families || !e.target.matches || !e.target.matches('[role=tab]')) return;
       if (['ArrowRight', 'ArrowLeft', 'Home', 'End'].indexOf(e.key) < 0) return;
       e.preventDefault();
-      var vt = $$('[role=tab]').filter(function (b) { return !b.hidden; }), i = vt.indexOf(e.target);
+      var vt = $$('[role=tab]', e.target.closest('[role=tablist]') || document).filter(function (b) { return !b.hidden; }), i = vt.indexOf(e.target);   // arrows stay inside their own row
       var n = e.key === 'Home' ? vt[0] : e.key === 'End' ? vt[vt.length - 1] : vt[(i + (e.key === 'ArrowRight' ? 1 : vt.length - 1)) % vt.length];
-      setTab(n.dataset.tab, true); n.focus();
+      if (n.dataset.sub) setTab(n.dataset.subtab, true, n.dataset.sub); else setTab(n.dataset.tab, true, 'all');
+      n.focus();
     });
-    window.addEventListener('popstate', function () { if (CFG.families) setTab(location.hash.slice(1) || 'gradient', false); });
+    window.addEventListener('popstate', function () { if (!CFG.families) return; var ph = sfParseHash(location.hash); setTab(ph ? ph.tab : 'gradient', false, ph ? ph.sub : 'all'); });
   }
 
   /* ---------------- data ---------------- */
@@ -455,9 +541,9 @@
     buildShell();
     loadCards().then(refresh, function () { stockErr = true; }).then(function () {
       try { render(DATA); } catch (e) {}
-      var h = location.hash.slice(1);
-      setTab(SF_TABS.indexOf(h) >= 0 ? h : 'gradient', false);
-      if (SF_TABS.indexOf(h) >= 0) scrollToTabs();
+      var ph = sfParseHash(location.hash);   // '#bracelets-bangle' opens Bracelets with Bangle selected
+      setTab(ph ? ph.tab : 'gradient', false, ph ? ph.sub : 'all');
+      if (ph) scrollToTabs();
       var s = Math.max(15, Number(CFG.refresh_s) || 60);
       setInterval(function () { if (document.visibilityState !== 'hidden') refresh(); }, s * 1000);   // K-07 without reload
     });
