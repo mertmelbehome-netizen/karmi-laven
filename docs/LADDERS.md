@@ -1,0 +1,75 @@
+# Multi-buy ladders and shipping (`ladders.json`)
+
+`ladders.json` (repo root) is the ONE table the checkout charges from. `api/_pricing.js` loads and validates it;
+`/api/checkout` prices every unit from it; `/api/stock` serves it to the page as `ladders` (additive field).
+The default file = the live behaviour on 23 Nov 2026: nothing changes for customers.
+
+## Shape
+
+```json
+{
+  "version": "live-2026-11-23",
+  "rule": { "monotonic": true, "rounding": "integer-pence-floor-spread", "max_units": 99 },
+  "shipping": {
+    "free_threshold_pence": 1200,
+    "below_threshold_fee_pence": 149,
+    "free_at_qty": { "enabled": true, "qty": 5 },
+    "derive_threshold": null
+  },
+  "rules": [],
+  "ui": { "progress_line": false },
+  "pools": {
+    "gradient": { "single": 299, "bundles": { "2": 550, "3": 750, "5": 1200 } }
+  }
+}
+```
+
+- **Pools.** Key `gradient` = The Gradient Edit barcodes (`api/_gradient.js`). Any other key is a single price in
+  pence (`"599"`): every product whose WAT till price (DB `price_pence`) equals it shares that ladder, whatever its
+  family (Stretch Double and Necklace at £9.99 mix in one pool). A price with no pool = no multi-buy (n × single).
+  If WAT moves a price (£5.99 → £6.49), that product silently leaves the pool: check listed prices against the pool
+  keys before and after a family goes live.
+- **Pool fields.** `single` (must equal the key), `bundles` `{qty: total_pence}` (qty 2..max_units), optional
+  `tail` `{from, each}` or a list of them (every unit at `each` once the pool has `from`+ units).
+- **Algorithm** (independent of which steps exist): cheapest combination of single + bundles + tail, then the
+  monotonic rule `f(q) = min f(q')` for `q <= q' <= max_units` (no quantity costs more than a larger one). Totals are
+  integer pence; a pool total is spread floor-each, leftover pennies +1 on the first units (line items sum exactly).
+- **Shipping.** Free when subtotal >= `free_threshold_pence` (integer compare, penny-exact) or, if
+  `free_at_qty.enabled`, units >= `free_at_qty.qty`; otherwise `below_threshold_fee_pence`. `derive_threshold`
+  `{pool, qty}` (off = `null`) can only LOWER the threshold to that pool's total.
+- **`rules` (extension point, NOT implemented).** Planned home for cart-level mechanics, e.g.
+  `{ "type": "cart_discount", "min_spend_pence": 3000, "percent": 10 }` ("spend £30, get x off"). Today only `[]`
+  loads; any entry makes the table invalid (fail closed). `applyCartRules()` is the code hook and throws on any rule.
+- **`ui.progress_line`** (default `false`). `progress(units)` in `api/_pricing.js` returns the next ladder step and
+  the free-delivery gap from the table, plus English lines ("Add 1 more: 2 for £5.50 (£2.75 each)", "Add £9.01 for
+  free delivery"; no %, no strike-through, no "save £x"). The page shows nothing new until this flag is on AND the
+  page is wired to it (PR-2).
+
+## Changing prices, steps or shipping
+
+1. Edit `ladders.json` only (and bump `version`). Adding a 20 step, keeping only 1 and 10, or removing 2/3/5 is a
+   table change; no code change.
+2. Until the page reads `/api/stock` `ladders` (PR-2), also change `index.html` `DENOMS` / `PRICE` / `FREE_SHIP`
+   and the shipping text; `tests/ladders.test.mjs` fails if page and table disagree.
+3. `npm test`. A table that does not validate never charges: `/api/checkout` answers 503 before reserving anything,
+   `/api/stock` serves `ladders: null`.
+
+## Test fixtures (never live)
+
+`tests/fixtures/ladders.*.json`, used only by `tests/ladders.test.mjs`:
+
+| Fixture | What |
+|---|---|
+| `A` | Option A "WAT mirror" (commercial-analyst, 23 Nov): £4 5/10, £5.99/£7.99/£9.99 3/4/5 + 6+ each |
+| `B` | Option B: 5 = 3 × single, 10 = 4 × single, 6–9 = 60% each |
+| `C` | Option C: soft per-unit discounts 2/3/4/5–9/10+ |
+| `shipping_30` | A ladders + free delivery from £30.00, £6.49 below, no free-at-qty |
+| `steps_1_10` | only 1 and 10 per pool |
+| `steps_20` | A + a 20 step |
+| `no_mid` | A without the 2/3/4/5 steps |
+| `legacy-pricing.mjs` | frozen pre-table `_pricing.js`; proves the default table charges exactly the same |
+
+## Changelog
+
+- 2026-11-23 — PR-1 ladder engine: table-driven pools, monotonic rule, shipping block, `rules` extension point,
+  `progress()`, `ladders` in `/api/stock`. Default table = live behaviour (before/after diff empty).
