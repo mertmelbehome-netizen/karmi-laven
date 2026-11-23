@@ -150,6 +150,7 @@ function loadGroupTable(raw) {
     if (!/^[a-z][a-z_]*$/.test(fam) || fam === 'gradient') throw new Error(`ladders: family_groups key '${fam}' must be a DB family`);
     if (!groups[gk]) throw new Error(`ladders: family_groups.${fam} -> '${gk}' is not a group`);
   }
+  const flatGroups = loadFlatGroups(raw.flat_groups, groups, maxUnits);
   return {
     ok: true,
     table: Object.freeze({
@@ -160,6 +161,7 @@ function loadGroupTable(raw) {
       groups: Object.freeze(groups),
       gradientGroup: gg,
       familyGroups: Object.freeze({ ...fg }),
+      flatGroups, // ENABLED flat groups only; a disabled one is not in the loaded table at all (ships dark)
       freeShip: Object.freeze({ fromP: sh.free_threshold_pence, units: fq.enabled ? fq.qty : null, feeP: sh.below_threshold_fee_pence, derivedFrom: null }),
       rules: Object.freeze([]),
       progressLine: ui.progress_line === true,
@@ -167,6 +169,41 @@ function loadGroupTable(raw) {
       pools: Object.freeze({}),
     }),
   };
+}
+
+/**
+ * mode cart_qty_groups, optional `flat_groups` (K-069, 23 Nov 2026: rings £4 each, min 5 per order, NOT on the 10+ ladder).
+ * A flat group is NOT in `groups`: one price per unit (`each`, any quantity >= min_qty), a minimum per order (`min_qty`;
+ * 1..min_qty-1 units of it = the bag cannot check out), and today it must say counts_to_tier: false and
+ * counts_to_free_shipping: false (the narrowest reading of K-069 until Mert answers; `true` is not implemented and makes
+ * the table invalid = fail closed). `enabled: false` = SHIPS DARK: the entry is validated but left out of the loaded
+ * table, so pricing, lineGroup, publicLadders() (/api/stock) and every page text are exactly what they are without it
+ * (a product with that online_group is then unpriced -> /api/checkout 503, never sold at a guessed price).
+ * The page's customer texts (FAQ, meta, JSON-LD range, hero) read `groups` only, so even an ENABLED flat group never
+ * changes them; ring texts are added by the page on purpose (Rings tab).
+ *   "flat_groups": { "R": { "label": "Rings", "unit_name": "ring", "each": 400, "min_qty": 5,
+ *                           "counts_to_tier": false, "counts_to_free_shipping": false, "enabled": false } }
+ */
+function loadFlatGroups(rawFlat, groups, maxUnits) {
+  const fl = rawFlat === undefined || rawFlat === null ? {} : rawFlat;
+  if (!isObj(fl)) throw new Error('ladders: flat_groups must be {KEY: {...}}');
+  const out = {};
+  for (const [k, f] of Object.entries(fl)) {
+    const where = `ladders: flat group '${k}'`;
+    if (!/^[A-Z][A-Z0-9_]{0,15}$/.test(k)) throw new Error(`${where}: key must be A..Z (e.g. 'R')`);
+    if (Object.prototype.hasOwnProperty.call(groups, k)) throw new Error(`${where}: key is also a ladder group`);
+    if (!isObj(f)) throw new Error(`${where} is not an object`);
+    if (typeof f.enabled !== 'boolean') throw new Error(`${where}: enabled must be true or false`);
+    if (!isPosInt(f.each)) throw new Error(`${where}: each must be a positive integer (pence)`);
+    if (!Number.isInteger(f.min_qty) || f.min_qty < 1 || f.min_qty > maxUnits) throw new Error(`${where}: min_qty must be 1..${maxUnits}`);
+    if (f.counts_to_tier !== false || f.counts_to_free_shipping !== false) {
+      throw new Error(`${where}: counts_to_tier and counts_to_free_shipping must be false (true is not implemented)`);
+    }
+    if (typeof f.label !== 'string' || !f.label.trim()) throw new Error(`${where}: label must be text`);
+    if (typeof f.unit_name !== 'string' || !/^[a-z]{1,24}$/.test(f.unit_name)) throw new Error(`${where}: unit_name must be a lower-case word (e.g. 'ring')`);
+    if (f.enabled) out[k] = Object.freeze({ each: f.each, minQty: f.min_qty, label: f.label, unitName: f.unit_name });
+  }
+  return Object.freeze(out);
 }
 
 /** Validates a raw ladder table. Returns { ok: true, table } or { ok: false, error } — never throws. */
@@ -276,6 +313,21 @@ const need = (table) => {
   return table;
 };
 const isGroups = (t) => t.mode === MODE_GROUPS;
+const hasOwn = (o, k) => !!o && typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k);
+const anyFlat = (t) => isGroups(t) && !!t.flatGroups && Object.keys(t.flatGroups).length > 0;
+/** true when group key k is an ENABLED flat group (K-069 rings) of a cart_qty_groups table. */
+export const isFlatGroup = (k, table = LADDERS) => {
+  const t = need(table);
+  return isGroups(t) && hasOwn(t.flatGroups, k);
+};
+/** Single (unit) price in pence of group k: a ladder group's single, or a flat group's each; null = no such group. */
+export function groupSingleP(k, table = LADDERS) {
+  const t = need(table);
+  if (!isGroups(t)) return null;
+  if (hasOwn(t.groups, k)) return t.groups[k].single;
+  if (hasOwn(t.flatGroups, k)) return t.flatGroups[k].each;
+  return null;
+}
 
 /** Pool key of one unit in `table`: 'gradient', the price key, or null (no multi-buy). */
 export function poolKey(u, table = LADDERS) {
@@ -290,7 +342,7 @@ export function groupKey(u, table = LADDERS) {
   const t = need(table);
   if (!isGroups(t)) throw new Error('groupKey: table is not in cart_qty_groups mode');
   const k = u.ladder ? t.gradientGroup : u.group;
-  return typeof k === 'string' && Object.prototype.hasOwnProperty.call(t.groups, k) ? k : null;
+  return hasOwn(t.groups, k) || hasOwn(t.flatGroups, k) ? k : null;
 }
 
 /** mode cart_qty_groups: the group for a DB checkout line ({family, online_group?}); null = no group. */
@@ -298,7 +350,7 @@ export function lineGroup(line, table = LADDERS) {
   const t = need(table);
   if (!isGroups(t) || !line) return null;
   const own = typeof line.online_group === 'string' ? line.online_group : null; // future DB column (K-046)
-  if (own !== null) return Object.prototype.hasOwnProperty.call(t.groups, own) ? own : null;
+  if (own !== null) return hasOwn(t.groups, own) || hasOwn(t.flatGroups, own) ? own : null;
   const f = typeof line.family === 'string' ? line.family : '';
   return Object.prototype.hasOwnProperty.call(t.familyGroups, f) ? t.familyGroups[f] : null;
 }
@@ -359,18 +411,56 @@ export function priceUnits(units, table = LADDERS) {
   return total;
 }
 
+const NUM_PLURAL = { 2: 'twos', 3: 'threes', 4: 'fours', 5: 'fives', 6: 'sixes', 7: 'sevens', 8: 'eights', 9: 'nines', 10: 'tens' };
 /**
- * mode cart_qty_groups: n = ALL units in the cart (every group mixed). n < tierFrom -> each unit its group single;
- * n >= tierFrom -> each unit its group tier_each. Whole pence per unit, so no spreading is needed (line items sum
- * exactly). Sets u.pool = group, u.single = group single, u.price. Throws on an ungrouped unit.
+ * mode cart_qty_groups: the flat groups (K-069 rings) in this bag below their min_qty. [] = fine (0 units, or >= min).
+ * Each: { group, qty, min_qty, add, reason: '<unit_name>s_min_<min>' (e.g. 'rings_min_5'), message (English) }.
+ * Units with no / an unknown group are skipped here (priceUnits refuses them).
  */
-function priceGroupUnits(units, t) {
+export function flatMinShortfall(units, table = LADDERS) {
+  const t = need(table);
+  if (!anyFlat(t)) return [];
+  const qty = {};
+  for (const u of units) { const k = groupKey(u, t); if (hasOwn(t.flatGroups, k)) qty[k] = (qty[k] || 0) + 1; }
+  const out = [];
+  for (const k of Object.keys(qty).sort()) {
+    const f = t.flatGroups[k], q = qty[k];
+    if (q >= f.minQty) continue;
+    const add = f.minQty - q;
+    out.push({
+      group: k, qty: q, min_qty: f.minQty, add,
+      reason: `${f.unitName}s_min_${f.minQty}`,
+      message: `${f.label} are sold in ${NUM_PLURAL[f.minQty] || `${f.minQty}s`} or more: add ${add} more ${f.unitName}${add === 1 ? '' : 's'}`,
+    });
+  }
+  return out;
+}
+
+/**
+ * mode cart_qty_groups: n = the cart's LADDER units (every ladder group mixed; flat-group units, e.g. K-069 rings, are
+ * NOT counted). n < tierFrom -> each ladder unit its group single; n >= tierFrom -> each its group tier_each. A flat-group
+ * unit is always its `each`. Whole pence per unit, so no spreading is needed (line items sum exactly).
+ * Sets u.pool = group, u.single = group single (flat: each), u.price. Throws on an ungrouped unit and (enforceMin) on a
+ * flat group below its min_qty: the server never charges a bag that breaks a minimum.
+ */
+function priceGroupUnits(units, t, enforceMin = true) {
   if (units.length > t.maxUnits) throw new Error(`cart: ${units.length} units above max_units ${t.maxUnits}`);
-  const tier = units.length >= t.tierFrom;
-  let total = 0;
-  for (const u of units) {
+  const keys = units.map((u) => {
     const k = groupKey(u, t);
     if (k === null) throw new Error(u.ladder ? 'gradient not sold under this table' : 'ungrouped unit');
+    return k;
+  });
+  if (enforceMin) { const short = flatMinShortfall(units, t); if (short.length) throw new Error(short[0].reason); }
+  const tier = keys.filter((k) => !hasOwn(t.flatGroups, k)).length >= t.tierFrom;
+  let total = 0;
+  for (const [i, u] of units.entries()) {
+    const k = keys[i];
+    if (hasOwn(t.flatGroups, k)) {
+      const f = t.flatGroups[k];
+      u.pool = k; u.single = f.each; u.price = f.each;
+      total += u.price;
+      continue;
+    }
     const gr = t.groups[k];
     u.pool = k;
     u.single = gr.single;
@@ -378,6 +468,18 @@ function priceGroupUnits(units, t) {
     total += u.price;
   }
   return total;
+}
+
+/**
+ * What free delivery is judged on, after total = priceUnits(units, table): { amountP, units }. Flat-group units (K-069
+ * rings, counts_to_free_shipping false) are taken out of both; with no enabled flat group = { total, units.length }.
+ */
+export function shipBasis(units, total, table = LADDERS) {
+  const t = need(table);
+  if (!anyFlat(t)) return { amountP: total, units: units.length };
+  let amountP = total, n = units.length;
+  for (const u of units) if (hasOwn(t.flatGroups, u.pool)) { amountP -= u.price; n--; }
+  return { amountP, units: n };
 }
 
 export const freeShipping = (amountP, totalUnits, table = LADDERS) => {
@@ -487,27 +589,35 @@ export function cartSummary(units, table = LADDERS) {
   const t = need(table);
   if (!isGroups(t)) throw new Error('cartSummary: table is not in cart_qty_groups mode');
   const priced = copyUnits(units);
-  const charged = priced.length ? priceUnits(priced, t) : 0;
-  let singleTotal = 0, tierTotal = 0;
+  // flat groups (K-069 rings): a bag below a minimum is still summarised (the cart shows it); checkout refuses it
+  const charged = priced.length ? priceGroupUnits(priced, t, false) : 0;
+  let singleTotal = 0, tierTotal = 0, flatTotal = 0;
   const byGroup = {};
   for (const u of priced) {
-    const gr = t.groups[u.pool];
+    const flat = hasOwn(t.flatGroups, u.pool);
+    const gr = flat ? { single: u.price, tier_each: u.price } : t.groups[u.pool];
     singleTotal += gr.single; tierTotal += gr.tier_each;
+    if (flat) flatTotal += u.price;
     const b = byGroup[u.pool] || (byGroup[u.pool] = { group: u.pool, qty: 0, single: gr.single, tier_each: gr.tier_each, each_charged: u.price });
     b.qty++;
   }
   const n = priced.length;
   const groups = Object.values(byGroup).sort((a, b) => (a.group < b.group ? -1 : 1));
-  const toUnlock = n >= t.tierFrom ? 0 : t.tierFrom - n;
+  const ladderGroups = groups.filter((g) => !hasOwn(t.flatGroups, g.group));
+  const tierN = ladderGroups.reduce((s, g) => s + g.qty, 0); // = n with no flat group
+  const toUnlock = tierN >= t.tierFrom ? 0 : t.tierFrom - tierN;
   let pad = null;
-  for (const g of groups) if (!pad || g.tier_each < pad.tier_each) pad = g;
+  for (const g of ladderGroups) if (!pad || g.tier_each < pad.tier_each) pad = g;
   const unlockTotal = toUnlock && pad ? tierTotal + toUnlock * pad.tier_each : null;
-  const shipping = n ? shippingFeeP(charged, n, t) : 0;
-  const unlockShipping = unlockTotal === null ? null : shippingFeeP(unlockTotal, t.tierFrom, t);
+  const basis = shipBasis(priced, charged, t);
+  const shipping = n ? shippingFeeP(basis.amountP, basis.units, t) : 0;
+  const unlockShipping = unlockTotal === null ? null : shippingFeeP(unlockTotal - flatTotal, t.tierFrom, t);
+  const flatInfo = anyFlat(t) ? { tier_units: tierN, flat_short: flatMinShortfall(priced, t) } : {}; // additive, flat tables only
   return {
     units: n,
+    ...flatInfo,
     tier_from: t.tierFrom,
-    tier_unlocked: n >= t.tierFrom,
+    tier_unlocked: tierN >= t.tierFrom,
     single_total_pence: singleTotal,
     tier_total_pence: tierTotal,
     charged_pence: charged,
@@ -519,7 +629,7 @@ export function cartSummary(units, table = LADDERS) {
     unlock_total_pence: unlockTotal,
     unlock_shipping_pence: unlockShipping,
     unlock_lowers_total: unlockTotal !== null && unlockTotal + unlockShipping < charged + shipping,
-    pct_off: groupsPctOff(groups, t),
+    pct_off: groupsPctOff(ladderGroups, t),
     groups,
   };
 }
@@ -527,17 +637,20 @@ export function cartSummary(units, table = LADDERS) {
 function groupProgress(units, t) {
   const s = cartSummary(units, t);
   const f = t.freeShip;
-  const free = freeShipping(s.charged_pence, s.units, t);
+  // flat groups (K-069 rings) count toward neither the 10+ price nor free delivery
+  const sb = { amountP: s.charged_pence, units: s.units };
+  for (const g of s.groups) if (hasOwn(t.flatGroups, g.group)) { sb.amountP -= g.qty * g.each_charged; sb.units -= g.qty; }
+  const free = freeShipping(sb.amountP, sb.units, t);
   const gap = free ? null : {
-    pence: f.fromP === null ? null : f.fromP - s.charged_pence,
-    units: f.units === null ? null : f.units - s.units,
+    pence: f.fromP === null ? null : f.fromP - sb.amountP,
+    units: f.units === null ? null : f.units - sb.units,
   };
   let next = null;
-  if (s.to_unlock && s.units) {
+  if (s.to_unlock && s.unlock_total_pence !== null) {
     next = { pool: s.unlock_group, qty: t.tierFrom, add: s.to_unlock, total_pence: s.unlock_total_pence, each_pence: null, same_total: s.unlock_total_pence === s.charged_pence };
   }
   const bestUnlocked = s.tier_unlocked;
-  const lines = [];
+  const lines = (s.flat_short || []).map((x) => x.message); // K-069: "Rings are sold in fives or more: add 2 more rings"
   const freeAtTier = s.unlock_shipping_pence === 0 && s.shipping_pence > 0;
   // K-046 (23 Nov): "for x% off every item" only when every group in the cart is exactly the table's claimed percentage.
   const pctFor = s.pct_off !== null ? ` for ${s.pct_off}% off every item` : '';
@@ -571,6 +684,13 @@ function groupProgress(units, t) {
 export function publicLadders(table = LADDERS) {
   if (!table) return null;
   if (isGroups(table)) {
+    // `flat_groups` (K-069 rings) is served ONLY when one is enabled: with R disabled this view is byte-identical to the
+    // view of a table without flat_groups (tests/rings-group.test.mjs).
+    const flat = anyFlat(table) ? {
+      flat_groups: Object.fromEntries(Object.entries(table.flatGroups).map(([k, f]) => [k, {
+        label: f.label, unit_name: f.unitName, each: f.each, min_qty: f.minQty, counts_to_tier: false, counts_to_free_shipping: false, enabled: true,
+      }])),
+    } : {};
     return {
       version: table.version,
       mode: MODE_GROUPS,
@@ -588,6 +708,7 @@ export function publicLadders(table = LADDERS) {
       rules: [],
       ui: { progress_line: table.progressLine, percent_claim: table.percentClaim },
       pools: {},
+      ...flat,
     };
   }
   const pools = {};

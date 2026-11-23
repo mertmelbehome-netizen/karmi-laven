@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import { randomUUID } from 'crypto';
 import { fetchAvailable, shortages } from './_stock-lib.js';
 import { GRADIENT, isGradient } from './_gradient.js';
-import { priceUnits, freeShipping, shippingFeeP, LADDERS, MODE_GROUPS, previewLadders, previewAllowed, lineGroup, cartSummary } from './_pricing.js';
+import { priceUnits, freeShipping, shippingFeeP, LADDERS, MODE_GROUPS, previewLadders, previewAllowed, lineGroup, cartSummary, flatMinShortfall, shipBasis, groupSingleP } from './_pricing.js';
 import { reserve, attach, release, gradientFallback, resolveStaleHolds, MSG_UNAVAILABLE } from './_caps-lib.js';
 
 const clampN = n => Math.max(1, Math.min(99, parseInt(n) || 1));
@@ -147,7 +147,7 @@ export function createHandler({
             if (held) await release(ref, db);
             return res.status(503).json({ error: 'pricing_unavailable', message: MSG_PRICING_UNAVAILABLE });
           }
-          u.unitP = Number.isInteger(l.price_pence) && l.price_pence > 0 ? l.price_pence : table.groups[u.group].single;
+          u.unitP = Number.isInteger(l.price_pence) && l.price_pence > 0 ? l.price_pence : groupSingleP(u.group, table);
           u.name = String(l.name).slice(0, 60);
           continue;
         }
@@ -157,6 +157,15 @@ export function createHandler({
         }
         u.unitP = l.price_pence;
         u.name = String(l.name).slice(0, 60);
+      }
+      // Flat groups (K-069 rings; OFF until ladders.json flat_groups.R.enabled): 1..min_qty-1 rings cannot check out.
+      // The ring group is known only from the DB line, so this runs after the reserve: release the hold first.
+      if (groupMode) {
+        const short = flatMinShortfall(units, table);
+        if (short.length) {
+          if (held) await release(ref, db);
+          return res.status(400).json({ error: short[0].reason, reason: short[0].reason, message: short[0].message, items: short });
+        }
       }
       let amount;
       if (groupMode) {
@@ -192,10 +201,12 @@ export function createHandler({
       const itemsCsv = bcList.map(x => `${x.bc}x${x.qty}`).join(',').slice(0, 480);
       const itemsNamed = bcList.map(x => `${x.bc} ${x.name} x${x.qty}`).join(' | ').slice(0, 480);
 
-      const freeShip = freeShipping(amount, totalQty, table);
+      // Free delivery is judged without flat-group units (K-069: rings do not count); = (amount, totalQty) without them.
+      const sb = shipBasis(units, amount, table);
+      const freeShip = freeShipping(sb.amountP, sb.units, table);
       const shipping_options = [ freeShip
         ? { shipping_rate_data: { display_name: 'Free UK shipping', type: 'fixed_amount', fixed_amount: { amount: 0, currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } }
-        : { shipping_rate_data: { display_name: 'UK standard shipping', type: 'fixed_amount', fixed_amount: { amount: shippingFeeP(amount, totalQty, table), currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } } ];
+        : { shipping_rate_data: { display_name: 'UK standard shipping', type: 'fixed_amount', fixed_amount: { amount: shippingFeeP(sb.amountP, sb.units, table), currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } } ];
       const origin = req.headers.origin || 'https://karmilaven.com';
       // Promotion codes apply to the whole Stripe session, so they stay on ONLY for Gradient-Edit-only carts
       // (plan §3.3 / K&D 3b).
