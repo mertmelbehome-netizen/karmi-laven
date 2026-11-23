@@ -71,3 +71,9 @@ test('markup: card button names the message (aria-describedby) and the message i
   assert.ok(!/lim[^\n]{0,120}setTimeout\([^)]*hidden\s*=\s*true/.test(HTML), 'no timed hide')
   assert.match(HTML, /\.lim\{font-size:12px;[^}]*color:var\(--ink\)/)
 })
+
+test('every inline <script> in index.html compiles (a // comment inside a one-line function broke the page once)', () => {
+  const scripts = [...HTML.matchAll(/<script(?![^>]*\bsrc=)(?![^>]*application\/ld\+json)[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1])
+  assert.ok(scripts.length > 0)
+  scripts.forEach((src, i) => { assert.doesNotThrow(() => new Function(src), `inline script #${i} does not compile`) })
+})

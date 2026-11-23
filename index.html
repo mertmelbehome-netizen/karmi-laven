@@ -1207,7 +1207,7 @@ function addToCart(bc){
 }
 function capQty(bc,q){ const a=limitOf(bc); return (a>0 && a!==Infinity) ? Math.min(q,a) : q; }
 function setQty(i,v){const c=cart[i]; if(!c)return; c.qty=capQty(c.bc,Math.max(1,Math.min(99,parseInt(v)||1))); save();updateBag();renderCart();}
-function changeQty(i,delta){const c=cart[i]; if(!c)return; if(delta>0 && atLimit(c.bc)) return;   // K&D A2: no re-render, focus stays on +; the line message + describedby are already there c.qty+=delta; if(c.qty<=0)cart.splice(i,1); save();updateBag();renderCart();}
+function changeQty(i,delta){const c=cart[i]; if(!c)return; if(delta>0 && atLimit(c.bc)) return; /* K&D A2: no re-render, focus stays on +; the line message + describedby are already there */ c.qty+=delta; if(c.qty<=0)cart.splice(i,1); save();updateBag();renderCart();}
 function removeItem(i){cart.splice(i,1);save();updateBag();renderCart();}
 function subtotal(){return cartTotal(cart);}
 function hasFreeShip(){return deliveryFor(Math.round(subtotal()*100), totalQty()).free;}
