@@ -22,7 +22,10 @@ const RAW_PCT = JSON.parse(read('../ladders-preview/M1_mert_list.json'))   // ui
 const M1 = loadLadders({ ...RAW_PCT, ui: { ...RAW_PCT.ui, percent_claim: null } }).table
 const M1V = publicLadders(M1)
 const [G1, G2] = Object.keys(GRADIENT)
-const LIVE_SHA = '17b7e8734448670db1223d5bec098c1d1e16a83fd89496d47129ca991495e78d' // page before the M1 code (c3be709)
+// page before the M1 code (c3be709) = 17b7e873…; re-pinned in the M1 cleanup PR (K&D N4): with the pools table served the
+// prices, carts and fees are unchanged and only the two spend-threshold texts are reworded ("free from £12 (or 5 items)" ->
+// "free on orders of £12+ (or 5+ items)"); before /api/stock answers the static SHIP fallback is now the served M1 table.
+const LIVE_SHA = '4c8faca26f770c5d4d3e148bd0b1afe1e691fb6d9624b1970bf1ea430db9f29e'
 
 // ---------- 1. live default unchanged ----------
 // The pools-era page code (M1_FALLBACK forced to null, the frozen 23 Nov table) still produces exactly what the page

@@ -1,0 +1,7 @@
+# Not part of the site: kept in git, never uploaded to Vercel (were publicly served before the M1 cleanup PR).
+# tests/static-strings.test.mjs reads this file to know what is shipped.
+docs/
+tests/
+db/
+scripts/
+*.md
