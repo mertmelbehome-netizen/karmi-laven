@@ -302,11 +302,15 @@ export function poolTotalP(key, q, table = LADDERS) {
 }
 
 // Backward-compatible exports (same names and values as before 23 Nov 2026), now read from the table.
-export const UNIT = LADDERS ? LADDERS.pools.gradient.single : null;
+// A cart_qty_groups default table (M1 go-live) has no 'gradient' pool: these legacy names must not crash the module
+// load (that would take /api/stock and /api/checkout down). UNIT = the Gradient group's single price; DENOMS = null.
+const POOLS_DEFAULT = !!(LADDERS && !isGroups(LADDERS));
+export const UNIT = !LADDERS ? null : POOLS_DEFAULT ? LADDERS.pools.gradient.single
+  : (LADDERS.gradientGroup ? LADDERS.groups[LADDERS.gradientGroup].single : null);
 export const FREE_SHIP_P = LADDERS ? LADDERS.freeShip.fromP : null;
 export const FREE_SHIP_UNITS = LADDERS ? LADDERS.freeShip.units : null;
 export const SHIP_FEE_P = LADDERS ? LADDERS.freeShip.feeP : null;
-export const DENOMS = LADDERS
+export const DENOMS = POOLS_DEFAULT
   ? Object.freeze([...LADDERS.pools.gradient.bundles, [1, LADDERS.pools.gradient.single]].sort((a, b) => b[0] - a[0]))
   : null;
 /** Ladder total (pence) for q Gradient Edit units (cheapest combination + monotonic rule). */
