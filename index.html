@@ -8,7 +8,7 @@
 <!-- families view BEFORE first paint (CLS fix, morning_review/18_cls_prepaint): storefront.css is scoped to html.kl-v2 /
      kl-* elements, so it does nothing on the old page; the class is set here (default ON, production runs families ON;
      the last /api/stock answer is remembered) and removed again by the boot switch if the server says OFF or fails. -->
-<link href="/css/storefront.css?v=pr4" rel="stylesheet">
+<link href="/css/storefront.css?v=pr5" rel="stylesheet">
 <script>/*KL-SF-PRE-START*/(function(){var on=true;try{on=localStorage.getItem('kl_sf_fam')!=='0';}catch(e){}
 if(on){document.documentElement.classList.add('kl-v2');window.__klSfPre=true;}})();/*KL-SF-PRE-END*/</script>
 <style>
@@ -531,9 +531,49 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 /*KL-SF-LAYOUT-START*/
 var SFL_TABS = ['gradient', 'bracelets', 'necklaces', 'hair'];
 var SFL_CHIP = { gradient: 'Gradient', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair' };   // = storefront.js SF_CHIP (test-checked)
+/** Landing tab of the families view (a URL without a hash): the ONE switch, read by storefront.js too (klSfL.DEFAULT_TAB).
+ *  Bracelets until the real Gradient photos arrive (shoot Wed 25 Nov; the Gradient tab shows 1 photo + 7 'Photo coming').
+ *  Revert to Gradient after the Wed 25 photos pass QC: set DEFAULT_TAB = 'gradient'. Deep links (#gradient, ...) always win. */
+var DEFAULT_TAB = 'bracelets';
+/** Tab to open: the hash's tab (#bracelets-bangle -> bracelets) when it is shown, else DEFAULT_TAB when shown, else the
+ *  Gradient Edit (always shown). vis = tabs shown. */
+function sfTabOf(hash, vis) {
+  vis = vis || ['gradient'];
+  var on = function (t) { return SFL_TABS.indexOf(t) >= 0 && (t === 'gradient' || vis.indexOf(t) >= 0); };
+  var t = String(hash || '').replace(/^#/, '').toLowerCase().split('-')[0];
+  return on(t) ? t : on(DEFAULT_TAB) ? DEFAULT_TAB : 'gradient';
+}
+/** Hero photo per open tab (desktop; phones hide it): the Gradient Edit = 1268 (2-referee PASS), any other tab = 1477
+ *  Ice Blue Daisy (data/cards.json bracelets, photo_qc true, ai_image true -> 'AI-styled image' as on its card; test-checked).
+ *  Same box size either way (css height), so a swap never moves anything. */
+var SFL_HERO = {
+  gradient: { src: '/img/gradient/1268.jpg', alt: 'Karmi Laven gradient bracelet, worn', n: 'Ice Blue', s: 'The Gradient Edit', ai: false },
+  family: { bc: '1477', src: '/img/fam/1477.jpg', alt: 'Ice Blue Daisy, Stretch Charm Bracelet', n: 'Ice Blue Daisy', s: 'Stretch Charm Bracelet', ai: true }
+};
+function sfHeroImg(doc, tab) {
+  var k = tab === 'gradient' ? 'gradient' : 'family', h = SFL_HERO[k], img = doc.getElementById('heroImg'); if (!img) return null;
+  if (img.getAttribute('src') !== h.src) img.setAttribute('src', h.src);
+  if (img.getAttribute('alt') !== h.alt) img.setAttribute('alt', h.alt);
+  var n = doc.getElementById('heroName'), s = doc.querySelector('.hero-img .cap .s'), cap = doc.querySelector('.hero-img .cap'), ai = doc.getElementById('klHeroAi');
+  if (n && n.textContent !== h.n) n.textContent = h.n;
+  if (s && s.textContent !== h.s) s.textContent = h.s;
+  if (h.ai && !ai && cap) { ai = doc.createElement('small'); ai.className = 'kl-ai'; ai.id = 'klHeroAi'; ai.textContent = 'AI-styled image'; cap.insertBefore(ai, cap.firstChild); }
+  if (!h.ai && ai && ai.parentNode) ai.parentNode.removeChild(ai);
+  return k;
+}
+/** A landing tab other than the Gradient Edit: its (empty) panel right after the Gradient panel BEFORE the first paint, so
+ *  the Gradient grid is never painted first (css hides #palette + colour bar by html[data-kl-tab]); storefront.js fills it. */
+function sfFamPanel(doc, sel) {
+  if (sel === 'gradient' || doc.getElementById('klFam')) return null;
+  var pal = doc.getElementById('palette'); if (!pal || !pal.parentNode) return null;
+  var sec = doc.createElement('section'); sec.className = 'wrap collection kl-fam'; sec.id = 'klFam';
+  sec.setAttribute('role', 'tabpanel'); sec.setAttribute('tabindex', '-1'); sec.setAttribute('aria-labelledby', 'kltab-' + sel);
+  pal.parentNode.insertBefore(sec, pal.nextSibling);
+  return sec;
+}
 /** The chip bar (storefront.js binds it). vis = tabs shown (the Gradient Edit always), n = counts, sel = selected tab. */
 function sfBar(doc, vis, n, sel) {
-  vis = vis || ['gradient']; n = n || {}; sel = String(sel || '').split('-')[0]; if (SFL_TABS.indexOf(sel) < 0 || (sel !== 'gradient' && vis.indexOf(sel) < 0)) sel = 'gradient';
+  vis = vis || ['gradient']; n = n || {}; sel = sfTabOf(sel, vis);   // '#bracelets-bangle' -> bracelets; no / unknown hash -> DEFAULT_TAB
   var nav = doc.createElement('nav'); nav.className = 'kl-tabbar'; nav.setAttribute('aria-label', 'Shop by category');
   nav.innerHTML = '<div class="kl-tabs" role="tablist" aria-label="Categories">' + SFL_TABS.map(function (t) {
     var v = t === 'gradient' || vis.indexOf(t) >= 0;
@@ -588,6 +628,9 @@ function sfUnlayout(doc) {
   var gsr = q('#klGSubs'); if (gsr && gsr.parentNode) gsr.parentNode.removeChild(gsr);
   var k = q('.hero-copy .k'); if (k) k.hidden = false;
   var cta = q('.hero .cta'); if (cta) cta.hidden = false;
+  var fp = q('#klFam'); if (fp && fp.parentNode) fp.parentNode.removeChild(fp);   // the pre-paint landing panel (storefront.js never ran)
+  sfHeroImg(doc, 'gradient');
+  var de0 = doc.documentElement; if (de0 && de0.removeAttribute) { de0.removeAttribute('data-kl-tab'); de0.removeAttribute('data-kl-hero'); }
   var p = q('.hero-copy p');
   if (p && p.hasAttribute('data-kl-p0')) {
     p.textContent = p.getAttribute('data-kl-p0'); p.removeAttribute('data-kl-p0');
@@ -677,8 +720,13 @@ function sfMetaCats(doc, hair) {
   // the chips last shown (storefront.js renderTabs remembers them): the pre-paint bar matches what the visitor will see
   var m = {}; try { m = JSON.parse(localStorage.getItem('kl_sf_tabs') || '{}') || {}; } catch (e) {}
   var vis = Array.isArray(m.v) ? m.v.filter(function (t) { return SFL_TABS.indexOf(t) >= 0; }) : ['gradient', 'bracelets', 'necklaces'];
-  window.klSfL = { sfBar: sfBar, sfLayout: sfLayout, sfUnlayout: sfUnlayout, sfBundleChip: sfBundleChip, sfGradSubs: function (d) { sfGradSubs(d, m.gs); }, sfHeroLine: sfHeroLine, sfHeroPrice: sfHeroPrice, sfHeroPriceApply: sfHeroPriceApply, sfMetaCats: sfMetaCats, vis: vis };
-  if (window.__klSfPre) { try { sfLayout(document, sfBar(document, vis, m.n, location.hash.slice(1)), vis); } catch (e) {} }
+  var sel = sfTabOf(location.hash, vis);   // no hash -> DEFAULT_TAB
+  window.klSfL = { DEFAULT_TAB: DEFAULT_TAB, sfTabOf: sfTabOf, sfHeroImg: sfHeroImg, sfFamPanel: sfFamPanel, tab: sel, sfBar: sfBar, sfLayout: sfLayout, sfUnlayout: sfUnlayout, sfBundleChip: sfBundleChip, sfGradSubs: function (d) { sfGradSubs(d, m.gs); }, sfHeroLine: sfHeroLine, sfHeroPrice: sfHeroPrice, sfHeroPriceApply: sfHeroPriceApply, sfMetaCats: sfMetaCats, vis: vis };
+  if (window.__klSfPre) { try {
+    document.documentElement.setAttribute('data-kl-tab', sel);   // css: hero price line + which panel paints first
+    document.documentElement.setAttribute('data-kl-hero', sfHeroImg(document, sel) || '');
+    sfLayout(document, sfBar(document, vis, m.n, sel), vis);
+  } catch (e) {} }
 })();
 </script>
 
@@ -715,7 +763,7 @@ function sfMetaCats(doc, hair) {
   <div class="grid" id="grid"></div>
 </main>
 <script>/* families view, pre-paint part 2 (see above): trust + company/VAT line into #klInfo, #klInfo after the grid, bundle chip */
-try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vis); klSfL.sfBundleChip(document); klSfL.sfGradSubs(document); } }catch(e){}</script>
+try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfFamPanel(document, klSfL.tab); klSfL.sfLayout(document, null, klSfL.vis); klSfL.sfBundleChip(document); klSfL.sfGradSubs(document); } }catch(e){}</script>
 
 <section class="story">
   <div class="lg">Karmi Laven</div>
@@ -984,7 +1032,8 @@ function klPreSold(){   // before the first live answer only; never after it
 }
 document.getElementById('spectrum').style.background='linear-gradient(90deg,'+DATA.map(d=>d.swatch).join(',')+')';
 // hero = 1268 Ice Blue: the only Gradient render that passed 2 independent referees (23 Nov); 1074 has no real photo to verify
-const hero=DATA.find(d=>d.barcode==='1268')||DATA[0]; document.getElementById('heroImg').src=hero.img; document.getElementById('heroName').textContent=hero.color_en;
+// (families view: the pre-paint layout already chose the hero for the open tab: klSfL.sfHeroImg, html[data-kl-hero])
+const hero=DATA.find(d=>d.barcode==='1268')||DATA[0]; if(!document.documentElement.hasAttribute('data-kl-hero')){ document.getElementById('heroImg').src=hero.img; document.getElementById('heroName').textContent=hero.color_en; }
 
 const seen=new Set(), colours=[];
 DATA.filter(d=>LADDER_TYPES.indexOf(d.type)>=0).forEach(d=>{if(!seen.has(d.color_en)){seen.add(d.color_en);colours.push({name:d.color_en,hex:d.swatch,bc:d.barcode,img:d.img});}});
@@ -1760,8 +1809,8 @@ function cookieChoice(accepted){
   window.__klSfBooted=true;
   window.klSF={families:fam, progress:prog, sold_out:sf.sold_out==='last'?'last':'hide', refresh_s:Number(sf.refresh_s)||60};
   // css/storefront.css is linked statically in <head> (pre-paint layout); added here only if that link is missing
-  if(fam&&!(document.querySelector&&document.querySelector('link[href^="/css/storefront.css"]'))){ var l=document.createElement('link'); l.rel='stylesheet'; l.href='/css/storefront.css?v=pr4'; document.head.appendChild(l); }
-  var s=document.createElement('script'); s.src='/js/storefront.js?v=pr4'; s.async=true; document.body.appendChild(s);
+  if(fam&&!(document.querySelector&&document.querySelector('link[href^="/css/storefront.css"]'))){ var l=document.createElement('link'); l.rel='stylesheet'; l.href='/css/storefront.css?v=pr5'; document.head.appendChild(l); }
+  var s=document.createElement('script'); s.src='/js/storefront.js?v=pr5'; s.async=true; document.body.appendChild(s);
 };
 /* families OFF (or /api/stock failed) after the pre-paint families layout: back to today's old page, once */
 window.klSfUndo=function(){

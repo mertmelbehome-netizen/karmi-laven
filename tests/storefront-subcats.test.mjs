@@ -87,9 +87,9 @@ test('sub-chip markup: role=tab inside a tablist, ids per tab+sub, All selected 
 })
 
 test('deep link + back/forward: start and popstate read #tab-sub; arrows stay inside their own row', () => {
-  assert.match(SF, /var ph = sfParseHash\(location\.hash\);[^\n]*\n\s*setTab\(ph \? ph\.tab : 'gradient', false, ph \? ph\.sub : 'all'\);/)
+  assert.match(SF, /var ph = sfParseHash\(location\.hash\);[^\n]*\n\s*setTab\(ph \? ph\.tab : landTab\(\), false, ph \? ph\.sub : 'all'\);/)
   assert.match(SF, /addEventListener\('popstate', function \(\) \{ if \(!CFG\.families\) return; var ph = sfParseHash\(location\.hash\);/)
   assert.match(SF, /\$\$\('\[role=tab\]', e\.target\.closest\('\[role=tablist\]'\) \|\| document\)/)
   // pre-paint chip bar selects Bracelets for #bracelets-bangle
-  assert.match(HTML, /sel = String\(sel \|\| ''\)\.split\('-'\)\[0\];/)
+  assert.match(HTML, /sel = sfTabOf\(sel, vis\);/)
 })

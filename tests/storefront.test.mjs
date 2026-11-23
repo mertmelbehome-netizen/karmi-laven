@@ -76,7 +76,7 @@ test('flag OFF: the boot switch loads nothing (no extra request, page as before)
 
 test('flag ON: storefront css + js load; ?sf=families works only on localhost or when the server says preview', () => {
   const on = boot({ storefront: { families: true, sold_out: 'last', refresh_s: 60 }, ladders: LIVE })
-  assert.deepEqual(on.added, ['/css/storefront.css?v=pr4', '/js/storefront.js?v=pr4'])
+  assert.deepEqual(on.added, ['/css/storefront.css?v=pr5', '/js/storefront.js?v=pr5'])
   assert.equal(on.cfg.families, true); assert.equal(on.cfg.progress, false)
   assert.equal(boot({ storefront: { families: false, preview: true } }, 'https://karmi-laven-git-feat-x.vercel.app/?sf=families').cfg.families, true)
   // production (incl. prod's *.vercel.app alias): the server says preview:false -> ?sf= does nothing (Komuta 23 Nov)
@@ -84,7 +84,7 @@ test('flag ON: storefront css + js load; ?sf=families works only on localhost or
   assert.equal(boot({ storefront: { families: false } }, 'https://www.karmilaven.com/?sf=families').cfg, undefined)
   assert.equal(boot({}, 'http://127.0.0.1:8790/?sf=families').cfg.families, true)
   const prog = boot({ storefront: { families: false }, ladders: A })
-  assert.deepEqual(prog.added, ['/js/storefront.js?v=pr4'], 'progress line alone: js only, no new styles')
+  assert.deepEqual(prog.added, ['/js/storefront.js?v=pr5'], 'progress line alone: js only, no new styles')
   assert.equal(prog.cfg.progress, true)
 })
 

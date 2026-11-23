@@ -287,3 +287,9 @@ html.kl-v2 #klBSubs::-webkit-scrollbar{display:none}
    panel is at least one screen tall under the chip bar (cold deep link #bracelets-bangle CLS 0.156 -> measured in
    morning_review/26_bracelet_subcats) */
 html.kl-v2 #klFam:not([hidden]){min-height:calc(100vh - var(--kl-tb-h,54px))}
+/* landing tab other than the Gradient Edit (index.html DEFAULT_TAB, or a #bracelets... deep link): html[data-kl-tab] is set
+   before the first paint, so the Gradient panel + colour bar are never painted first (storefront.js renderTabs then owns
+   [hidden]); the desktop hero photo of a family tab carries its 'AI-styled image' label like its card */
+html.kl-v2[data-kl-tab]:not([data-kl-tab="gradient"]) #palette, html.kl-v2[data-kl-tab]:not([data-kl-tab="gradient"]) .swatchbar{display:none}
+html.kl-v2 .hero-img .cap .kl-ai{display:block; color:#fff; font-size:11px; letter-spacing:.04em; margin:0 0 4px; opacity:.92}
+html.kl-v2 #klFam[data-kl-wait] > *{display:none}

@@ -283,7 +283,7 @@ test('strict scarcity: a failed refresh or an answer older than one refresh peri
 // ---------- CLS fix (morning_review/18_cls_prepaint): the families layout exists BEFORE the first paint ----------
 test('pre-paint: <head> sets html.kl-v2 (default ON, remembered answer) and links storefront.css statically', () => {
   const head = HTML.slice(0, HTML.indexOf('</head>'))
-  assert.match(head, /<link href="\/css\/storefront\.css\?v=pr4" rel="stylesheet">/)
+  assert.match(head, /<link href="\/css\/storefront\.css\?v=pr5" rel="stylesheet">/)
   const pre = head.match(/\/\*KL-SF-PRE-START\*\/([\s\S]*?)\/\*KL-SF-PRE-END\*\//)[1]
   const run = (stored) => {
     const cls = new Set(), window = {}
@@ -332,7 +332,7 @@ test('return-visit CLS: the Gradient grid paints the remembered sold-out set; a 
 
 test('pre-paint: the layout runs right after the hero and is finished right after the Gradient panel (no later move)', () => {
   assert.match(HTML, /<\/header>\r?\n<script>[\s\S]*?\/\*KL-SF-LAYOUT-START\*\//)
-  assert.match(HTML, /<\/main>\r?\n<script>[^\n]*\r?\ntry\{ if\(window\.__klSfPre&&window\.klSfL\)\{ klSfL\.sfLayout\(document, null, klSfL\.vis\); klSfL\.sfBundleChip\(document\); klSfL\.sfGradSubs\(document\); \} \}catch\(e\)\{\}<\/script>/)
+  assert.match(HTML, /<\/main>\r?\n<script>[^\n]*\r?\ntry\{ if\(window\.__klSfPre&&window\.klSfL\)\{ klSfL\.sfFamPanel\(document, klSfL\.tab\); klSfL\.sfLayout\(document, null, klSfL\.vis\); klSfL\.sfBundleChip\(document\); klSfL\.sfGradSubs\(document\); \} \}catch\(e\)\{\}<\/script>/)
   // part 1 sees only the page up to the hero; part 2 the whole first screen: same result as one call
   const doc = pageDoc()
   const pal = doc.querySelector('#palette'), fam = doc.querySelector('#klFam'), tw = doc.querySelector('.trustband').parentNode, sb = doc.querySelector('.swatchbar')
@@ -375,7 +375,7 @@ test('pre-paint css: nodes waiting to move out of the hero are never painted the
   assert.match(CSS, /html\.kl-v2 \.hero \.launch, html\.kl-v2 \.hero \.launchfee, html\.kl-v2 \.hero \.kl-xmas-hero, html\.kl-v2 \.hero-copy \.stars,\r?\nhtml\.kl-v2 \.hero \.cta, html\.kl-v2 \.hero-copy \.k, html\.kl-v2 body > \.kl-trust\{display:none\}/)
   assert.match(HTML, /<div class="wrap kl-trust">\r?\n  <div class="trustband">/)
   // storefront.js binds the pre-built bar instead of building a second one, and keeps the pre-built bundle chip
-  assert.match(SF, /var nav = \$\('nav\.kl-tabbar'\) \|\| KL\.sfBar\(document, \['gradient'\], null, 'gradient'\);/)
+  assert.match(SF, /var nav = \$\('nav\.kl-tabbar'\) \|\| KL\.sfBar\(document, \['gradient'\], null, tab\);/)
   assert.match(SF, /KL\.sfBundleChip\(document\);/)
   assert.match(SF, /localStorage\.setItem\('kl_sf_tabs', JSON\.stringify\(\{ v: vis, n: seen,/)
 })
@@ -446,4 +446,115 @@ test('one line label = one family (so one online price group): no shared name ac
   const fam = {}
   for (const c of cards) (fam[c.line] = fam[c.line] || new Set()).add(c.family)
   for (const [line, s] of Object.entries(fam)) assert.equal(s.size, 1, `${line}: ${[...s].join(', ')}`)
+})
+
+// ---------- landing tab switch (morning_review/33_landing_bracelets): ONE constant, DEFAULT_TAB in the KL-SF-LAYOUT block ----------
+// Revert to Gradient after the Wed 25 photos pass QC: set DEFAULT_TAB = 'gradient'. These tests run both values.
+const DEF_RE = /var DEFAULT_TAB = '(\w+)';/
+const layoutWith = (d) => new Function(`${d ? LAYOUT.replace(DEF_RE, `var DEFAULT_TAB = '${d}';`) : LAYOUT}; return { DEFAULT_TAB, SFL_HERO, sfTabOf, sfBar, sfHeroImg, sfFamPanel, sfLayout, sfUnlayout };`)()
+const VIS3 = ['gradient', 'bracelets', 'necklaces']
+
+test('landing tab: DEFAULT_TAB is the single source (index.html pre-paint + storefront.js read it; no other default)', () => {
+  assert.equal([...HTML.matchAll(/var DEFAULT_TAB = '/g)].length, 1, 'one constant')
+  assert.ok(LAYOUT.match(DEF_RE), 'it lives in the KL-SF-LAYOUT block (runs before the first paint)')
+  assert.ok(['gradient', 'bracelets'].includes(LAYOUT.match(DEF_RE)[1]))
+  assert.match(HTML, /window\.klSfL = \{ DEFAULT_TAB: DEFAULT_TAB, sfTabOf: sfTabOf,/)
+  // no second default anywhere: the old 'gradient' fallbacks are gone
+  assert.doesNotMatch(HTML, /sel = 'gradient'/)
+  assert.doesNotMatch(SF, /var tab = 'gradient'/)
+  assert.doesNotMatch(SF, /t = 'gradient';/)
+  assert.doesNotMatch(SF, /ph \? ph\.tab : 'gradient'/)
+  assert.doesNotMatch(SF, /DEFAULT_TAB = '/, 'storefront.js never sets its own default')
+  // storefront.js: first value = the pre-paint choice; start / popstate / unknown tab = landTab() = DEFAULT_TAB when shown
+  assert.match(SF, /var tab = KL\.sfTabOf \? KL\.sfTabOf\(location\.hash, KL\.vis\) : SF_TABS\[0\],/)
+  assert.match(SF, /function landTab\(\) \{ return KL\.sfTabOf\('', sfVisibleTabs\(FAM, famState\)\); \}/)
+  assert.match(SF, /if \(SF_TABS\.indexOf\(t\) < 0\) t = landTab\(\);/)
+  assert.equal([...SF.matchAll(/setTab\(ph \? ph\.tab : landTab\(\), false, ph \? ph\.sub : 'all'\)/g)].length, 2, 'start + popstate')
+  // the pre-paint selection is the same function with the same input
+  assert.match(HTML, /var sel = sfTabOf\(location\.hash, vis\);/)
+  assert.match(HTML, /sfLayout\(document, sfBar\(document, vis, m\.n, sel\), vis\);/)
+})
+
+for (const D of ['bracelets', 'gradient']) {
+  test(`landing tab = '${D}': no hash opens it; explicit hashes keep working (pre-paint bar + storefront landTab)`, () => {
+    const L = layoutWith(D)
+    assert.equal(L.DEFAULT_TAB, D)
+    assert.equal(L.sfTabOf('', VIS3), D, 'no hash -> DEFAULT_TAB')
+    assert.equal(L.sfTabOf('#', VIS3), D)
+    assert.equal(L.sfTabOf('#nope', VIS3), D, 'unknown hash -> DEFAULT_TAB')
+    assert.equal(L.sfTabOf('#gradient', VIS3), 'gradient', '#gradient deep link still opens Gradient')
+    assert.equal(L.sfTabOf('#gradient-cobra', VIS3), 'gradient')
+    assert.equal(L.sfTabOf('#bracelets-bangle', VIS3), 'bracelets')
+    assert.equal(L.sfTabOf('#necklaces', VIS3), 'necklaces')
+    assert.equal(L.sfTabOf('#hair', VIS3), D, 'a hidden tab -> DEFAULT_TAB')
+    assert.equal(L.sfTabOf('', ['gradient']), 'gradient', 'Bracelets not on sale -> the Gradient Edit (always shown)')
+    // the chip bar built before the first paint selects exactly one tab
+    const sel = (hash) => { const nav = L.sfBar({ createElement: (t) => new El(t) }, VIS3, { bracelets: 22 }, hash); return [...nav.innerHTML.matchAll(/data-tab="(\w+)"[^>]*aria-selected="true"/g)].map((m) => m[1]) }
+    assert.deepEqual(sel(''), [D])
+    assert.deepEqual(sel('gradient'), ['gradient'])
+    assert.deepEqual(sel('bracelets-bangle'), ['bracelets'])
+    // landing panel + hero for the landing tab
+    const doc = pageDoc(); doc.querySelector('#klFam')._detach()          // storefront.js has not run yet
+    const p = L.sfFamPanel(doc, L.sfTabOf('', VIS3))
+    assert.equal(!!p, D !== 'gradient', 'a family landing tab gets its panel before the first paint; Gradient keeps #palette')
+    L.sfHeroImg(doc, L.sfTabOf('', VIS3))
+    assert.equal(doc.querySelector('#heroImg').getAttribute('src'), D === 'gradient' ? '/img/gradient/1268.jpg' : '/img/fam/1477.jpg')
+  })
+}
+
+test('landing panel before the first paint: #klFam right after #palette, #klInfo after it, Gradient panel hidden by css; families OFF undoes it', () => {
+  const L = layoutWith('bracelets')
+  const doc = pageDoc(); doc.querySelector('#klFam')._detach()
+  doc.documentElement.setAttribute('data-kl-tab', 'bracelets'); doc.documentElement.setAttribute('data-kl-hero', L.sfHeroImg(doc, 'bracelets'))
+  L.sfLayout(doc, tabbar(), VIS3)
+  const sec = L.sfFamPanel(doc, 'bracelets')
+  assert.equal(L.sfFamPanel(doc, 'bracelets'), null, 'once')
+  L.sfLayout(doc, null, VIS3)
+  const o = order(doc)
+  assert.equal(o.indexOf('#klFam'), o.indexOf('#palette') + 1, o.join(' > '))
+  assert.ok(o.indexOf('#klInfo') > o.indexOf('#klFam'))
+  assert.equal(sec.getAttribute('role'), 'tabpanel'); assert.equal(sec.getAttribute('aria-labelledby'), 'kltab-bracelets'); assert.ok(!sec.hidden)
+  // css: with a family landing tab the Gradient panel + colour bar never paint (html[data-kl-tab] is set in part 1)
+  assert.match(CSS, /html\.kl-v2\[data-kl-tab\]:not\(\[data-kl-tab="gradient"\]\) #palette, html\.kl-v2\[data-kl-tab\]:not\(\[data-kl-tab="gradient"\]\) \.swatchbar\{display:none\}/)
+  assert.match(CSS, /html\.kl-v2 #klFam:not\(\[hidden\]\)\{min-height:calc\(100vh - var\(--kl-tb-h,54px\)\)\}/, 'the empty panel already holds one screen')
+  assert.match(HTML, /document\.documentElement\.setAttribute\('data-kl-tab', sel\);[^\n]*\r?\n\s*document\.documentElement\.setAttribute\('data-kl-hero', sfHeroImg\(document, sel\) \|\| ''\);\r?\n\s*sfLayout\(/)
+  // storefront.js keeps the pre-built panel in place (no second #klFam, no hidden frame)
+  assert.match(SF, /var sec = \$\('#klFam'\), pre = !!sec;/)
+  assert.match(SF, /if \(!pre\) pal\.parentNode\.insertBefore\(sec, pal\.nextSibling\);/)
+  assert.match(SF, /else sec\.setAttribute\('data-kl-wait', ''\);/)
+  assert.match(SF, /function renderFam\(has\) \{\r?\n\s*\$\('#klFam'\)\.removeAttribute\('data-kl-wait'\);/)
+  assert.match(CSS, /html\.kl-v2 #klFam\[data-kl-wait\] > \*\{display:none\}/)
+  // families OFF: the old Gradient page, unchanged
+  L.sfUnlayout(doc)
+  assert.equal(doc.querySelector('#klFam'), null)
+  assert.equal(doc.documentElement.getAttribute('data-kl-tab'), null)
+  assert.equal(doc.documentElement.getAttribute('data-kl-hero'), null)
+  assert.equal(doc.querySelector('#heroImg').getAttribute('src'), '/img/gradient/1268.jpg')
+  assert.equal(doc.querySelector('#heroName').textContent, 'Ice Blue')
+  assert.equal(doc.querySelector('.hero-img .cap .s').textContent, 'The Gradient Edit')
+  assert.equal(doc.querySelector('#klHeroAi'), null)
+})
+
+test('landing hero: a referee-passed bracelet render (cards.json photo_qc, AI label as on its card); Gradient keeps 1268; LCP img unchanged', () => {
+  const { SFL_HERO, sfHeroImg } = layoutWith()
+  const cards = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url), 'utf8')).cards
+  const h = SFL_HERO.family, c = cards.find((x) => x.barcode === h.bc)
+  assert.ok(c && c.tab === 'bracelets' && c.photo_qc === true, 'a bracelets card that passed photo QC')
+  assert.equal(h.src, c.photo); assert.ok(existsSync(new URL('..' + h.src, import.meta.url)))
+  assert.equal(h.n, c.name); assert.equal(h.s, c.line); assert.equal(h.ai, c.ai_image === true)
+  assert.equal(h.alt, c.name + ', ' + c.line, 'same alt as its card')
+  assert.equal(SFL_HERO.gradient.src, '/img/gradient/1268.jpg')
+  const doc = pageDoc()
+  assert.equal(sfHeroImg(doc, 'bracelets'), 'family')
+  assert.equal(doc.querySelector('#heroImg').getAttribute('src'), h.src)
+  assert.equal(doc.querySelector('#heroImg').getAttribute('fetchpriority'), 'high')
+  assert.equal(doc.querySelector('#heroName').textContent, h.n)
+  assert.equal(doc.querySelector('#klHeroAi').textContent, 'AI-styled image')
+  assert.equal(sfHeroImg(doc, 'necklaces'), 'family'); assert.equal(doc.querySelectorAll('#klHeroAi').length, 1)
+  assert.equal(sfHeroImg(doc, 'gradient'), 'gradient')
+  assert.equal(doc.querySelector('#heroImg').getAttribute('src'), '/img/gradient/1268.jpg'); assert.equal(doc.querySelector('#klHeroAi'), null)
+  // the page's own hero line leaves the families choice alone; storefront.js follows the open tab
+  assert.match(HTML, /if\(!document\.documentElement\.hasAttribute\('data-kl-hero'\)\)\{ document\.getElementById\('heroImg'\)\.src=hero\.img;/)
+  assert.match(SF, /if \(KL\.sfHeroImg\) KL\.sfHeroImg\(document, tab\);/)
+  assert.match(CSS, /html\.kl-v2 \.hero-img \.cap \.kl-ai\{display:block; color:#fff;/)
 })

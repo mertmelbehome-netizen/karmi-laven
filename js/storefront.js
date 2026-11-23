@@ -183,7 +183,9 @@
   var L = function () { return window.klLadders || null; };
   var FAM = [];            // family cards from /data/cards.json
   var FAMBY = {};          // barcode -> family card
-  var tab = 'gradient', lastPool = null, showOther = false, stockErr = false;
+  // landing tab = index.html DEFAULT_TAB (the one switch, klSfL.sfTabOf): no hash -> DEFAULT_TAB when shown, else the Gradient Edit
+  var tab = KL.sfTabOf ? KL.sfTabOf(location.hash, KL.vis) : SF_TABS[0], lastPool = null, showOther = false, stockErr = false;
+  function landTab() { return KL.sfTabOf('', sfVisibleTabs(FAM, famState)); }
   var sub = { gradient: 'all', bracelets: 'all' }, lastGSub = 'all';   // selected sub-chip per tab (SF_SUBS)
 
   function priceP(bc) { return sfPriceLine(bc, window).p; }   // M1: group single (no group = null = hidden); else till price
@@ -223,18 +225,21 @@
     [['.mclose', 'Close'], ['.bundle-h .x', 'Close bundle builder'], ['.cart-head button', 'Close bag'], ['#klpopEmail', 'Email address']]
       .forEach(function (x) { var e = $(x[0]); if (e && !e.getAttribute('aria-label')) e.setAttribute('aria-label', x[1]); });
     // the chip bar: already in the page when index.html laid the families view out before the first paint; else built now
-    var nav = $('nav.kl-tabbar') || KL.sfBar(document, ['gradient'], null, 'gradient');
+    var nav = $('nav.kl-tabbar') || KL.sfBar(document, ['gradient'], null, tab);
     nav.querySelector('.kl-tabs').addEventListener('scroll', function () { tabScroll(false); }, { passive: true });
     window.addEventListener('resize', function () { tabScroll(true); });
     var pal = $('#palette'); pal.setAttribute('role', 'tabpanel'); pal.setAttribute('aria-labelledby', 'kltab-gradient');
-    var sec = document.createElement('section'); sec.className = 'wrap collection kl-fam'; sec.id = 'klFam'; sec.hidden = true;
+    // the landing panel when index.html opened a family tab before the first paint (sfFamPanel): kept in place, shown
+    var sec = $('#klFam'), pre = !!sec;
+    if (!sec) { sec = document.createElement('section'); sec.className = 'wrap collection kl-fam'; sec.id = 'klFam'; sec.hidden = true; }
     sec.setAttribute('role', 'tabpanel'); sec.setAttribute('tabindex', '-1');
     sec.innerHTML = '<div class="kl-err" id="klErr" role="alert" hidden><span>Prices are not loading. Try again.</span> <button type="button" class="btn" id="klRetry">Try again</button></div>'
       + '<div class="col-head"><h2 id="klFamTitle"></h2><div class="c" id="klFamCount" aria-live="polite"></div><div class="kl-dlv" data-kl="ship"></div></div>'
       + '<div class="kl-empty" id="klEmpty" hidden><p class="et">Nothing here yet</p><p class="es">This category opens once its pieces are photographed.</p><a class="btn ghost" href="#gradient">See The Gradient Edit</a></div>'
       + '<div class="kl-subs" id="klBSubs" role="tablist" aria-label="Bracelet styles" hidden>' + sfSubButtons('bracelets', 'klFamGrid') + '</div>'
       + '<div class="grid" id="klFamGrid"></div>';
-    pal.parentNode.insertBefore(sec, pal.nextSibling);
+    if (!pre) pal.parentNode.insertBefore(sec, pal.nextSibling);
+    else sec.setAttribute('data-kl-wait', '');   // the empty landing shell is not painted before its first render (renderFam): no title/count jump
     sfLayout(document, nav, KL.vis);   // chips under the logo row, hero short, delivery/Christmas/trust/VAT after the grids
     // mobile: the bundle builder moves into the colour chip row so the first cards are on the first screen (V-01)
     KL.sfBundleChip(document);
@@ -250,7 +255,7 @@
     applyShipTexts();
   }
   function setTab(t, push, s) {
-    if (SF_TABS.indexOf(t) < 0) t = 'gradient';
+    if (SF_TABS.indexOf(t) < 0) t = landTab();
     tab = t;
     if (s !== undefined && sub[t] !== undefined) sub[t] = s || 'all';
     renderTabs();   // may fall back to 'All' when the asked sub-category has nothing on sale (hidden)
@@ -302,7 +307,8 @@
       gs: gsv.reduce(function (o, x) { o[x.k] = x.n; return o; }, {}) })); } catch (e) {}
     var isG = tab === 'gradient', wasG = !$('#palette').hidden;
     $('#palette').hidden = !isG; $('.swatchbar').hidden = !isG;   // colour bar on the Gradient Edit only (K-11)
-    $('#klFam').hidden = isG;
+    $('#klFam').hidden = isG; $('#klFam').setAttribute('aria-labelledby', 'kltab-' + tab);
+    if (KL.sfHeroImg) KL.sfHeroImg(document, tab);   // desktop hero photo follows the open tab (same box: no shift)
     $$('[data-kl-gonly]').forEach(function (e) { e.classList.toggle('kl-goff', !isG); });
     var hp = $('.hero-copy p'); if (hp && hp.parentNode) hp.textContent = sfHeroLine(vis);
     // hero price block: the lowest 10+ price + singles of the groups on sale (index.html klHeroPriceApply)
@@ -368,6 +374,7 @@
       why: w && w.open === false ? (w.message || 'Online orders are closed right now.') : 'This piece is fully reserved for now.' });
   }
   function renderFam(has) {
+    $('#klFam').removeAttribute('data-kl-wait');
     var sk = sub[tab] || 'all', sl = (SF_SUBS[tab] || []).filter(function (x) { return x.k === sk; })[0];
     $('#klFamTitle').textContent = SF_TITLE[tab] + (sl ? ' · ' + sl.label : '');
     $('#klErr').hidden = !stockErr;
@@ -511,7 +518,7 @@
       if (n.dataset.sub) setTab(n.dataset.subtab, true, n.dataset.sub); else setTab(n.dataset.tab, true, 'all');
       n.focus();
     });
-    window.addEventListener('popstate', function () { if (!CFG.families) return; var ph = sfParseHash(location.hash); setTab(ph ? ph.tab : 'gradient', false, ph ? ph.sub : 'all'); });
+    window.addEventListener('popstate', function () { if (!CFG.families) return; var ph = sfParseHash(location.hash); setTab(ph ? ph.tab : landTab(), false, ph ? ph.sub : 'all'); });
   }
 
   /* ---------------- data ---------------- */
@@ -546,7 +553,7 @@
     loadCards().then(refresh, function () { stockErr = true; }).then(function () {
       try { render(DATA); } catch (e) {}
       var ph = sfParseHash(location.hash);   // '#bracelets-bangle' opens Bracelets with Bangle selected
-      setTab(ph ? ph.tab : 'gradient', false, ph ? ph.sub : 'all');
+      setTab(ph ? ph.tab : landTab(), false, ph ? ph.sub : 'all');
       if (ph) scrollToTabs();
       var s = Math.max(15, Number(CFG.refresh_s) || 60);
       setInterval(function () { if (document.visibilityState !== 'hidden') refresh(); }, s * 1000);   // K-07 without reload
