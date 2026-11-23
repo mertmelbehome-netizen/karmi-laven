@@ -142,7 +142,8 @@ export default async function handler(req, res) {
     const stock = computeAvailable(want.length ? want : Object.keys(bcToPid), bcToPid, slMap, orders);
 
     // 5) non-Gradient barcodes: caps + WAT price + Christmas window (only on the storefront's ?bc= call)
-    const sellable = {}, price_pence = {};
+    const sellable = {}, price_pence = {}, online_group = {};
+    const groupMode = !!(ladderView && ladderView.mode === 'cart_qty_groups');
     let window = null;
     if (want.length) {
       const other = want.filter((bc) => !isGradient(bc));
@@ -164,11 +165,18 @@ export default async function handler(req, res) {
           sellable[bc] = Number(it.sellable) || 0;
           if (Number.isInteger(it.price_pence) && it.price_pence > 0) price_pence[bc] = it.price_pence;
           else sellable[bc] = 0;
+          // M1 (cart_qty_groups only): the DB online_group (fn_karmi_online_status, docs/GO_LIVE_M1.md); none = not sold online.
+          if (groupMode) {
+            const g = typeof it.online_group === 'string' ? it.online_group : (ladderView.family_groups || {})[it.family];
+            if (typeof g === 'string' && ladderView.groups[g]) online_group[bc] = g; else sellable[bc] = 0;
+          }
         }
       }
     }
 
-    return res.status(200).json({ ok: true, store: STORE, stock, sellable, price_pence, window, ts: new Date().toISOString(), ladders: ladderView });
+    const body = { ok: true, store: STORE, stock, sellable, price_pence, window, ts: new Date().toISOString(), ladders: ladderView };
+    if (groupMode) body.online_group = online_group; // additive, M1 only: the live default response is unchanged
+    return res.status(200).json(body);
   } catch (e) {
     // Fail OPEN on any error: empty stock + ok:false → storefront shows all products.
     return res.status(200).json({ ok: false, store: STORE, stock: {}, error: String(e.message || e), ladders: ladderView });
