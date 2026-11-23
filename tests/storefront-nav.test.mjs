@@ -150,7 +150,7 @@ test('F2: chip bar sticky top:0 and <= 56 px; colour bar sticks under it (deskto
 })
 
 test('F4/F6: short chip labels, panel titles and tab roles unchanged', () => {
-  assert.deepEqual(core.SF_CHIP, { gradient: 'Gradient', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair' })
+  assert.deepEqual(core.SF_CHIP, { gradient: 'Gradient', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', rings: 'Rings' })
   assert.equal(core.SF_TITLE.gradient, 'The Gradient Edit')
   assert.match(LAYOUT, /role="tab" type="button" id="kltab-' \+ t \+ '"[^\n]*aria-selected[^\n]*SFL_CHIP\[t\]/)
   assert.deepEqual(new Function(`${LAYOUT}; return SFL_CHIP;`)(), core.SF_CHIP, 'pre-paint chip labels = storefront.js labels')
@@ -404,7 +404,7 @@ test('G9 exception: 1470 stays sellable as a colour tile; modal + bag thumbnail 
   const cards = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url), 'utf8')).cards
   const c = cards.find((x) => x.barcode === '1470')
   assert.equal(c.tile_sellable, true)
-  assert.match(SF, /photoOk: !!\(c\.photo && c\.photo_qc\) \|\| c\.tile_sellable === true,/)
+  assert.match(SF, /photoOk: !!\(c\.photo && c\.photo_qc\) \|\| \(c\.tab !== 'rings' && c\.tile_sellable === true\),/)   // rings: photo first (K-069)
   assert.match(SF, /aria-label="' \+ sfEsc\(c\.name\) \+ ' colour tile, not a photo"/)
   assert.doesNotMatch(html, /<img id="mImg" alt="product">[\s\S]*?mi\.alt=undefined/)
   assert.match(html, /mi\.alt=imgAlt\(d\);/)
@@ -426,7 +426,10 @@ test('line labels match the real product (Komuta 23 Nov): 6159 Chip Bead Necklac
   assert.equal(by['6159'].line, 'Chip Bead Necklace')
   assert.equal(by['0624'].line, 'Cube Bead Stretch Bracelet')
   assert.equal(by['6180'].line, 'Charm Necklace'); assert.equal(by['6170'].line, 'Charm Necklace')
-  for (const c of cards) assert.doesNotMatch(c.line, /stone|onyx|quartz|crystal/i, c.barcode)
+  // K-069 ring style names given by the lead (31_rings_ui_spec): 'Stone Chip' / 'Raw Stone Look' describe a look, not a
+  // material; this exact pair is the only exception (K&D to confirm before the Rings tab goes live)
+  const RING_LOOK = /^(Stone Chip|Raw Stone Look) Ring$/
+  for (const c of cards) if (!(c.tab === 'rings' && RING_LOOK.test(c.line))) assert.doesNotMatch(c.line, /stone|onyx|quartz|crystal/i, c.barcode)
 })
 
 test('og-image.jpg exists (was 404) and is a 1200x630 JPEG; alt has no product or material claim', () => {

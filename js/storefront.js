@@ -12,9 +12,9 @@
   'use strict';
 
   /*KL-SF-CORE-START*/ // pure functions (no DOM); tests/storefront.test.mjs evaluates this block as-is
-  var SF_TABS = ['gradient', 'bracelets', 'necklaces', 'hair'];
-  var SF_TITLE = { gradient: 'The Gradient Edit', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair' };
-  var SF_CHIP = { gradient: 'Gradient', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair' };   // short chip labels: all 4 fit one 390 px row (nav fix F4); panel titles keep SF_TITLE
+  var SF_TABS = ['gradient', 'bracelets', 'necklaces', 'hair', 'rings'];   // Rings (K-069) after Hair; hidden like every tab while nothing in it is sellable
+  var SF_TITLE = { gradient: 'The Gradient Edit', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', rings: 'Rings' };
+  var SF_CHIP = { gradient: 'Gradient', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', rings: 'Rings' };   // short chip labels: the first 4 fit one 390 px row (nav fix F4); the row scrolls sideways when Rings shows; panel titles keep SF_TITLE
   var SF_ORDER = { sellable: 0, single: 0, cap: 1, photo: 2, soldout: 3 };
   function sfMoney(p) { return '£' + (p / 100).toFixed(2); }
   /** Pool key exactly as the server (api/_pricing.js poolKey): Gradient Edit -> 'gradient'; any other product -> its
@@ -89,7 +89,15 @@
     gradient: [{ k: 'classic', label: 'Gradient', re: /^(?!.*\bcobra\b).*\bbracelet$/i }, { k: 'cobra', label: 'Gradient Cobra', re: /\bcobra bracelet$/i }],
     bracelets: [{ k: 'stretch', label: 'Stretch', re: /\bstretch bracelet$/i }, { k: 'charm', label: 'Stretch Charm', re: /^stretch charm bracelet$/i },
       { k: 'bangle', label: 'Bangle', re: /^bangle$/i }, { k: 'double', label: 'Stretch Double', re: /^stretch double bracelet$/i },
-      { k: 'sparkle', label: 'Sparkle Line', re: /^sparkle line$/i }]
+      { k: 'sparkle', label: 'Sparkle Line', re: /^sparkle line$/i }],
+    // Rings (K-069, 31_rings_ui_spec): one generic barcode per ring style ('we pick, designs vary'). Labels make no
+    // unverified material claim (no stainless / zircon / gemstone / natural; 'Steel-look' until K&D + owner confirm).
+    // Keys may hold a hyphen ('#rings-steel-chunky'): sfParseHash splits at the FIRST hyphen only.
+    rings: [{ k: 'steel-chunky', label: 'Steel-look Chunky', re: /^steel-look chunky ring$/i }, { k: 'steel', label: 'Steel-look', re: /^steel-look ring$/i },
+      { k: 'charm', label: 'Charm', re: /^charm ring$/i }, { k: 'ivory', label: 'Ivory', re: /^ivory ring$/i },
+      { k: 'chip', label: 'Chip', re: /^chip ring$/i }, { k: 'butterfly', label: 'Butterfly & Starfish', re: /^butterfly & starfish ring$/i },
+      { k: 'sparkle', label: 'Sparkle', re: /^(statement )?sparkle ring$/i }, { k: 'antique', label: 'Antique-Style', re: /^antique-style ring$/i },
+      { k: 'enamel', label: 'Enamel', re: /^enamel ring$/i }, { k: 'rough-cut', label: 'Rough-Cut Look', re: /^rough-cut look ring$/i }]
   };
   /** sub-category key of a line/type inside a tab; null = shown under All only */
   function sfSubOf(tab, line) {
@@ -136,7 +144,9 @@
     return { p: q, html: q ? sfMoney(q) : '', m1: false };
   }
   function sfAddText(p, full, dis) { return full && !dis ? 'All available in your bag' : 'Add to bag — ' + sfMoney(p); }
-  /** Family card markup. o = {line: sfPriceLine(), badge, ship, full, dis, why}. */
+  /** Family card markup. o = {line: sfPriceLine(), badge, ship, full, dis, why, shipKey?, note?}. shipKey = the delivery
+   *  line's data-kl hook (rings: 'ringship', never refreshed with the generic 10+ free line); note = an extra line (rings:
+   *  'Designs vary ...'). Without them the markup is byte-for-byte what it was. */
   function sfFamCard(c, st, o) {
     var p = o.line && o.line.p, b = o.badge, media, body = '';
     if (st === 'photo') {
@@ -158,13 +168,14 @@
     }
     return '<article class="card in kl-card' + (st === 'soldout' ? ' kl-soldout' : '') + '" data-kl-card data-kl-state="' + st + '"' + (st === 'photo' ? ' data-kl-photo="pending"' : '') + ' data-bc="' + sfEsc(c.barcode) + '">'
       + media + '<div class="cbody">' + (c.ai_image && st !== 'photo' ? '<small class="kl-ai">AI-styled image</small>' : '') + '<h3 class="nm">' + sfEsc(c.name) + '</h3><div class="sub"><span class="d" style="background:' + sfEsc(c.swatch) + '" aria-hidden="true"></span>' + sfEsc(c.line) + '</div>'
-      + (p ? '<div class="pr">' + o.line.html + '</div><div class="fee" data-kl="cardship">' + sfEsc(o.ship || '') + '</div>' : '') + body + '</div></article>';
+      + (p ? '<div class="pr">' + o.line.html + '</div><div class="fee" data-kl="' + (o.shipKey || 'cardship') + '">' + sfEsc(o.ship || '') + '</div>' + (o.note ? '<p class="kl-note">' + sfEsc(o.note) + '</p>' : '') : '') + body + '</div></article>';
   }
   /** Mobile sticky bar with an empty bag, per tab. Gradient Edit: null = keep the page's own bar ("Each £8.00" +
    *  "Build your bundle"). Other tabs: the lowest single price among the tab's sellable cards + the delivery line;
    *  the button takes the shopper back to the tab's pieces (the bundle builder is Gradient-only). */
-  function sfSticky(tab, minP, feeP) {
+  function sfSticky(tab, minP, feeP, ring) {
     if (tab === 'gradient' || SF_TABS.indexOf(tab) < 0) return null;
+    if (ring) return { info: '<b>' + sfEsc(ring.price) + '</b><span class="dl" data-kl="ringship">' + sfEsc(ring.ship) + '</span>', btn: 'Shop ' + SF_TITLE[tab] };   // K-069: never the generic 10+ free line next to rings
     var fee = '<span class="dl" data-kl="fee1">' + (typeof window !== 'undefined' && typeof window.cardShipText === 'function' ? window.cardShipText() : (feeP ? '+ ' + sfMoney(feeP) + ' UK delivery' : 'Free UK delivery')) + '</span>';   // CMA209: fee + 10+ condition
     return { info: (minP > 0 ? 'From <b>' + sfMoney(minP) + '</b> each' : '') + fee, btn: 'Shop ' + SF_TITLE[tab] };
   }
@@ -184,16 +195,30 @@
   var FAM = [];            // family cards from /data/cards.json
   var FAMBY = {};          // barcode -> family card
   var tab = 'gradient', lastPool = null, showOther = false, stockErr = false;
-  var sub = { gradient: 'all', bracelets: 'all' }, lastGSub = 'all';   // selected sub-chip per tab (SF_SUBS)
+  var sub = { gradient: 'all', bracelets: 'all', rings: 'all' }, lastGSub = 'all';   // selected sub-chip per tab (SF_SUBS)
 
-  function priceP(bc) { return sfPriceLine(bc, window).p; }   // M1: group single (no group = null = hidden); else till price
+  function priceP(bc) { return sfPriceLine(bc, window).p; }
+  function isRing(bc) { return typeof window.m1FlatOf === 'function' && !!window.m1FlatOf(String(bc)); }   // flat group (K-069 rings), from the served table
+  function ringTexts() { return typeof window.m1RingTexts === 'function' ? window.m1RingTexts() : null; }
+  /* Rings tab: the panel's delivery line, the sticky bar and the info block after the grids carry the RING line (min 5, rings
+     don't count toward free delivery), never the generic 'free with any 10+ items' line nor the 10+ hero price (E1 / N2). */
+  function syncRingInfo() {
+    var on = tab === 'rings', R = on ? ringTexts() : null, rd = $('#klRDlv'), gd = $('#klFam .col-head [data-kl="ship"]');
+    if (rd) { rd.hidden = !R; rd.textContent = R ? R.price + ' · ' + R.ship : ''; }
+    if (gd) gd.hidden = !!R;
+    var info = $('#klInfo'); if (!info) return;
+    $$('.launch, .launchfee', info).forEach(function (e) { e.classList.toggle('kl-roff', !!R); });
+    var ri = $('#klRingInfo');
+    if (R && !ri) { ri = document.createElement('p'); ri.id = 'klRingInfo'; ri.className = 'kl-ringinfo'; info.insertBefore(ri, info.firstChild); }
+    if (ri) { ri.hidden = !R; ri.textContent = R ? R.price + ' · ' + R.ship : ''; }
+  }   // M1: group single (no group = null = hidden); else till price
   function isGrad(bc) { return typeof window.isLadder === 'function' && window.isLadder(String(bc)); }
   function unitP(bc) { return isGrad(bc) ? Math.round(PRICE * 100) : priceP(bc); }
   function poolOfBc(bc) { return sfPoolKey(L(), isGrad(bc), unitP(bc)); }
   function inBag(bc) { var f = cart.find(function (c) { return c.bc === bc; }); return f ? f.qty : 0; }
   function famState(c) {
     var p = priceP(c.barcode), key = sfPoolKey(L(), false, p);
-    return sfState({ priceP: p, photoOk: !!(c.photo && c.photo_qc) || c.tile_sellable === true,   // G9 exception (Komuta 23 Nov): colour tile, still sellable
+    return sfState({ priceP: p, photoOk: !!(c.photo && c.photo_qc) || (c.tab !== 'rings' && c.tile_sellable === true),   // G9 exception (Komuta 23 Nov): colour tile, still sellable; never for rings (K-069: photo first)
       sellable: window.klAvail ? window.klAvail(c.barcode) : 0,
       stock: window.klStockQty ? window.klStockQty(c.barcode) : 0, badge: !!sfFromBadge(L(), key) });
   }
@@ -230,9 +255,10 @@
     var sec = document.createElement('section'); sec.className = 'wrap collection kl-fam'; sec.id = 'klFam'; sec.hidden = true;
     sec.setAttribute('role', 'tabpanel'); sec.setAttribute('tabindex', '-1');
     sec.innerHTML = '<div class="kl-err" id="klErr" role="alert" hidden><span>Prices are not loading. Try again.</span> <button type="button" class="btn" id="klRetry">Try again</button></div>'
-      + '<div class="col-head"><h2 id="klFamTitle"></h2><div class="c" id="klFamCount" aria-live="polite"></div><div class="kl-dlv" data-kl="ship"></div></div>'
+      + '<div class="col-head"><h2 id="klFamTitle"></h2><div class="c" id="klFamCount" aria-live="polite"></div><div class="kl-dlv" data-kl="ship"></div><div class="kl-dlv kl-rdlv" id="klRDlv" hidden></div></div>'
       + '<div class="kl-empty" id="klEmpty" hidden><p class="et">Nothing here yet</p><p class="es">This category opens once its pieces are photographed.</p><a class="btn ghost" href="#gradient">See The Gradient Edit</a></div>'
       + '<div class="kl-subs" id="klBSubs" role="tablist" aria-label="Bracelet styles" hidden>' + sfSubButtons('bracelets', 'klFamGrid') + '</div>'
+      + '<div class="kl-subs" id="klRSubs" role="tablist" aria-label="Ring styles" hidden>' + sfSubButtons('rings', 'klFamGrid') + '</div>'
       + '<div class="grid" id="klFamGrid"></div>';
     pal.parentNode.insertBefore(sec, pal.nextSibling);
     sfLayout(document, nav, KL.vis);   // chips under the logo row, hero short, delivery/Christmas/trust/VAT after the grids
@@ -254,7 +280,7 @@
     tab = t;
     if (s !== undefined && sub[t] !== undefined) sub[t] = s || 'all';
     renderTabs();   // may fall back to 'All' when the asked sub-category has nothing on sale (hidden)
-    var sb = $('.kl-subs [data-subtab="' + tab + '"][aria-selected="true"]'), sc = sb && (sb.closest('#klBSubs') || $('#swatchbar'));
+    var sb = $('.kl-subs [data-subtab="' + tab + '"][aria-selected="true"]'), sc = sb && (sb.closest('#klBSubs') || sb.closest('#klRSubs') || $('#swatchbar'));
     if (sc) {   // 390 px: the selected sub-chip is brought into view inside its own row (deep link #gradient-cobra)
       var r = sb.getBoundingClientRect(), cr = sc.getBoundingClientRect();
       if (r.right > cr.right || r.left < cr.left) sc.scrollLeft += (r.left - cr.left) - (cr.width - r.width) / 2;
@@ -298,6 +324,9 @@
       seen[t] = n;
     });
     var gsv = renderSubs('gradient', $('#klGSubs')); renderSubs('bracelets', $('#klBSubs'));
+    var rsr = $('#klRSubs'); renderSubs('rings', rsr); if (rsr && tab !== 'rings') rsr.hidden = true;
+    if (tab === 'rings') { var bsr = $('#klBSubs'); if (bsr) bsr.hidden = true; }
+    syncRingInfo();
     if (FAM.length) try { localStorage.setItem('kl_sf_tabs', JSON.stringify({ v: vis, n: seen,   // next visit's pre-paint chip bar + Gradient sub-chips (index.html)
       gs: gsv.reduce(function (o, x) { o[x.k] = x.n; return o; }, {}) })); } catch (e) {}
     var isG = tab === 'gradient', wasG = !$('#palette').hidden;
@@ -333,6 +362,7 @@
     var minP = null, t = L(), g = t && t.groups && t.gradient_group ? t.groups[t.gradient_group] : null;
     if (g && Number.isInteger(g.single)) minP = g.single;
     FAM.forEach(function (c) { var s = famState(c); if (s !== 'sellable' && s !== 'single') return;
+      if (isRing(c.barcode)) return;   // K-069: a £4 ring (min 5, not in the 10+ offer) never sets the 'from' price next to the 10+ line
       var p = priceP(c.barcode); if (p && (minP === null || p < minP)) minP = p; });
     if (minP === null) return;
     hp.removeAttribute('data-kl-m1'); hp.textContent = 'from ' + sfMoney(minP);
@@ -349,7 +379,7 @@
       if (c.tab !== tab) return; var s = famState(c); if (s !== 'sellable' && s !== 'single') return;
       var p = priceP(c.barcode); if (p && (minP === null || p < minP)) minP = p;
     });
-    var st = sfSticky(tab, minP, SHIP.feeP);
+    var st = sfSticky(tab, minP, SHIP.feeP, tab === 'rings' ? ringTexts() : null);
     if (!st) {
       if (btn.textContent !== stickyOrig.text) { btn.textContent = stickyOrig.text; btn.onclick = stickyOrig.click; updateBag(); }
       return;
@@ -362,8 +392,8 @@
     try { render(typeof active !== 'undefined' && active ? DATA.filter(function (d) { return d.color_en === active; }) : DATA); } finally { inRerender = false; }
   }
   function famCardHTML(c, st) {
-    var line = sfPriceLine(c.barcode, window), key = sfPoolKey(L(), false, line.p), w = window.klWindow;
-    return sfFamCard(c, st, { line: line, badge: sfFromBadge(L(), key), ship: cardShipText(), dis: stockErr,
+    var line = sfPriceLine(c.barcode, window), key = sfPoolKey(L(), false, line.p), w = window.klWindow, R = isRing(c.barcode) ? ringTexts() : null;
+    return sfFamCard(c, st, { line: line, badge: sfFromBadge(L(), key), ship: R ? R.ship : cardShipText(), shipKey: R ? 'ringship' : null, note: R ? R.design : null, dis: stockErr,
       full: inBag(c.barcode) >= (window.klAvail ? window.klAvail(c.barcode) : 0),
       why: w && w.open === false ? (w.message || 'Online orders are closed right now.') : 'This piece is fully reserved for now.' });
   }
@@ -372,7 +402,7 @@
     $('#klFamTitle').textContent = SF_TITLE[tab] + (sl ? ' · ' + sl.label : '');
     $('#klErr').hidden = !stockErr;
     var g = $('#klFamGrid'), list = FAM.filter(function (c) { return c.tab === tab && (sk === 'all' || sfSubOf(tab, c.line) === sk); }).map(function (c) { return { c: c, s: famState(c) }; })
-      .filter(function (x) { return x.s !== 'hidden' && (x.s !== 'soldout' || CFG.sold_out !== 'hide'); });
+      .filter(function (x) { return x.s !== 'hidden' && (x.s !== 'soldout' || CFG.sold_out !== 'hide') && !(x.c.tab === 'rings' && x.s === 'photo'); });   // rings: no 'Photo coming' tiles (K-069: photo + owner decision first)
     $('#klEmpty').hidden = has;
     if (!has) { g.innerHTML = ''; $('#klFamCount').textContent = ''; return; }
     list.forEach(function (x, i) { x.i = i; });   // stable: state, then real photo before colour tile (Komuta 23 Nov), then original order
@@ -516,7 +546,8 @@
   }
 
   /* ---------------- data ---------------- */
-  function famBcs() { return FAM.map(function (c) { return c.barcode; }); }
+  // ring barcodes are asked for only while the served table has an enabled flat group (K-069 dark = the request as before)
+  function famBcs() { var r = typeof window.m1FlatKeys === 'function' && window.m1FlatKeys().length > 0; return FAM.filter(function (c) { return c.tab !== 'rings' || r; }).map(function (c) { return c.barcode; }); }
   function refresh() {
     if (typeof window.klRefreshStock !== 'function') return Promise.resolve(false);
     return window.klRefreshStock(famBcs()).then(function (ok) {
