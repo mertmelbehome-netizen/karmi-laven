@@ -4,10 +4,10 @@
       "memory": 256
     },
     "api/checkout.js": {
-      "includeFiles": "ladders.json"
+      "includeFiles": "{ladders.json,ladders-preview/*.json}"
     },
     "api/stock.js": {
-      "includeFiles": "ladders.json"
+      "includeFiles": "{ladders.json,ladders-preview/*.json}"
     }
   },
   "rewrites": [
