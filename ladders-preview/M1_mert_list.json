@@ -16,7 +16,7 @@
     "derive_threshold": null
   },
   "rules": [],
-  "ui": { "progress_line": false },
+  "ui": { "progress_line": false, "percent_claim": 70 },
   "groups": {
     "A": { "label": "Stretch Bracelet", "single": 500, "tier_each": 150 },
     "B": { "label": "Gradient Edit, Stretch Charm, Hair Clips, Necklace Lux", "single": 800, "tier_each": 240 },

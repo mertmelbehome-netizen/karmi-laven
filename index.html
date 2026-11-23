@@ -1020,8 +1020,16 @@ function m1Summary(lines){
   return {units:n, tier_from:from, tier_unlocked:on, single_total_pence:single, tier_total_pence:tier, charged_pence:charged,
     difference_pence:single-charged, shipping_pence:ship, to_unlock:toUnlock, unlock_group:(toUnlock&&pad)?pad.group:null,
     unlock_tier_each_pence:(toUnlock&&pad)?pad.tier_each:null, unlock_total_pence:unlock, unlock_shipping_pence:uship,
-    unlock_lowers_total:unlock!==null&&unlock+uship<charged+ship, groups, ungrouped};
+    unlock_lowers_total:unlock!==null&&unlock+uship<charged+ship, pct_off:m1GroupsPct(groups), groups, ungrouped};
 }
+// K-046 (owner, 23 Nov): a percentage is shown ONLY for a group whose discount, computed from its own prices, is an exact
+// whole number equal to the table's ui.percent_claim (= api/_pricing.js pctOff). No literal figure in this code.
+function m1Pct(gr){ const t=m1T(), c=t&&t.ui?t.ui.percent_claim:null; if(!gr||!Number.isInteger(c)) return null;
+  const num=(gr.single-gr.tier_each)*100; if(num%gr.single!==0) return null; const p=num/gr.single; return p===c?p:null; }
+function m1GroupsPct(groups){ if(!groups.length) return null; const ps=groups.map(m1Pct); return ps.every(p=>p!==null&&p===ps[0])?ps[0]:null; }
+// groups sold on this page: the Gradient group + every sellable online_group /api/stock served (window.klGroupList)
+function m1PageGroups(){ const t=m1T(), ks=new Set([t.gradient_group]); try{ ((typeof window!=='undefined'&&typeof window.klGroupList==='function')?window.klGroupList():[]).forEach(k=>ks.add(k)); }catch(e){}
+  return [...ks].filter(k=>k&&t.groups[k]).map(k=>t.groups[k]); }
 function m1CartTotalP(lines){ return m1Summary(lines).charged_pence; }
 // Cart texts = engine progress() lines (+ an "e.g." product name from THIS cart). progress below the threshold;
 // applied + promo from it (promotion codes and recovery links are off then: api/checkout.js).
@@ -1031,12 +1039,20 @@ function m1Lines(lines){
   const s=m1Summary(lines), out={progress:null, applied:null, promo:null};
   if(!s.units) return out;
   if(s.tier_unlocked){
-    const each=[...new Set(s.groups.map(g=>g.tier_each))];
-    out.applied=s.tier_from+'+ price applied: '+(each.length===1?gbpP(each[0])+' each':'every item at its '+s.tier_from+'+ price');
+    const each=[...new Set(s.groups.map(g=>g.tier_each))], singles=[...new Set(s.groups.map(g=>g.single))];
+    out.applied = s.pct_off!==null
+      ? 'Instant '+s.pct_off+'% off applied: '+(each.length===1&&singles.length===1?gbpP(each[0])+' each instead of '+gbpShort(singles[0]):'every item')
+      : s.tier_from+'+ price applied: '+(each.length===1?gbpP(each[0])+' each':'every item at its '+s.tier_from+'+ price');
     out.promo='Promo codes can’t be used with the '+s.tier_from+'+ price.';
   } else if(s.unlock_total_pence!==null){
     const freeToo=s.unlock_shipping_pence===0&&s.shipping_pence>0, fd=freeToo?' with free delivery':'';
-    if(s.unlock_lowers_total){
+    const pf=s.pct_off!==null?' for '+s.pct_off+'% off every item':'';
+    if(pf){   // = engine progress() with ui.percent_claim
+      const eg=s.unlock_lowers_total&&s.to_unlock>1?m1Example(lines, s.unlock_group):null;
+      out.progress = !s.unlock_lowers_total ? 'Add '+s.to_unlock+' more'+pf+' (from '+gbpP(s.unlock_tier_each_pence)+' each)'+(freeToo?' and free UK delivery':'')
+        : s.to_unlock===1 ? 'Add 1 more'+pf+': total drops to '+gbpP(s.unlock_total_pence)+fd
+        : 'Add '+s.to_unlock+' more'+(eg?' (e.g. '+eg+')':'')+pf+': your total becomes '+gbpP(s.unlock_total_pence)+fd;
+    } else if(s.unlock_lowers_total){
       // CTSI §20 / Komuta: the shopper does not have to work out the value; the figure is THIS cart at the threshold
       const eg=m1Example(lines, s.unlock_group);
       out.progress = s.to_unlock===1 ? 'Add 1 more: total drops to '+gbpP(s.unlock_total_pence)+fd
@@ -1048,34 +1064,45 @@ function m1Lines(lines){
   return out;
 }
 // Card / modal price (S1): "£8 each · £2.40 each when you buy 10 or more".
+// with an exact owner-approved percentage (K-046) the tier part reads "<pct>% off when you buy 10+ (£2.40 each)"
+function m1TierText(gr){ const t=m1T(), from=t.cart_qty_tier.from, p=m1Pct(gr);
+  return p!==null ? p+'% off when you buy '+from+'+ ('+gbpShort(gr.tier_each)+' each)' : gbpShort(gr.tier_each)+' each when you buy '+from+' or more'; }
 function m1PriceText(bc){ const t=m1T(), g=m1Group(bc); if(!g) return '';
-  const gr=t.groups[g]; return gbpShort(gr.single)+' each · '+gbpShort(gr.tier_each)+' each when you buy '+t.cart_qty_tier.from+' or more'; }
+  const gr=t.groups[g]; return gbpShort(gr.single)+' each · '+m1TierText(gr); }
 function m1PriceHtml(bc){ const t=m1T(), g=m1Group(bc); if(!g) return '';
-  const gr=t.groups[g]; return '<span class="m1s"><span class="m1p">'+gbpShort(gr.single)+'</span> each</span><span class="m1t"> · '+gbpShort(gr.tier_each)+' each when you buy '+t.cart_qty_tier.from+' or more</span>'; }
+  const gr=t.groups[g]; return '<span class="m1s"><span class="m1p">'+gbpShort(gr.single)+'</span> each</span><span class="m1t"> · '+m1TierText(gr)+'</span>'; }
 // Static page texts that name the Gradient Edit price (data-kl-m1="key"), from the table.
 function m1Texts(){
   const t=m1T(); if(!t) return null; const gr=t.groups[t.gradient_group]; if(!gr) return null;
   const from=t.cart_qty_tier.from, s=gbpShort(gr.single), e=gbpShort(gr.tier_each);
   const fee=SHIP.feeP?'+ '+gbpP(SHIP.feeP)+' UK delivery':'Free UK delivery';
+  const p=m1Pct(gr), tt=m1TierText(gr);
+  // ad line (K-046): one percentage for every group sold on the page; 'from' = the lowest 10+ price among them
+  const pg=m1PageGroups(), pp=m1GroupsPct(pg), lo=Math.min(...pg.map(g=>g.tier_each));
+  const ad=pp!==null ? 'Buy '+from+'+, get '+pp+'% off · from '+gbpP(lo)+' each · free UK delivery' : null;
   return {
     hero: s,
+    meta: s+' each · '+tt,   // og/twitter title, meta + JSON-LD description (m1ApplyMeta)
+    ad,
     madd: 'Add to bag',   // the open modal sets 'Add to bag — £8.00' (openModal); closed, no price without its delivery fee
     // K-08 (K&D wording list): no 'hand-strung on' in M1 copy
     herop: 'Fifteen crystal shades on a gold-tone chain with a single charm. Wear one — or let the whole spectrum fall down your wrist.',
     faqsize: 'Each bracelet sits on a fine gold-tone chain that fastens with a clasp and a loop extender chain, comfortable from roughly 14–19cm.',
     faqmade: '4mm faceted crystal beads on a gold-tone chain with a single delicate charm.',
     mdesc: 'A single thread of 4mm crystal beads on a gold-tone chain with a delicate charm. Wear it alone, or stack it into the gradient.',
-    cta: 'Mix any shades · '+s+' each · '+e+' each when you buy '+from+' or more · <span data-kl="ship">'+shipSentence()+'</span>',
-    each: '<b>'+s+'</b> each · '+e+' each at '+from+'+ <span class="dl" data-kl="fee1">'+fee+'</span>',
-    faqq: 'How does the '+from+'+ price work?',
-    faqa: 'Every bracelet is <b>'+s+' each</b>. Put <b>'+from+' or more</b> items in your bag (mix any shades) and every item is <b>'+e+' each</b>, with free UK delivery. Under '+from+' items, UK delivery is '+gbpP(SHIP.feeP)+'. The '+from+'+ price is applied automatically in your bag; promo codes can’t be added to it.',
-    count: (n)=>n+' shades · '+s+' each · '+e+' each when you buy '+from+' or more',
+    cta: ad ? 'Mix any shades · '+s+' each · '+ad+' · <span data-kl="ship">'+shipSentence()+'</span>'
+      : 'Mix any shades · '+s+' each · '+e+' each when you buy '+from+' or more · <span data-kl="ship">'+shipSentence()+'</span>',
+    each: '<b>'+s+'</b> each · '+(p!==null?p+'% off at '+from+'+ ('+e+' each)':e+' each at '+from+'+')+' <span class="dl" data-kl="fee1">'+fee+'</span>',
+    faqq: p!==null ? 'How does '+p+'% off at '+from+'+ work?' : 'How does the '+from+'+ price work?',
+    faqa: 'Every bracelet is <b>'+s+' each</b>. Put <b>'+from+' or more</b> items in your bag (mix any shades) and '+(p!==null?'you get <b>'+p+'% off every item</b>: <b>'+e+' each</b>':'every item is <b>'+e+' each</b>')+', with free UK delivery. Under '+from+' items, UK delivery is '+gbpP(SHIP.feeP)+'. The '+from+'+ price is applied automatically in your bag; promo codes can’t be added to it.',
+    count: (n)=>n+' shades · '+s+' each · '+tt,
   };
 }
 function m1TierHint(n){
   const t=m1T(), gr=t.groups[t.gradient_group], from=t.cart_qty_tier.from;
-  return n>=from ? gbpP(gr.tier_each)+' each · free UK delivery included'
-    : gbpShort(gr.single)+' each · '+gbpShort(gr.tier_each)+' each when you buy '+from+' or more · '+cardShipText();
+  const p=m1Pct(gr);
+  return n>=from ? gbpP(gr.tier_each)+' each'+(p!==null?' ('+p+'% off)':'')+' · free UK delivery included'
+    : gbpShort(gr.single)+' each · '+m1TierText(gr)+' · '+cardShipText();
 }
 /*KL-M1-END*/
 // M1 DOM glue (no-ops with the live default table).
@@ -1101,10 +1128,10 @@ function m1ApplyPage(){
 function m1ApplyMeta(T){
   const old=/£\d+\.\d\d UK delivery, free from £\d+(?:\.\d\d)?(?: \(or \d+ items\))?/g, ship=shipSentence();
   document.querySelectorAll('meta[name="description"],meta[property="og:description"],meta[name="twitter:description"],meta[property="og:title"],meta[name="twitter:title"]').forEach(m=>{
-    m.setAttribute('content', m.getAttribute('content').replace(old, ship).replace(/from £\d+\.\d\d/, T.hero+' each')); });
+    m.setAttribute('content', m.getAttribute('content').replace(old, ship).replace(/from £\d+\.\d\d/, T.meta)); });
   document.querySelectorAll('script[type="application/ld+json"]').forEach(sc=>{ try{ const j=JSON.parse(sc.textContent); if(!j.offers) return;
     const t=m1T(), gr=t.groups[t.gradient_group], p=(gr.single/100).toFixed(2);
-    if(j.description) j.description=j.description.replace(/from £\d+\.\d\d/, T.hero+' each');
+    if(j.description) j.description=j.description.replace(/from £\d+\.\d\d/, T.meta);
     if('lowPrice' in j.offers) j.offers.lowPrice=p; if('highPrice' in j.offers) j.offers.highPrice=p; if('price' in j.offers) j.offers.price=p;
     const sd=j.offers.shippingDetails; if(sd&&sd.shippingRate) sd.shippingRate.value=(SHIP.feeP/100).toFixed(2); if(sd&&sd.description) sd.description=ship;
     sc.textContent=JSON.stringify(j); }catch(e){} });
@@ -1123,7 +1150,7 @@ function m1Foot(){
   document.getElementById('shipFill').style.width=Math.min(100, q/s.tier_from*100)+'%';
   const box=document.getElementById('cartM1'), t=m1T(), gr=t.groups[t.gradient_group];
   if(L.applied){ box.innerHTML='<span class="m1on">✓ '+L.applied+'</span><span class="m1promo">'+L.promo+'</span>'; box.hidden=false; }
-  else if(q&&gr){ box.textContent='Now '+gbpShort(gr.single)+' each · '+gbpShort(gr.tier_each)+' each when your bag has '+s.tier_from+' or more items'; box.hidden=false; }
+  else if(q&&gr){ box.textContent='Now '+gbpShort(gr.single)+' each · '+(m1Pct(gr)!==null?m1Pct(gr)+'% off every item when your bag has '+s.tier_from+'+ items ('+gbpShort(gr.tier_each)+' each)':gbpShort(gr.tier_each)+' each when your bag has '+s.tier_from+' or more items'); box.hidden=false; }
   else { box.innerHTML=''; box.hidden=true; }
   document.getElementById('cartPre').textContent=itemWord(q)+' · ships within 1–2 business days';
   // CTSI §20 (K&D): the same 'Add N more' line again right above Secure Checkout, the last screen before payment.
@@ -1512,6 +1539,7 @@ function cookieChoice(accepted){
   var SELLABLE={};           // non-Gradient barcode -> qty the bag may hold (caps AND stock); missing = 0 (fail closed)
   var GROUP={};              // M1 only: non-Gradient barcode -> online group (A/B/C) from /api/stock online_group
   window.klGroup=function(bc){ return GROUP[String(bc)]||null; };
+  window.klGroupList=function(){ var o={}; Object.keys(GROUP).forEach(function(b){ if(SELLABLE[b]>0) o[GROUP[b]]=1; }); return Object.keys(o); };
   var PRICEP={};             // non-Gradient barcode -> WAT till price in pence (what /api/checkout charges)
   function ladder(bc){ return typeof window.isLadder!=='function' || window.isLadder(String(bc)); }
 
