@@ -15,7 +15,7 @@
 
 export const DEFAULTS = Object.freeze({
   families: false,      // category tabs (Gradient Edit · Bracelets · Necklaces · Hair) + family cards
-  sold_out: 'last',     // with families on: sold-out cards stay visible at the end, marked "Sold out" ('hide' = today)
+  sold_out: 'hide',     // with families on: sold-out cards hidden, as today (Komuta 23 Nov); 'last' = shown at the end, "Sold out"
   refresh_s: 60,        // with families on: stock/caps refresh while the page is open (cap/sold-out without reload)
 });
 
@@ -31,5 +31,8 @@ export function storefrontConfig(env = (typeof process !== 'undefined' && proces
     families,
     sold_out: so === 'hide' || so === 'last' ? so : DEFAULTS.sold_out,
     refresh_s: DEFAULTS.refresh_s,
+    // ?sf=families (test view) is honoured by the page only when the SERVER says this is a Vercel preview build, never
+    // on a production host (incl. prod's *.vercel.app alias). Komuta 23 Nov: no family view leak on production.
+    preview: String(env.VERCEL_ENV ?? '') === 'preview',
   };
 }

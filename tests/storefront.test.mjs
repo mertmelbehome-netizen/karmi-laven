@@ -73,11 +73,14 @@ test('flag OFF: the boot switch loads nothing (no extra request, page as before)
   assert.deepEqual(boot({ storefront: { families: false } }, 'https://www.karmilaven.com/?sf=families').added, [], 'no dev override on the live domain')
 })
 
-test('flag ON: storefront css + js load; ?sf=families works only on localhost / *.vercel.app previews', () => {
+test('flag ON: storefront css + js load; ?sf=families works only on localhost or when the server says preview', () => {
   const on = boot({ storefront: { families: true, sold_out: 'last', refresh_s: 60 }, ladders: LIVE })
   assert.deepEqual(on.added, ['/css/storefront.css?v=pr2', '/js/storefront.js?v=pr2'])
   assert.equal(on.cfg.families, true); assert.equal(on.cfg.progress, false)
-  assert.equal(boot({}, 'https://karmi-laven-git-feat-x.vercel.app/?sf=families').cfg.families, true)
+  assert.equal(boot({ storefront: { families: false, preview: true } }, 'https://karmi-laven-git-feat-x.vercel.app/?sf=families').cfg.families, true)
+  // production (incl. prod's *.vercel.app alias): the server says preview:false -> ?sf= does nothing (Komuta 23 Nov)
+  assert.equal(boot({ storefront: { families: false, preview: false } }, 'https://karmi-laven.vercel.app/?sf=families').cfg, undefined)
+  assert.equal(boot({ storefront: { families: false } }, 'https://www.karmilaven.com/?sf=families').cfg, undefined)
   assert.equal(boot({}, 'http://127.0.0.1:8790/?sf=families').cfg.families, true)
   const prog = boot({ storefront: { families: false }, ladders: A })
   assert.deepEqual(prog.added, ['/js/storefront.js?v=pr2'], 'progress line alone: js only, no new styles')
@@ -244,4 +247,12 @@ test('sticky bag bar: bottom padding follows the measured bar height (+ scroll p
   assert.ok(/body\.has-bar\{padding-bottom:var\(--bar-h,84px\)\}/.test(HTML))
   assert.ok(/html\.has-bar\{scroll-padding-bottom:calc\(var\(--bar-h,84px\) \+ 12px\)\}/.test(HTML))
   assert.ok(/setProperty\('--bar-h'/.test(HTML))
+})
+
+test('storefront defaults: sold-out hidden (Komuta 23 Nov), preview only from VERCEL_ENV=preview', () => {
+  assert.equal(storefrontConfig({}).sold_out, 'hide')
+  assert.equal(storefrontConfig({ KARMI_STOREFRONT_SOLD_OUT: 'last' }).sold_out, 'last')
+  assert.equal(storefrontConfig({}).preview, false)
+  assert.equal(storefrontConfig({ VERCEL_ENV: 'production' }).preview, false)
+  assert.equal(storefrontConfig({ VERCEL_ENV: 'preview' }).preview, true)
 })
