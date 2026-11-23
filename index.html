@@ -1228,12 +1228,29 @@ function syncLimits(){
 function addToCart(bc){
   if(atLimit(bc)){ syncLimits();   // nothing added: the message beside the button says why; focus stays on the button
     const m=document.getElementById('lim-'+bc);   // keep it above the sticky bag bar (html scroll-padding-bottom, #39)
-    if(m && m.scrollIntoView) requestAnimationFrame(()=>m.scrollIntoView({block:'nearest'}));
+    if(m) requestAnimationFrame(()=>showAboveBand(m));
     return; }
   addToCartSilent(bc); save();updateBag();renderCart();openCart();
   track('AddToCart','add_to_cart',{value:unitPrice(bc)||0,currency:'GBP',content_name:BY[bc].color_en,content_ids:[bc],content_type:'product'});
   flTrack('add_to_cart',{product_bc:bc,product_name:BY[bc].color_en,qty:1,value:unitPrice(bc)||0,cart_qty:totalQty(),cart_value:subtotal()});
   kl('Added to Cart',{$value:subtotal(),AddedItemProductName:BY[bc].color_en,AddedItemSKU:bc,ItemNames:cart.map(c=>BY[c.bc].color_en),CheckoutURL:'https://karmilaven.com/'});
+}
+/* scrollIntoView({block:'nearest'}) does nothing when the message is already "in view" but sits behind the fixed
+   bag band, so measure the band and lift the message by the overlap (8px gap). Pure part: px to scroll down, never so
+   far that the message's top leaves the screen; 0 = no overlap. Display only: no focus / aria-live change. */
+function bandScrollDelta(msgTop,msgBottom,viewH,bandH,gap){
+  const g=gap==null?8:gap, maxB=viewH-Math.max(0,bandH||0)-g;
+  if(!(msgBottom>maxB)) return 0;
+  return Math.max(0, Math.ceil(Math.min(msgBottom-maxB, msgTop-g)));
+}
+function showAboveBand(m){
+  const r=m.getBoundingClientRect();
+  if(r.top<0){ if(m.scrollIntoView) m.scrollIntoView({block:'nearest'}); return; }   // above the screen: as before
+  const bar=document.getElementById('stickybar'); let bh=0;
+  if(bar && getComputedStyle(bar).display!=='none'){ const br=bar.getBoundingClientRect(); if(br.height>0) bh=Math.max(0,window.innerHeight-br.top); }
+  const d=bandScrollDelta(r.top,r.bottom,window.innerHeight,bh,8); if(!d) return;
+  let still=false; try{ still=!!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){}
+  try{ window.scrollBy({top:d, behavior:still?'instant':'smooth'}); }catch(e){ window.scrollBy(0,d); }
 }
 function capQty(bc,q){ const a=limitOf(bc); return (a>0 && a!==Infinity) ? Math.min(q,a) : q; }
 function setQty(i,v){const c=cart[i]; if(!c)return; c.qty=capQty(c.bc,Math.max(1,Math.min(99,parseInt(v)||1))); save();updateBag();renderCart();}
