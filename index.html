@@ -150,6 +150,7 @@ nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
 .cart-m1{font-size:12px; line-height:1.45; color:var(--ink); margin:0 0 8px}
 .cart-m1 .m1on{color:var(--accent); font-weight:600}
 .cart-m1 .m1promo{display:block; font-size:11px; color:var(--soft); margin-top:2px}
+.cart-m1near{font-size:13.5px; font-weight:600; line-height:1.35; color:var(--ink); background:#f6eee6; border:1px solid var(--accent); border-radius:8px; padding:9px 12px; margin:0 0 10px; text-align:center}
 .modal .mprice .p .m1t, .hero .launch .p .m1t{font-family:'Jost'; font-size:13px}
 .cbody .ship24{font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-top:7px}
 .cbody .add{display:block; text-align:center; text-decoration:none; margin-top:11px; font-family:'Jost'; font-weight:400; font-size:10.5px; letter-spacing:.2em;
@@ -482,7 +483,7 @@ body.has-bar{padding-bottom:84px} html.has-bar{scroll-padding-bottom:96px}
   <div class="hero-copy">
     <div class="k fadein d1">The Gradient Edit</div>
     <h1 class="fadein d1">Colour,<br>worn <em>softly</em>.</h1>
-    <p class="fadein d2">Fifteen crystal shades, hand-strung on gold with a single charm. Wear one — or let the whole spectrum fall down your wrist.</p>
+    <p class="fadein d2" data-kl-m1="herop">Fifteen crystal shades, hand-strung on gold with a single charm. Wear one — or let the whole spectrum fall down your wrist.</p>
     <div class="stars fadein d2"><span class="num">Part of Melbe Home · with shops in Watford &amp; Guildford</span></div>
     <div class="cta fadein d3">
       <button class="btn" onclick="openBundle()">Build your bundle</button>
@@ -544,8 +545,8 @@ body.has-bar{padding-bottom:84px} html.has-bar{scroll-padding-bottom:96px}
 <section class="faq wrap">
   <h3>Good to <em>know</em></h3>
   <details class="faqitem"><summary>When will my order arrive?</summary><p>Orders ship within 1–2 business days and arrive in 2–5 business days via Royal Mail. You're charged securely at checkout.</p></details>
-  <details class="faqitem"><summary>What size are they?</summary><p>Each bracelet is hand-strung on a fine gold-tone chain that fastens with a clasp and a loop extender chain, comfortable from roughly 14–19cm.</p></details>
-  <details class="faqitem"><summary>What are they made of?</summary><p>4mm faceted crystal beads hand-strung on a gold-tone chain with a single delicate charm.</p></details>
+  <details class="faqitem"><summary>What size are they?</summary><p data-kl-m1="faqsize">Each bracelet is hand-strung on a fine gold-tone chain that fastens with a clasp and a loop extender chain, comfortable from roughly 14–19cm.</p></details>
+  <details class="faqitem"><summary>What are they made of?</summary><p data-kl-m1="faqmade">4mm faceted crystal beads hand-strung on a gold-tone chain with a single delicate charm.</p></details>
   <details class="faqitem"><summary>Shipping &amp; delivery?</summary><p><span data-kl="ship">£1.49 UK delivery, free from £12 (or 5 items)</span>. Delivery 2–5 business days after dispatch.</p></details>
 </section>
 
@@ -635,9 +636,9 @@ body.has-bar{padding-bottom:84px} html.has-bar{scroll-padding-bottom:96px}
     <div class="mname" id="mName"></div>
     <div class="mprice" id="mPrice"></div>
     <div class="mstock" id="mStock"></div>
-    <div class="mdesc">A single thread of 4mm crystal beads, hand-strung on gold with a delicate charm. Wear it alone, or stack it into the gradient.</div>
+    <div class="mdesc" data-kl-m1="mdesc">A single thread of 4mm crystal beads, hand-strung on gold with a delicate charm. Wear it alone, or stack it into the gradient.</div>
     <div class="mbag" id="mBag" aria-live="polite"></div>
-    <button class="madd" id="mAdd">Add to bag — £2.99</button>
+    <button class="madd" id="mAdd" data-kl-m1="madd">Add to bag — £2.99</button>
     <button class="mbundle" onclick="closeModal();openBundle(window._mbc)">Save more — build a bundle</button>
   </div>
 </div>
@@ -665,12 +666,13 @@ body.has-bar{padding-bottom:84px} html.has-bar{scroll-padding-bottom:96px}
   <div class="cart-items" id="cartItems"></div>
   <div class="cart-foot">
     <div class="shipbar"><i id="shipFill"></i></div>
-    <div class="cart-ship" id="cartShip">£1.49 UK delivery, free from £12 (or 5 items)</div>
+    <div class="cart-ship" id="cartShip" data-kl-progress aria-live="polite">£1.49 UK delivery, free from £12 (or 5 items)</div>
     <div class="cart-m1" id="cartM1" aria-live="polite" hidden></div>
     <div class="cart-sub"><span>Subtotal</span><span id="cartSub">£0.00</span></div>
     <div class="cart-shipline" id="cartShipLine"><span>UK delivery</span><span id="cartShipVal">£1.49</span></div>
     <div class="cart-total"><span>Total inc. delivery</span><span id="cartTotal">£0.00</span></div>
     <div class="cart-pre" id="cartPre">Ships within 1–2 business days; delivery usually 2–5 business days after dispatch</div>
+    <div class="cart-m1near" id="cartM1Near" aria-live="polite" hidden></div>
     <button class="cart-checkout" id="checkoutBtn" onclick="checkout()">Secure Checkout →</button>
     <div class="cart-trustline">🔒 Secure payment · 14-day returns · A real UK brand — 2 high-street shops</div>
     <div class="cart-storeproof">Part of <b>Melbe Home</b> · shops in Watford &amp; Guildford</div>
@@ -679,7 +681,7 @@ body.has-bar{padding-bottom:84px} html.has-bar{scroll-padding-bottom:96px}
 </aside>
 
 <div class="stickybar" id="stickybar">
-  <div class="sp" id="stickyInfo" aria-live="polite">Each <b>£2.99</b><span class="dl" data-kl="fee1">+ £1.49 UK delivery</span></div>
+  <div class="sp" id="stickyInfo" aria-live="polite" data-kl-total>Each <b>£2.99</b><span class="dl" data-kl="fee1">+ £1.49 UK delivery</span></div>
   <button class="sbtn" id="stickyBtn" onclick="openBundle()">Build your bundle</button>
   <button class="sbtn" id="stickyCart" onclick="openCart()" style="display:none;background:var(--accent);color:#fff;max-width:160px">View bag &middot; <span id="stickyN">0</span></button>
 </div>
@@ -803,7 +805,7 @@ function stockTxt(d){
 function priceTxt(bc){ const p=unitPrice(bc); return p?('£'+p.toFixed(2)):''; }
 function card(d,i){
   const isNew=d.added==='2026-06-12', lad=isLadder(d.barcode), pt=priceTxt(d.barcode);
-  const el=document.createElement('article');el.className='card';
+  const el=document.createElement('article');el.className='card'; el.setAttribute('data-kl-card',''); el.dataset.klState=lad?'sellable':'na';   // data-kl-*: K&D measurer hooks (no visual change)
   el.innerHTML=`<div class="imgwrap" onclick="openModal('${d.barcode}')">${isNew?'<span class="new">New</span>':''}
     <img loading="lazy" src="${d.img}" alt="${d.color_en} bracelet, worn">
     <span class="stk">${stockTxt(d)}</span><span class="zoom">View</span></div>
@@ -813,7 +815,7 @@ function card(d,i){
       <div class="pr">${m1On()?m1PriceHtml(d.barcode):pt}</div>
       <div class="fee" data-kl="cardship">${cardShipText()}</div>
       <div class="ship24">Ships within 1–2 business days; delivery usually 2–5 business days after dispatch</div>
-      <button class="add" onclick="addToCart('${d.barcode}')"${lad?'':' disabled'}>${lad?'Add to bag — '+pt:NA_TXT}</button>
+      <button class="add" data-kl-add onclick="addToCart('${d.barcode}')"${lad?'':' disabled'}>${lad?'Add to bag — '+pt:NA_TXT}</button>
     </div>`;
   return el;
 }
@@ -961,7 +963,7 @@ function deliveryFor(subP, units){
 }
 function gbpP(p){ return '£'+(p/100).toFixed(2); }
 function gbpShort(p){ return p%100===0 ? '£'+(p/100) : gbpP(p); }
-function shipSentence(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?', free with '+SHIP.freeQty+'+ items':''); return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery, free from '+gbpShort(SHIP.freeP)+(SHIP.freeQty?' (or '+SHIP.freeQty+' items)':''); }
+function shipSentence(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with '+SHIP.freeQty+'+ items':''); return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery, free from '+gbpShort(SHIP.freeP)+(SHIP.freeQty?' (or '+SHIP.freeQty+' items)':''); }
 function cardShipText(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with '+SHIP.freeQty+'+ items':''); return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery · free from '+gbpShort(SHIP.freeP)+(SHIP.freeQty?' or '+SHIP.freeQty+' items':''); }
 function rollingText(subP, units){
   if(!(units>0)) return '';
@@ -1010,9 +1012,11 @@ function m1Lines(lines){
     const each=[...new Set(s.groups.map(g=>g.tier_each))];
     out.applied=s.tier_from+'+ price applied: '+(each.length===1?gbpP(each[0])+' each':'every item at its '+s.tier_from+'+ price');
     out.promo='Promo codes can’t be used with the '+s.tier_from+'+ price.';
-  } else if(s.to_unlock===1&&s.unlock_total_pence!==null){
+  } else if(s.unlock_total_pence!==null&&(s.to_unlock===1||s.unlock_total_pence<s.charged_pence)){
+    // CTSI §20 (K&D 23 Nov): the shopper must not have to work out the value: say the total it drops to.
     const freeToo=SHIP.freeP===null&&SHIP.freeQty!==null&&SHIP.freeQty-s.units===s.to_unlock;   // = engine progress()
-    out.progress='Add 1 more: all '+s.tier_from+' for '+gbpP(s.unlock_total_pence)+(freeToo?' with free delivery':'');
+    out.progress=s.to_unlock===1 ? 'Add 1 more: all '+s.tier_from+' for '+gbpP(s.unlock_total_pence)+(freeToo?' with free delivery':'')
+      : 'Add '+s.to_unlock+' more: total drops to '+gbpP(s.unlock_total_pence)+(freeToo?' with free delivery':'');
   } else {
     out.progress='Add '+s.to_unlock+' more: every item drops to its '+s.tier_from+'+ price';
   }
@@ -1030,6 +1034,12 @@ function m1Texts(){
   const fee=SHIP.feeP?'+ '+gbpP(SHIP.feeP)+' UK delivery':'Free UK delivery';
   return {
     hero: s,
+    madd: 'Add to bag',   // the open modal sets 'Add to bag — £8.00' (openModal); closed, no price without its delivery fee
+    // K-08 (K&D wording list): no 'hand-strung on' in M1 copy
+    herop: 'Fifteen crystal shades on a gold-tone chain with a single charm. Wear one — or let the whole spectrum fall down your wrist.',
+    faqsize: 'Each bracelet sits on a fine gold-tone chain that fastens with a clasp and a loop extender chain, comfortable from roughly 14–19cm.',
+    faqmade: '4mm faceted crystal beads on a gold-tone chain with a single delicate charm.',
+    mdesc: 'A single thread of 4mm crystal beads on a gold-tone chain with a delicate charm. Wear it alone, or stack it into the gradient.',
     cta: 'Mix any shades · '+s+' each · '+e+' each when you buy '+from+' or more · <span data-kl="ship">'+shipSentence()+'</span>',
     each: '<b>'+s+'</b> each · '+e+' each at '+from+'+ <span class="dl" data-kl="fee1">'+fee+'</span>',
     faqq: 'How does the '+from+'+ price work?',
@@ -1056,16 +1066,31 @@ function m1ApplyPage(){
     if(pr) pr.innerHTML=m1PriceHtml(bc);
     if(add&&!add.hasAttribute('disabled')&&unitPrice(bc)) add.textContent='Add to bag — '+priceTxt(bc);
   });
+  // K&D (CMA/CTSI): with M1 the spend threshold is gone, so no spend-threshold delivery text may remain anywhere,
+  // not even in meta / JSON-LD (the static files are changed at go-live: docs/GO_LIVE_M1.md; this covers previews + JS crawlers).
+  m1ApplyMeta(T);
   if(document.getElementById('modal').classList.contains('open')&&window._mbc){ const bc=window._mbc;
     const p=document.querySelector('#mPrice .p'); if(p) p.innerHTML=m1PriceHtml(bc);
     document.getElementById('mAdd').textContent='Add to bag — '+priceTxt(bc); }
 }
+function m1ApplyMeta(T){
+  const old=/£\d+\.\d\d UK delivery, free from £\d+(?:\.\d\d)?(?: \(or \d+ items\))?/g, ship=shipSentence();
+  document.querySelectorAll('meta[name="description"],meta[property="og:description"],meta[name="twitter:description"],meta[property="og:title"],meta[name="twitter:title"]').forEach(m=>{
+    m.setAttribute('content', m.getAttribute('content').replace(old, ship).replace(/from £\d+\.\d\d/, T.hero+' each')); });
+  document.querySelectorAll('script[type="application/ld+json"]').forEach(sc=>{ try{ const j=JSON.parse(sc.textContent); if(!j.offers) return;
+    const t=m1T(), gr=t.groups[t.gradient_group], p=(gr.single/100).toFixed(2);
+    if(j.description) j.description=j.description.replace(/from £\d+\.\d\d/, T.hero+' each');
+    if('lowPrice' in j.offers) j.offers.lowPrice=p; if('highPrice' in j.offers) j.offers.highPrice=p; if('price' in j.offers) j.offers.price=p;
+    const sd=j.offers.shippingDetails; if(sd&&sd.shippingRate) sd.shippingRate.value=(SHIP.feeP/100).toFixed(2); if(sd&&sd.description) sd.description=ship;
+    sc.textContent=JSON.stringify(j); }catch(e){} });
+}
 function m1Foot(){
   const s=m1Summary(cart), L=m1Lines(cart), q=s.units, dlv=deliveryFor(s.charged_pence,q);
-  document.getElementById('cartSub').textContent=gbpP(s.charged_pence);
+  document.getElementById('cartSub').textContent=q?gbpP(s.charged_pence):'—';   // K-11: no '£0.00' on screen
+  // CMA209 §5.21: the fee sits in the SAME element as the 'free with 10+' claim
   document.getElementById('cartShipVal').innerHTML = dlv.free ? '<span class="free">FREE ✓</span>'
-    : gbpP(SHIP.feeP)+(SHIP.freeQty?' <span class="note">· free with '+SHIP.freeQty+'+ items</span>':'');
-  document.getElementById('cartTotal').textContent=gbpP(dlv.totalP);
+    : (SHIP.freeQty?'<span class="note">'+gbpP(SHIP.feeP)+' UK delivery · free with '+SHIP.freeQty+'+ items</span>':gbpP(SHIP.feeP));
+  document.getElementById('cartTotal').textContent=q?gbpP(dlv.totalP):'—';
   const band=document.getElementById('cartShip');
   if(L.progress) band.innerHTML='<b>'+L.progress+'</b> <button class="nudge-add" type="button" onclick="nudgeAddOne()">＋ Add</button>';
   else if(dlv.free) band.innerHTML='✓ <b>Free UK delivery</b>';
@@ -1076,6 +1101,8 @@ function m1Foot(){
   else if(q&&gr){ box.textContent='Now '+gbpShort(gr.single)+' each · '+gbpShort(gr.tier_each)+' each when your bag has '+s.tier_from+' or more items'; box.hidden=false; }
   else { box.innerHTML=''; box.hidden=true; }
   document.getElementById('cartPre').textContent=itemWord(q)+' · ships within 1–2 business days';
+  // CTSI §20 (K&D): the same 'Add N more' line again right above Secure Checkout, the last screen before payment.
+  const near=document.getElementById('cartM1Near'); if(near){ near.textContent=L.progress||''; near.hidden=!L.progress; }
   document.getElementById('checkoutBtn').disabled=!cart.length;
 }
 // Preview only: ?ladder=<name> on the page URL is passed to /api/stock and /api/checkout (the server honours it only
@@ -1112,6 +1139,7 @@ function updateBag(){
   // §5.18 rolling total: delivery-inclusive, on screen on every width from the first item, updated on every change
   if(inf){
     if(hasItems){ const d=deliveryFor(Math.round(subtotal()*100), q);
+      inf.dataset.klItemsP=Math.round(subtotal()*100); inf.dataset.klShipP=d.feeP; inf.dataset.klTotalP=d.totalP;
       inf.innerHTML='Bag <b>'+gbpP(d.totalP)+'</b><span class="dl">'+(d.free?'free UK delivery ✓':'inc. '+gbpP(d.feeP)+' UK delivery')+'</span>'; }
     else inf.innerHTML='Each <b>'+(m1On()?priceTxt(colours[0]&&colours[0].bc):'£'+PRICE.toFixed(2))+'</b><span class="dl" data-kl="fee1">'+(SHIP.feeP?'+ '+gbpP(SHIP.feeP)+' UK delivery':'Free UK delivery')+'</span>';
   }
@@ -1422,7 +1450,7 @@ function cookieChoice(accepted){
       var stk=card.querySelector('.stk');
       var lad=ladder(bc);
       if(isSold(bc)){
-        card.classList.add('sold-out');
+        card.classList.add('sold-out'); card.dataset.klState='soldout';
         if(iw && !iw.querySelector('.sold-out-badge')){
           var b=document.createElement('span'); b.className='sold-out-badge'; b.textContent=lad?'Sold out':NA_TXT; iw.appendChild(b);
         }
@@ -1431,7 +1459,7 @@ function cookieChoice(accepted){
         if(addBtn){ addBtn.setAttribute('disabled','disabled'); addBtn.style.display='none'; }
       } else {
         // in stock — refresh the low-stock hint from LIVE qty if we have it
-        card.classList.remove('sold-out');
+        card.classList.remove('sold-out'); card.dataset.klState='sellable';
         var iwb=iw&&iw.querySelector('.sold-out-badge'); if(iwb) iwb.remove();
         if(!lad && addBtn){ var pt=window.priceTxt?window.priceTxt(bc):''; addBtn.removeAttribute('disabled'); addBtn.style.display=''; addBtn.textContent='Add to bag — '+pt; var pr=card.querySelector('.pr'); if(pr){ if(typeof window.m1On==='function'&&window.m1On()) pr.innerHTML=window.m1PriceHtml(bc); else pr.textContent=pt; } }
         var q=LIVEQTY[bc];
