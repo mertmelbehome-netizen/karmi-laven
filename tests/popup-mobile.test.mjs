@@ -27,6 +27,6 @@ test('popup: consent/form markup unchanged', () => {
 
 test('popup: no unverified claims, privacy link at collection (K&D N1/N2)', () => {
   const pop = html.slice(html.indexOf('<div class="klpop"'), html.indexOf('<script>', html.indexOf('<div class="klpop"')));
-  assert.doesNotMatch(pop, /limited edition|exclusive/i);
+  assert.doesNotMatch(pop, /limited edition|exclusive|early access/i);
   assert.match(pop, /href="\/privacy\.html"[^>]*>Privacy<\/a>/);
 });
