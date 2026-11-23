@@ -695,9 +695,13 @@ test('K1: the paid alarm is awaited inside the request even when the hold check 
   const db = fakeDbF1({ toCheck: ['cs_live_h'], unrecorded: [{ session: 'cs_live_p', units: 1, lines: [] }] })
   const stripe = fakeStripe()
   stripe.checkout.sessions.retrieve = hang
+  // Deterministic (was flaky at 103-108 ms on a busy machine, 23 Nov 2026): a hung Stripe lookup times out at
+  // min(perCallMs, budget left), i.e. at the same moment as the budget timer, so either could win and budgetHit
+  // was a coin toss. Here the hold list itself never answers: only the budget can end the work.
+  const slowDb = (url, opts) => (url.includes('/rpc/fn_karmi_holds_to_check') ? hang() : db(url, opts))
   let out
   await quiet(async () => {
-    out = await resolveStaleHolds(stripe, { base: 'https://db.test', key: 'k', fetchImpl: db },
+    out = await resolveStaleHolds(stripe, { base: 'https://db.test', key: 'k', fetchImpl: slowDb },
       { appUrl: 'https://ops.test', secret: '', perCallMs: 5000, budgetMs: 100, keyMode: 'live' })
   })
   assert.equal(out.budgetHit, true)
