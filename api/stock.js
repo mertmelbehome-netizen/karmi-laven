@@ -33,15 +33,15 @@ import { STORE, computeAvailable } from './_stock-lib.js';
 import { isGradient } from './_gradient.js';
 import Stripe from 'stripe';
 import { status as capsStatus, resolveStaleHolds } from './_caps-lib.js';
-import { publicLadders } from './_pricing.js';
+import { publicLadders, previewLadders } from './_pricing.js';
 import { storefrontConfig } from './_storefront.js';
 
 // `ladders` (23 Nov 2026, additive): the multi-buy table /api/checkout charges from (ladders.json via
 // api/_pricing.js publicLadders(): pools, bundles, tail, totals[q] per pool, shipping, rules, ui). null = the table did not
 // validate (checkout then refuses with 503). Every response carries it; existing fields are unchanged.
-let ladderView = publicLadders();
+let defaultLadderView = publicLadders();
 /** Test hook: replace the served table view (null = invalid table). */
-export function _setLadders(view) { ladderView = view; }
+export function _setLadders(view) { defaultLadderView = view; }
 
 // `storefront` (PR-2, additive): page feature flags from api/_storefront.js. Default { families:false } = today's page.
 // Computed per request so a Vercel env change applies on the next cold start without code changes.
@@ -59,6 +59,12 @@ export default async function handler(req, res) {
   // shields the DB from every page load. 30s fresh, 60s stale-while-revalidate.
   res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
   res.setHeader('Access-Control-Allow-Origin', '*'); // GET-only public read, no secrets in payload
+
+  // ?ladder=<name>: a PREVIEW-ONLY table (ladders-preview/<name>.json). Honoured only on a Vercel preview
+  // (VERCEL_ENV=preview) or with KL_LADDER_PREVIEW=1; in production it is ignored and the default table is served.
+  // An unknown/invalid preview table serves ladders: null (the page would treat the table as unavailable).
+  const pv = previewLadders(req.query?.ladder);
+  const ladderView = pv === null ? defaultLadderView : pv.ok ? publicLadders(pv.table) : null;
 
   const base = process.env.OPS_SUPABASE_URL;
   const key = process.env.OPS_SUPABASE_SERVICE_KEY;

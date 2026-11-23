@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import { randomUUID } from 'crypto';
 import { fetchAvailable, shortages } from './_stock-lib.js';
 import { GRADIENT, isGradient } from './_gradient.js';
-import { priceUnits, freeShipping, shippingFeeP, LADDERS } from './_pricing.js';
+import { priceUnits, freeShipping, shippingFeeP, LADDERS, MODE_GROUPS, previewLadders, previewAllowed, lineGroup, cartSummary } from './_pricing.js';
 import { reserve, attach, release, gradientFallback, resolveStaleHolds, MSG_UNAVAILABLE } from './_caps-lib.js';
 
 const clampN = n => Math.max(1, Math.min(99, parseInt(n) || 1));
@@ -52,8 +52,32 @@ export function createHandler({
       if (!units.length) return res.status(400).json({ error: 'empty cart' });
       if (units.length > 99) units.length = 99; // hard cap
       if (units.some(u => !u.bc)) return res.status(400).json({ error: 'missing_barcode' });
+      // PREVIEW-ONLY table (body.ladder / ?ladder=, api/_pricing.js previewLadders): honoured only on a Vercel preview
+      // or with KL_LADDER_PREVIEW=1; in production previewLadders() returns null and the default table is used.
+      const pv = previewLadders(req.body?.ladder ?? req.query?.ladder);
+      if (pv && !pv.ok) return res.status(400).json({ error: 'unknown_ladder', message: pv.error });
+      const table = pv ? pv.table : ladders;
       // No valid ladder table = no price we can stand behind: refuse before reserving anything (fail closed).
-      if (!ladders) return res.status(503).json({ error: 'checkout_unavailable', message: MSG_PRICING_UNAVAILABLE });
+      if (!table) return res.status(503).json({ error: 'checkout_unavailable', message: MSG_PRICING_UNAVAILABLE });
+      const groupMode = table.mode === MODE_GROUPS;
+
+      // PREVIEW-ONLY dry run: price a Gradient-Edit-only bag from the table and return the numbers. No stock read,
+      // no reserve, no Stripe. Non-Gradient lines need the DB reserve (group/caps), so they are refused here.
+      if (req.body?.dry_run === true && previewAllowed()) {
+        units.forEach(u => { u.ladder = isGradient(u.bc); });
+        if (units.some(u => !u.ladder)) return res.status(400).json({ error: 'dry_run_gradient_only' });
+        let amountP;
+        try { amountP = priceUnits(units, table); }
+        catch (e) { return res.status(503).json({ error: 'checkout_unavailable', message: MSG_PRICING_UNAVAILABLE, detail: e.message }); }
+        const lines = new Map();
+        units.forEach(u => { const k = `${u.bc}|${u.price}`; const l = lines.get(k) || { bc: u.bc, unit_amount: u.price, quantity: 0 }; l.quantity++; lines.set(k, l); });
+        return res.status(200).json({
+          ok: true, dry_run: true, ladder: table.version, mode: table.mode || 'pools', units: units.length,
+          amount_pence: amountP, shipping_pence: shippingFeeP(amountP, units.length, table),
+          line_items: [...lines.values()],
+          summary: groupMode ? cartSummary(units.map(u => ({ ladder: true })), table) : null,
+        });
+      }
 
       const db = { ...env(), ...(fetchImpl ? { fetchImpl } : {}) };
       const cartQty = {};
@@ -116,8 +140,25 @@ export function createHandler({
         }
         u.unitP = l.price_pence;
         u.name = String(l.name).slice(0, 60);
+        if (groupMode) {
+          // cart_qty_groups: the ONLINE group price replaces the till price; no group = not priced (fail closed).
+          u.group = lineGroup(l, table);
+          if (!u.group) {
+            if (held) await release(ref, db);
+            return res.status(503).json({ error: 'pricing_unavailable', message: MSG_PRICING_UNAVAILABLE });
+          }
+        }
       }
-      const amount = priceUnits(units, ladders);
+      let amount;
+      if (groupMode) {
+        try { amount = priceUnits(units, table); }
+        catch (e) {
+          if (held) await release(ref, db);
+          return res.status(503).json({ error: 'pricing_unavailable', message: MSG_PRICING_UNAVAILABLE });
+        }
+      } else {
+        amount = priceUnits(units, table);
+      }
       const totalQty = units.length;
 
       // Group into Stripe line items by (barcode, name, price). Line name "{bc} · {name}" is parsed by the webhook.
@@ -142,10 +183,10 @@ export function createHandler({
       const itemsCsv = bcList.map(x => `${x.bc}x${x.qty}`).join(',').slice(0, 480);
       const itemsNamed = bcList.map(x => `${x.bc} ${x.name} x${x.qty}`).join(' | ').slice(0, 480);
 
-      const freeShip = freeShipping(amount, totalQty, ladders);
+      const freeShip = freeShipping(amount, totalQty, table);
       const shipping_options = [ freeShip
         ? { shipping_rate_data: { display_name: 'Free UK shipping', type: 'fixed_amount', fixed_amount: { amount: 0, currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } }
-        : { shipping_rate_data: { display_name: 'UK standard shipping', type: 'fixed_amount', fixed_amount: { amount: shippingFeeP(amount, totalQty, ladders), currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } } ];
+        : { shipping_rate_data: { display_name: 'UK standard shipping', type: 'fixed_amount', fixed_amount: { amount: shippingFeeP(amount, totalQty, table), currency: 'gbp' }, delivery_estimate:{minimum:{unit:'business_day',value:2},maximum:{unit:'business_day',value:5}} } } ];
       const origin = req.headers.origin || 'https://karmilaven.com';
       // Promotion codes apply to the whole Stripe session, so they stay on ONLY for Gradient-Edit-only carts
       // (plan §3.3 / K&D 3b).
@@ -156,7 +197,8 @@ export function createHandler({
       // carts keep recovery, except for sessions CREATED from karmi_online_window.recovery_off_from (13 Dec 00:00
       // London) — no recovery link is issued in the cut-off window. A link issued earlier and paid late is flagged
       // for manual handling by the webhook (fn_karmi_flag_late_order), never auto-refunded.
-      const gradientOnly = !hasOther;
+      // cart_qty_groups (preview only): no promotion code on top of the 10+ price (05_pr_scope §(6) option i; K-046).
+      const gradientOnly = !hasOther && !(groupMode && totalQty >= table.tierFrom);
       const params = {
         mode: 'payment',
         // payment_method_types omitted → Stripe Checkout auto-enables cards + Apple/Google Pay
