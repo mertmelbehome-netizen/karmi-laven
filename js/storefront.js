@@ -109,7 +109,7 @@
       }
     }
     return '<article class="card in kl-card' + (st === 'soldout' ? ' kl-soldout' : '') + '" data-kl-card data-kl-state="' + st + '"' + (st === 'photo' ? ' data-kl-photo="pending"' : '') + ' data-bc="' + sfEsc(c.barcode) + '">'
-      + media + '<div class="cbody">' + (c.ai_image && st !== 'photo' ? '<p class="kl-ai">AI-styled image</p>' : '') + '<h3 class="nm">' + sfEsc(c.name) + '</h3><div class="sub"><span class="d" style="background:' + sfEsc(c.swatch) + '" aria-hidden="true"></span>' + sfEsc(c.line) + '</div>'
+      + media + '<div class="cbody">' + (c.ai_image && st !== 'photo' ? '<small class="kl-ai">AI-styled image</small>' : '') + '<h3 class="nm">' + sfEsc(c.name) + '</h3><div class="sub"><span class="d" style="background:' + sfEsc(c.swatch) + '" aria-hidden="true"></span>' + sfEsc(c.line) + '</div>'
       + (p ? '<div class="pr">' + o.line.html + '</div><div class="fee" data-kl="cardship">' + sfEsc(o.ship || '') + '</div>' : '') + body + '</div></article>';
   }
   /** Mobile sticky bar with an empty bag, per tab. Gradient Edit: null = keep the page's own bar ("Each £8.00" +
@@ -150,7 +150,7 @@
   function buildShell() {
     document.documentElement.classList.add('kl-v2');
     // hero copy for a multi-category page (no "hand-strung"/"crystal" claim for hair and necklaces: 03 §2)
-    var k = $('.hero-copy .k'); if (k) k.textContent = 'Part of Melbe Home · shops in Watford & Guildford';
+    var k = $('.hero-copy .k'); if (k) k.textContent = 'Bracelets · Necklaces · Hair';   // the Melbe Home line already sits under the hero text (no repeat)
     var p = $('.hero-copy p'); if (p) { p.textContent = 'Bracelets, necklaces and hair pieces in soft colour. Mix pieces, build your own stack.'; p.removeAttribute('data-kl-m1'); }   // M1 would put the Gradient-only line back
     // Gradient-only copy (15 shades / 4mm crystal / bracelet sizes, made-in, the Gradient 10+ answer): shown on the
     // Gradient Edit tab only (renderTabs); copy shown on every tab is made family-neutral here.
@@ -215,7 +215,7 @@
     $('#palette').hidden = !isG; $('.swatchbar').hidden = !isG;   // colour bar on the Gradient Edit only (K-11)
     $('#klFam').hidden = isG;
     $$('[data-kl-gonly]').forEach(function (e) { e.classList.toggle('kl-goff', !isG); });
-    tabScroll(true); syncSticky();
+    tabScroll(true); syncSticky(); syncHero();
     // only the open tab's cards are in the page (no hidden duplicate buttons / texts)
     if (isG) { $('#klFamGrid').innerHTML = ''; if (!wasG || !grid.children.length) rerenderGradient(); }
     else { if (grid.children.length) grid.innerHTML = ''; renderFam(vis.indexOf(tab) >= 0); }
@@ -231,6 +231,18 @@
     var max = row.scrollWidth - row.clientWidth;
     bar.classList.toggle('kl-more-l', max > 1 && row.scrollLeft > 1);
     bar.classList.toggle('kl-more-r', max > 1 && row.scrollLeft < max - 1);
+  }
+  /* hero price with families on: the Gradient-only '£8' would mislead next to £5 / £13 pieces, so it reads
+   *  'Online prices from £x' = the lowest single price among everything sellable now (Gradient + family cards). */
+  function syncHero() {
+    var hp = $('.hero .launch .p'), lb = $('.hero .launch > span'); if (!hp) return;
+    var minP = null, t = L(), g = t && t.groups && t.gradient_group ? t.groups[t.gradient_group] : null;
+    if (g && Number.isInteger(g.single)) minP = g.single;
+    FAM.forEach(function (c) { var s = famState(c); if (s !== 'sellable' && s !== 'single') return;
+      var p = priceP(c.barcode); if (p && (minP === null || p < minP)) minP = p; });
+    if (minP === null) return;
+    hp.removeAttribute('data-kl-m1'); hp.textContent = 'from ' + sfMoney(minP);
+    if (lb) lb.textContent = 'Online prices';
   }
   /* mobile sticky bar, empty bag: per tab (sfSticky). The Gradient Edit keeps the page's own text and bundle button. */
   var stickyOrig = null;
@@ -391,9 +403,11 @@
     });
     document.addEventListener('keydown', function (e) {
       if (!CFG.families || !e.target.matches || !e.target.matches('[role=tab]')) return;
-      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      if (['ArrowRight', 'ArrowLeft', 'Home', 'End'].indexOf(e.key) < 0) return;
+      e.preventDefault();
       var vt = $$('[role=tab]').filter(function (b) { return !b.hidden; }), i = vt.indexOf(e.target);
-      var n = vt[(i + (e.key === 'ArrowRight' ? 1 : vt.length - 1)) % vt.length]; setTab(n.dataset.tab, true); n.focus();
+      var n = e.key === 'Home' ? vt[0] : e.key === 'End' ? vt[vt.length - 1] : vt[(i + (e.key === 'ArrowRight' ? 1 : vt.length - 1)) % vt.length];
+      setTab(n.dataset.tab, true); n.focus();
     });
     window.addEventListener('popstate', function () { if (CFG.families) setTab(location.hash.slice(1) || 'gradient', false); });
   }

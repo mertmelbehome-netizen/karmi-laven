@@ -105,7 +105,7 @@ test('K-045/K-056: the referee-passed renders only (Karmi 08 A + L2 + 11 Showabl
   for (const c of CARDS) assert.doesNotMatch(c.line, /Bangle Bracelet|Necklace Lux|Diamond/, 'K-056 line names ' + c.barcode)
   const w = W(LADDERS), c0 = { barcode: 'SB', name: 'N', line: 'L', swatch: '#fff', photo: '/x.jpg', ai_image: true }
   const o = { line: core.sfPriceLine('SB', w), badge: null, ship: '', full: false, dis: false, why: '' }
-  assert.match(core.sfFamCard(c0, 'single', o), /<p class="kl-ai">AI-styled image<\/p>/)
+  assert.match(core.sfFamCard(c0, 'single', o), /<small class="kl-ai">AI-styled image<\/small>/)
   assert.doesNotMatch(core.sfFamCard({ ...c0, ai_image: false }, 'single', o), /AI-styled/)
   assert.match(core.sfFamCard(c0, 'single', o), /loading="lazy"/)
   assert.match(read('../css/storefront.css'), /\.kl-ai\{font-size:12px;[^}]*color:#6b6457/)

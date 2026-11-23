@@ -108,3 +108,45 @@ html.kl-v2 .sold-out-badge{font-size:14px; letter-spacing:.06em; text-transform:
   html.kl-v2 .card, html.kl-v2 .fadein{opacity:1 !important; transform:none !important; animation:none !important; transition:none !important}
   html.kl-v2 .card:hover .imgwrap img{transform:none}
 }
+
+/* ---- families design review 23 Nov (web-design-guidelines + frontend-design; SKILL_LOG) ---- */
+/* text contrast >= 4.5:1: gold used as TEXT takes the darker gold of the same tone (#7d5f2a, 6.0:1 on cream; the logo
+   ampersand, star glyphs, icons and the delivery bar keep the light gold: logotype / non-text) */
+html.kl-v2 .hero h1 em, html.kl-v2 .proof b, html.kl-v2 .bundletrust b, html.kl-v2 .bundlecta .t em, html.kl-v2 .col-head h2 em,
+html.kl-v2 .faq h3 em, html.kl-v2 .reviews h2 em, html.kl-v2 .rinvite a, html.kl-v2 .secure b, html.kl-v2 .fbot a,
+html.kl-v2 .gtknow-title em, html.kl-v2 .nudge-save, html.kl-v2 .cart-storeproof b{color:var(--gold-text)}
+html.kl-v2 .faq-a a{color:var(--gold-text) !important; text-decoration:underline; text-underline-offset:2px}
+/* headings: no single-word last lines */
+html.kl-v2 .col-head h2, html.kl-v2 .cbody .nm, html.kl-v2 .cart-trustline, html.kl-v2 .kl-empty .es{text-wrap:balance}
+/* the sticky tab bar never covers a focused card or a scrolled-to anchor */
+html.kl-v2{scroll-padding-top:60px}
+/* card: AI label is fine print (block, under the photo); line row keeps its colour dot on the text when it wraps */
+html.kl-v2 .kl-ai{display:block}
+html.kl-v2 .kl-card .sub{display:block; text-wrap:balance}
+html.kl-v2 .kl-card .sub .d{display:inline-block; vertical-align:1px; margin-right:7px}
+/* explicit transitions (no transition:all) + visible keyboard focus on the add buttons and bag pill */
+html.kl-v2 .cbody .add{transition:background-color .3s, color .3s, border-color .3s}
+html.kl-v2 .bagbtn{transition:border-color .25s}
+html.kl-v2 .cbody .add:focus-visible, html.kl-v2 .bagbtn:focus-visible, html.kl-v2 .stickybar .sbtn:focus-visible,
+html.kl-v2 .cart-checkout:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
+html.kl-v2 button, html.kl-v2 [role=tab], html.kl-v2 a{touch-action:manipulation; -webkit-tap-highlight-color:rgba(52,48,42,.08)}
+/* bag: drawer scroll stays in the drawer; tighter line rhythm so more lines show above the totals; 44 px qty field;
+   totals on one baseline */
+html.kl-v2 .cart-items{overscroll-behavior:contain}
+html.kl-v2 .ci{padding:14px 0; gap:14px}
+html.kl-v2 .ci img{width:64px; height:80px}
+html.kl-v2 .ci-n{line-height:1.2; margin-bottom:2px}
+html.kl-v2 .ci-p{margin-bottom:6px}
+html.kl-v2 .ci-q input{height:44px; width:44px}
+html.kl-v2 .cart-sub{align-items:baseline}
+/* 44 px touch targets at phone width (bag pill, cookie buttons, footer links) */
+html.kl-v2 .bagbtn{min-height:44px}
+html.kl-v2 .cb-btn{min-height:44px}
+@media(max-width:560px){
+  html.kl-v2 .flinks{gap:0 18px}
+  html.kl-v2 .flinks a{display:inline-flex; align-items:center; min-height:44px}
+  /* phone card price: same sizes, calmer tracking so the M1 line sets in 2-3 even lines */
+  html.kl-v2 .kl-card .pr, html.kl-v2 #grid .card .pr{letter-spacing:.01em; line-height:1.45}
+  html.kl-v2 .kl-card .pr .m1t, html.kl-v2 #grid .card .pr .m1t{font-size:14px}
+  html.kl-v2 .cbody .sub{letter-spacing:.14em; font-size:10.5px}
+}
