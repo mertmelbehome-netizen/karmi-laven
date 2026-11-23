@@ -1046,7 +1046,7 @@ function m1Lines(lines){
 function m1PriceText(bc){ const t=m1T(), g=m1Group(bc); if(!g) return '';
   const gr=t.groups[g]; return gbpShort(gr.single)+' each · '+gbpShort(gr.tier_each)+' each when you buy '+t.cart_qty_tier.from+' or more'; }
 function m1PriceHtml(bc){ const t=m1T(), g=m1Group(bc); if(!g) return '';
-  const gr=t.groups[g]; return '<span class="m1s">'+gbpShort(gr.single)+' each</span><span class="m1t"> · '+gbpShort(gr.tier_each)+' each when you buy '+t.cart_qty_tier.from+' or more</span>'; }
+  const gr=t.groups[g]; return '<span class="m1s"><span class="m1p">'+gbpShort(gr.single)+'</span> each</span><span class="m1t"> · '+gbpShort(gr.tier_each)+' each when you buy '+t.cart_qty_tier.from+' or more</span>'; }
 // Static page texts that name the Gradient Edit price (data-kl-m1="key"), from the table.
 function m1Texts(){
   const t=m1T(); if(!t) return null; const gr=t.groups[t.gradient_group]; if(!gr) return null;
