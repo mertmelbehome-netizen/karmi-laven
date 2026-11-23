@@ -385,7 +385,7 @@ test('/api/stock serves the table as `ladders` (additive); null when the table i
     let body
     const res = { setHeader() {}, status() { return this }, json(b) { body = b; return this } }
     await stockHandler({ query: {} }, res)
-    assert.deepEqual(Object.keys(body), ['ok', 'store', 'stock', 'error', 'ladders'], 'old fields first, unchanged; ladders added')
+    assert.deepEqual(Object.keys(body), ['ok', 'store', 'stock', 'error', 'ladders', 'storefront'], 'old fields first, unchanged; ladders added; storefront flags (PR-2) added')
     assert.equal(body.ladders.version, RAW_LIVE.version)
     _setLadders(null)
     await stockHandler({ query: {} }, res)

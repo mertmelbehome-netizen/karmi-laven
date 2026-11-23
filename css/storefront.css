@@ -1,0 +1,92 @@
+/* Karmi Laven storefront PR-2 (loaded only when the storefront flag is on; see api/_storefront.js).
+   Same visual language as the page (vitrin 01 §2): cream, hairlines, square corners, serif names. Every rule below is
+   scoped to html.kl-v2 or to the new kl-* elements, so nothing here touches the page while the flag is off. */
+
+/* small-text tokens: darker variants of the same tones (vitrin 01 §2, NOTES: awaiting Mert's sign-off; V-12 >= 4.5:1) */
+html.kl-v2{--soft:#766d5e; --accent:#8a5f58; --gold-text:#7d5f2a}
+/* overflow-x:hidden on html+body turns body into the scroll box and kills position:sticky (prototype fix D2, V-07) */
+html.kl-v2, html.kl-v2 body{overflow-x:clip}
+
+/* ---- category tabs (K-01): sticky, scrolls sideways inside itself on 390 px (V-09), 44 px targets (V-08) ---- */
+.kl-tabbar{position:sticky; top:0; z-index:21; background:rgba(250,247,241,.96); backdrop-filter:blur(12px);
+  border-top:1px solid var(--hair); border-bottom:1px solid var(--hair); margin-top:18px}
+.kl-tabs{display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; max-width:1200px; margin:0 auto; padding:0 26px; justify-content:center}
+.kl-tabs::-webkit-scrollbar{display:none}
+.kl-tabs [role=tab]{flex:0 0 auto; min-height:48px; padding:0 14px; background:none; border:0; border-bottom:2px solid transparent;
+  font-family:'Jost'; font-weight:400; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--soft); cursor:pointer; white-space:nowrap}
+.kl-tabs [role=tab][aria-selected=true]{color:var(--ink); border-bottom-color:var(--ink)}
+.kl-tabs [role=tab] .n{font-size:11px; letter-spacing:.04em; margin-left:2px}
+.kl-tabs [role=tab]:focus-visible{outline:2px solid var(--ink); outline-offset:-4px}
+html.kl-v2 .swatchbar{top:50px}
+@media(max-width:860px){.kl-tabs{justify-content:flex-start; padding:0 16px}}
+
+/* ---- colour chips: 44 px targets, the bundle chip first on mobile (V-01) ---- */
+html.kl-v2 .sw{min-height:44px}
+.kl-bundlechip{border:1px solid var(--ink) !important; padding:0 14px !important; color:var(--ink) !important; font-weight:400 !important; display:none !important}
+@media(max-width:560px){
+  .kl-bundlechip{display:flex !important}
+  html.kl-v2 #palette .bundlecta, html.kl-v2 #palette .bundletrust{display:none}
+  html.kl-v2 .collection{padding-top:14px}
+  html.kl-v2 .col-head{margin-bottom:14px} html.kl-v2 .col-head h2{font-size:24px}
+  html.kl-v2 .cbody .ship24{display:none}
+  html.kl-v2 .hero{padding:10px 0 16px} html.kl-v2 .hero h1{font-size:40px; margin-bottom:10px}
+}
+html.kl-v2 .sbi{padding-top:2px; padding-bottom:2px}
+
+/* ---- cards: readable price (V-11 >= 14 px), from-badge (K-02), states (01 §5) ---- */
+html.kl-v2 .card{opacity:1; transform:none}   /* cards are there from the start (no scroll-in fade): nothing waits on scrolling */
+html.kl-v2 .cbody .pr{font-size:16px}
+html.kl-v2 .cbody .add{min-height:44px}
+.kl-from{font-size:13px; letter-spacing:.02em; color:var(--ink); margin-top:4px}
+.kl-stt{font-size:13px; color:var(--ink); margin-top:8px; font-weight:400}
+.kl-why{font-size:12.5px; color:var(--soft); margin-top:2px; line-height:1.4}
+html.kl-v2 .card.sold-out.kl-show{display:block !important; order:1}
+html.kl-v2 .card.sold-out.kl-show .imgwrap img, .kl-soldout .imgwrap img{opacity:.5; filter:grayscale(.3)}
+.kl-card .add:disabled{opacity:.55; cursor:default}
+.kl-card .add:disabled:hover{background:none; color:var(--ink); border-color:var(--hair)}
+/* colour tile for a piece without a QC-passed photo (K-03/K-04): flat tone + fine hatch, no text on the tile */
+.kl-tone{aspect-ratio:4/5; border:1px solid var(--hair);
+  background-image:repeating-linear-gradient(135deg, rgba(255,255,255,.22) 0 2px, transparent 2px 9px)}
+.kl-fam .col-head .c{margin-top:6px}
+.kl-dlv{font-size:12px; color:var(--ink); margin-top:4px; letter-spacing:.02em}
+.kl-empty{text-align:center; padding:40px 0 60px}
+.kl-empty .et{font-family:'Cormorant Garamond'; font-size:28px}
+.kl-empty .es{font-size:13.5px; color:var(--soft); margin:6px 0 18px}
+.kl-err{display:flex; gap:14px; align-items:center; justify-content:center; flex-wrap:wrap; border:1px solid var(--accent);
+  background:var(--paper); padding:12px 16px; margin:0 0 18px; font-size:13.5px}
+.kl-err[hidden], .kl-empty[hidden], .kl-fam[hidden]{display:none}
+.kl-err .btn{padding:10px 18px}
+
+/* ---- bag: progress line (K-05), ladder up to 10 (K-06), 44 px qty buttons ---- */
+html.kl-v2 .ci-q button{min-width:44px; min-height:44px}
+html.kl-v2 .ci-q .ci-x{min-width:0; min-height:44px; padding:0 4px}
+.kl-og{background:none; border:0; border-bottom:1px solid currentColor; font:inherit; color:var(--ink); cursor:pointer; margin-left:6px; min-height:24px}
+.kl-ogl{margin:6px 0 0 16px; font-size:12px; color:var(--ink)}
+.kl-ladtab{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; font-size:12px}
+.kl-ladtab .kl-cap{flex-basis:100%; color:var(--soft); font-size:11.5px}
+.kl-ladtab div{border:1px solid var(--hair); padding:4px 8px; min-width:52px; text-align:center}
+.kl-ladtab div b{display:block; font-family:'Cormorant Garamond'; font-size:16px; font-weight:500}
+.kl-ladtab div.on{border-color:var(--ink)}
+html.kl-v2 .cart-ship{color:var(--ink)}
+html.kl-v2 .tiers{grid-template-columns:repeat(5,1fr)}
+
+/* ---- closed dialogs are hidden from reading/tab order, not just transparent (their texts are not "on the page") ---- */
+html.kl-v2 .modal:not(.open), html.kl-v2 .bundle:not(.open), html.kl-v2 .klpop:not(.open){visibility:hidden; transition:opacity .35s, transform .4s, visibility 0s .4s}
+html.kl-v2 .modal.open, html.kl-v2 .bundle.open, html.kl-v2 .klpop.open{visibility:visible}
+html.kl-v2 .cart:not(.open){visibility:hidden; transition:transform .4s cubic-bezier(.2,.8,.2,1), visibility 0s .4s}
+/* close buttons and small controls: >= 44 px targets (V-14 / WCAG 2.5.8) */
+html.kl-v2 .mclose, html.kl-v2 .bundle-h .x, html.kl-v2 .cart-head button, html.kl-v2 .klpop-close{min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center}
+html.kl-v2 .mclose{top:6px; right:6px} html.kl-v2 .bundle-h .x{top:8px; right:8px} html.kl-v2 .klpop-close{top:6px; right:8px}
+html.kl-v2 .klpop-skip{min-height:44px; padding:0 8px}
+/* card overlays: readable text on a solid chip (V-10/V-12); the June "New" label and hover-only "View" are dropped */
+html.kl-v2 .imgwrap .new, html.kl-v2 .imgwrap .zoom{display:none}
+html.kl-v2 .imgwrap .stk:not(:empty){font-size:14px; letter-spacing:.06em; text-transform:none; color:var(--ink); text-shadow:none;
+  background:rgba(255,254,251,.95); padding:3px 8px}
+html.kl-v2 .sold-out-badge{font-size:14px; letter-spacing:.06em; text-transform:none; background:#34302a; color:#faf7f1; backdrop-filter:none}
+
+/* ---- motion: respect the visitor's setting (V-25) ---- */
+@media (prefers-reduced-motion: reduce){
+  html.kl-v2{scroll-behavior:auto}
+  html.kl-v2 .card, html.kl-v2 .fadein{opacity:1 !important; transform:none !important; animation:none !important; transition:none !important}
+  html.kl-v2 .card:hover .imgwrap img{transform:none}
+}
