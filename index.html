@@ -1652,7 +1652,7 @@ applyShipTexts(); render(DATA); updateBag(); renderCart(); firePurchaseIfSuccess
   <div class="klpop-thanks" id="klpopThanks">Thank you &#x2014; you are on the list!</div>
 </div>
 <script>
-/* EMAIL POPUP: exit-intent + 20s delay, 7-day freq cap → /api/subscribe (in-house Supabase capture) */
+/* EMAIL POPUP: desktop exit-intent; touch 50% scroll or 30 s; 7-day freq cap → /api/subscribe (in-house Supabase capture) */
 (function(){
   var KEY='klpop_shown', INTERVAL=7*24*3600*1000;
   function canShow(){ try{ var t=parseInt(localStorage.getItem(KEY)||'0'); return Date.now()-t>INTERVAL; }catch(e){return true;} }
@@ -1696,10 +1696,24 @@ applyShipTexts(); render(DATA); updateBag(); renderCart(); firePurchaseIfSuccess
     });
   };
   var fired=false;
-  function fire(){ if(fired) return; fired=true; setTimeout(openEmailPopup, 500); }
+  // Never cover an open product modal / bag / bundle drawer (they share #ovl): wait until it is closed.
+  function busy(){ var o=document.getElementById('ovl'); return !!(o && o.classList.contains('open')); }
+  function show(){ if(busy()){ setTimeout(show, 4000); return; } openEmailPopup(); }
+  function fire(){ if(fired || !canShow()) return; fired=true; setTimeout(show, 500); }
+  // Desktop: exit-intent (pointer leaves through the top edge) or tab hidden.
   document.addEventListener('mouseleave',function(e){ if(e.clientY<=0) fire(); });
-  // Popup deferred to exit-intent only (removed 20s auto-timer) so it never interrupts the impulse-buy moment
   document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden') fire(); });
+  // Mobile/touch (23 Nov 2026): there is no exit-intent on a phone, so the popup never showed there.
+  // Trigger at 50% page scroll or after 30 s, whichever comes first. Same 7-day cap, same consent text.
+  var touch=false; try{ touch=window.matchMedia('(hover: none), (pointer: coarse)').matches; }catch(e){}
+  if(touch && canShow()){
+    var t=setTimeout(fire, 30000);
+    var onScroll=function(){
+      var h=document.documentElement.scrollHeight-window.innerHeight;
+      if(h>0 && window.scrollY/h>=0.5){ window.removeEventListener('scroll',onScroll); clearTimeout(t); fire(); }
+    };
+    window.addEventListener('scroll',onScroll,{passive:true});
+  }
 })();
 </script>
 
