@@ -158,7 +158,7 @@ test('progress line from the table (K-05): next step, best step, single-price po
 })
 
 test('tabs: Gradient Edit always first; a family tab shows only with >= 1 sellable card (K-01)', () => {
-  assert.deepEqual(core.SF_TABS, ['gradient', 'bracelets', 'necklaces', 'hair'])
+  assert.deepEqual(core.SF_TABS, ['gradient', 'bracelets', 'necklaces', 'hair', 'rings'])   // Rings (K-069) after Hair
   const cards = [{ tab: 'bracelets', st: 'photo' }, { tab: 'necklaces', st: 'single' }, { tab: 'hair', st: 'cap' }, { tab: 'hair', st: 'soldout' }]
   assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st), ['gradient', 'necklaces'])
   assert.deepEqual(core.sfVisibleTabs([], (c) => c.st), ['gradient'])
@@ -213,7 +213,7 @@ test('cards.json: identity only, safe names, no invented photos, no Gradient bar
   assert.ok(Array.isArray(CARDS.cards) && CARDS.cards.length > 0)
   const seen = new Set()
   for (const c of CARDS.cards) {
-    assert.ok(['bracelets', 'necklaces', 'hair'].includes(c.tab), c.barcode)
+    assert.ok(['bracelets', 'necklaces', 'hair', 'rings'].includes(c.tab), c.barcode)
     assert.ok(!seen.has(c.barcode), 'unique ' + c.barcode); seen.add(c.barcode)
     assert.ok(!(c.barcode in GRADIENT), 'not a Gradient barcode ' + c.barcode)
     assert.ok(!FORBIDDEN.test(c.name) && !FORBIDDEN.test(c.line), c.name)

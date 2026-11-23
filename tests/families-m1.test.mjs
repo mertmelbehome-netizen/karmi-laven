@@ -86,7 +86,7 @@ test('mobile sticky bar per tab (empty bag)', () => {
 test('new storefront copy keeps K-08 wording rules', () => {
   const code = SF.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\s\/\/ .*$/gm, '')
   const strings = [...code.matchAll(/'([^'\\]|\\.)*'/g)].map((m) => m[0]).filter((s) => /[a-z]{3}/i.test(s))
-  for (const s of strings) assert.doesNotMatch(s, /hand-strung|diamond|\blux\b|\bstone\b|crystal|best|finest|premium/i, s)
+  for (const s of strings) if (!["'Stone Chip'", "'Raw Stone Look'", "'stone-chip'"].includes(s)) assert.doesNotMatch(s, /hand-strung|diamond|\blux\b|\bstone\b|crystal|best|finest|premium/i, s)   // K-069 ring look labels (lead, K&D to confirm)
   assert.doesNotMatch(read('../terms.html'), /£8\.00 per bracelet|£2\.40 per item/, 'terms: no single-group price')
 })
 

@@ -15,6 +15,9 @@ const CARDS = JSON.parse(read('../data/cards.json')).cards
 const DATA = JSON.parse(HTML.match(/const DATA=(\[[\s\S]*?\]), PRICE=/)[1])
 const LADDER = JSON.parse(HTML.match(/const LADDER_TYPES=(\[[^\]]*\])/)[1].replace(/'/g, '"'))
 const BAD = /\blux\b|crystal|diamond|\bstone\b/i
+// K-069 ring style labels given by the lead (look words, no material claim); the only 'stone' exception (K&D to confirm)
+const RING_LOOK = new Set(['Stone Chip', 'Raw Stone Look'])
+const bad = (t, label) => !(t === 'rings' && RING_LOOK.has(label)) && BAD.test(label)
 
 test('sub-category from the product line: every bracelet card maps; 0624 (family Stretch Double) is a Stretch Bracelet', () => {
   const want = { 'Stretch Bracelet': 'stretch', 'Cube Bead Stretch Bracelet': 'stretch', 'Stretch Charm Bracelet': 'charm', Bangle: 'bangle', 'Stretch Double Bracelet': 'double', 'Sparkle Line': 'sparkle' }
@@ -47,7 +50,7 @@ test('hash routing: #tab-sub (ASCII, hyphen); All is the bare tab hash; unknown 
   assert.equal(core.sfHash('necklaces', 'bangle'), '#necklaces')
   for (const t of Object.keys(core.SF_SUBS)) for (const s of core.SF_SUBS[t]) {
     const h = core.sfHash(t, s.k)
-    assert.match(h, /^#[a-z]+-[a-z]+$/)
+    assert.match(h, /^#[a-z]+-[a-z]+(-[a-z]+)?$/)
     assert.deepEqual(core.sfParseHash(h), { tab: t, sub: s.k }, 'round trip ' + h)
   }
 })
@@ -65,8 +68,9 @@ test('sub-chips: only sub-categories with >= 1 sellable piece; fewer than 2 = no
 })
 
 test('visible labels never say Lux / crystal / diamond / stone; the pre-paint Gradient row = SF_SUBS', () => {
-  for (const t of Object.keys(core.SF_SUBS)) for (const s of core.SF_SUBS[t]) assert.doesNotMatch(s.label, BAD, s.label)
-  for (const t of Object.keys(core.SF_SUBS)) assert.doesNotMatch(core.sfSubButtons(t, 'x').replace(/<[^>]*>/g, ' '), BAD)
+  for (const t of Object.keys(core.SF_SUBS)) for (const s of core.SF_SUBS[t]) assert.ok(!bad(t, s.label), s.label)
+  for (const t of Object.keys(core.SF_SUBS)) assert.doesNotMatch(core.sfSubButtons(t, 'x').replace(/<[^>]*>/g, ' ').replace(/Raw Stone Look|Stone Chip/g, t === 'rings' ? '' : '$&'), BAD)
+  for (const s of core.SF_SUBS.rings) assert.doesNotMatch(s.label, /stainless|zircon|crystal|gemstone|natural|genuine|real/i, s.label)
   assert.deepEqual(lay.SFL_GSUBS.map((x) => x[1]), ['All'].concat(core.SF_SUBS.gradient.map((x) => x.label)))
   assert.deepEqual(lay.SFL_GSUBS.map((x) => x[0]), ['all'].concat(core.SF_SUBS.gradient.map((x) => x.k)))
   for (const x of lay.SFL_GSUBS) assert.doesNotMatch(x[1], BAD)
