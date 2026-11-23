@@ -8,7 +8,7 @@
 <!-- families view BEFORE first paint (CLS fix, morning_review/18_cls_prepaint): storefront.css is scoped to html.kl-v2 /
      kl-* elements, so it does nothing on the old page; the class is set here (default ON, production runs families ON;
      the last /api/stock answer is remembered) and removed again by the boot switch if the server says OFF or fails. -->
-<link href="/css/storefront.css?v=pr3" rel="stylesheet">
+<link href="/css/storefront.css?v=pr4" rel="stylesheet">
 <script>/*KL-SF-PRE-START*/(function(){var on=true;try{on=localStorage.getItem('kl_sf_fam')!=='0';}catch(e){}
 if(on){document.documentElement.classList.add('kl-v2');window.__klSfPre=true;}})();/*KL-SF-PRE-END*/</script>
 <style>
@@ -499,8 +499,12 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 <header class="hero wrap">
   <div class="hero-copy">
     <div class="k fadein d1">The Gradient Edit</div>
-    <h1 class="fadein d1">Colour,<br>worn <em>softly</em>.</h1>
+    <h1 class="fadein d1">Colour,<br> worn <em>softly</em>.</h1>
     <p class="fadein d2" data-kl-m1="herop">Fifteen shades on a gold-tone chain with a single charm. Wear one — or let the whole spectrum fall down your wrist.</p>
+    <!-- families view hero price (25_hero_price): headline 10+ price + its condition + the single prices + delivery in ONE
+         block (CMA/DMCC, ASA). Text = sfHeroPrice(ladders.json, every group); runtime: the served table + the groups on sale
+         (sfHeroPriceApply). tests/hero-price.test.mjs keeps this static text = the table. Hidden on the old page (css). -->
+    <div class="kl-hp" id="klHeroPrice"><div class="kl-hp-l1"><span class="kl-hp-from">from</span> <b class="kl-hp-big">£1.50<small> each</small></b> <span class="kl-hp-cond">when you buy any 10+ items</span></div><div class="kl-hp-single">Single pieces £5 / £8 / £13</div><div class="kl-hp-dlv" data-kl="ship">£1.49 UK delivery · free with any 10+ items</div></div>
     <div class="stars fadein d2"><span class="num">Part of Melbe Home · with shops in Watford &amp; Guildford</span></div>
     <div class="cta fadein d3">
       <button class="btn" onclick="openBundle()">Build your bundle</button>
@@ -627,6 +631,32 @@ function sfHeroLine(vis) {
   var list = w.length < 2 ? w[0] : w.slice(0, -1).join(', ') + ' and ' + w[w.length - 1];
   return list + '. Build your own stack.';
 }
+/** Hero price (25_hero_price, owner 23 Nov): the LOWEST 10+ price among the groups on sale, big, with its condition on
+ *  the same line, then the single prices of those groups. t = the served ladders table (mode cart_qty_groups), keys =
+ *  the groups on sale (none = every group in t). 'from' only when the groups' 10+ prices differ (the big figure is then
+ *  not every item's price). No %, no 'save', no strike-through, no was-price (S1). null = no block (other modes). */
+function sfHeroPrice(t, keys) {
+  if (!t || t.mode !== 'cart_qty_groups' || !t.groups || !t.cart_qty_tier || !(t.cart_qty_tier.from > 0)) return null;
+  var ok = function (k) { var g = Object.prototype.hasOwnProperty.call(t.groups, k) && t.groups[k]; return !!g && g.single > 0 && g.tier_each > 0; };
+  var ks = (keys && keys.length ? keys : Object.keys(t.groups)).filter(ok);
+  if (!ks.length) return null;
+  var gs = ks.map(function (k) { return t.groups[k]; });
+  var m = function (p) { return p % 100 === 0 ? '£' + p / 100 : '£' + (p / 100).toFixed(2); };
+  var uniq = function (a) { return a.filter(function (x, i) { return a.indexOf(x) === i; }).sort(function (a, b) { return a - b; }); };
+  var tiers = uniq(gs.map(function (g) { return g.tier_each; })), singles = uniq(gs.map(function (g) { return g.single; }));
+  return { from: tiers.length > 1, big: m(tiers[0]), cond: 'when you buy any ' + t.cart_qty_tier.from + '+ items',
+    singles: (singles.length > 1 ? 'Single pieces ' : 'Single piece ') + singles.map(m).join(' / ') };
+}
+/** Writes sfHeroPrice into #klHeroPrice (same nodes, text only: no layout jump); the delivery line is data-kl="ship". */
+function sfHeroPriceApply(doc, t, keys) {
+  var b = doc.getElementById('klHeroPrice'); if (!b) return null;
+  var h = sfHeroPrice(t, keys); b.hidden = !h; if (!h) return null;
+  var l1 = b.querySelector('.kl-hp-l1'), s = b.querySelector('.kl-hp-single');
+  var html = (h.from ? '<span class="kl-hp-from">from</span> ' : '') + '<b class="kl-hp-big">' + h.big + '<small> each</small></b> <span class="kl-hp-cond">' + h.cond + '</span>';
+  if (l1 && l1.innerHTML !== html) l1.innerHTML = html;
+  if (s && s.textContent !== h.singles) s.textContent = h.singles;
+  return h;
+}
 /** Meta / og / twitter / JSON-LD name only the categories on sale: the static page says bracelets + necklaces
  *  (hair withdrawn 23 Nov); when a hair card is sellable again the hair wording is added, and removed when it goes. */
 function sfMetaCats(doc, hair) {
@@ -647,7 +677,7 @@ function sfMetaCats(doc, hair) {
   // the chips last shown (storefront.js renderTabs remembers them): the pre-paint bar matches what the visitor will see
   var m = {}; try { m = JSON.parse(localStorage.getItem('kl_sf_tabs') || '{}') || {}; } catch (e) {}
   var vis = Array.isArray(m.v) ? m.v.filter(function (t) { return SFL_TABS.indexOf(t) >= 0; }) : ['gradient', 'bracelets', 'necklaces'];
-  window.klSfL = { sfBar: sfBar, sfLayout: sfLayout, sfUnlayout: sfUnlayout, sfBundleChip: sfBundleChip, sfGradSubs: function (d) { sfGradSubs(d, m.gs); }, sfHeroLine: sfHeroLine, sfMetaCats: sfMetaCats, vis: vis };
+  window.klSfL = { sfBar: sfBar, sfLayout: sfLayout, sfUnlayout: sfUnlayout, sfBundleChip: sfBundleChip, sfGradSubs: function (d) { sfGradSubs(d, m.gs); }, sfHeroLine: sfHeroLine, sfHeroPrice: sfHeroPrice, sfHeroPriceApply: sfHeroPriceApply, sfMetaCats: sfMetaCats, vis: vis };
   if (window.__klSfPre) { try { sfLayout(document, sfBar(document, vis, m.n, location.hash.slice(1)), vis); } catch (e) {} }
 })();
 </script>
@@ -1289,7 +1319,14 @@ function m1TierHint(n){
 function m1LineText(bc){ const s=m1Summary(cart), g=m1Group(bc), b=g&&s.groups.find(x=>x.group===g); if(!b) return NA_TXT;
   return (isLadder(bc)?'Bead bracelet':(BY[bc].type||''))+' · '+gbpP(b.each_charged)+' each'+(s.tier_unlocked?' ('+s.tier_from+'+ price)':''); }
 function countText(n){ if(m1On()){ const T=m1Texts(); if(T) return T.count(n); } return n+' shades · online price £'+PRICE.toFixed(2)+' + '+gbpP(SHIP.feeP)+' UK delivery'; }
+// Hero price block (families view): the served table + the groups on sale. Until storefront.js has the family stock
+// (window.__klGroupsKnown) every group in the table is used (= the static text), so the first paint never flips.
+function klHeroPriceApply(){ try{ const t=m1T(), K=window.klSfL; if(!K||!K.sfHeroPriceApply) return;
+  const keys=t&&window.__klGroupsKnown ? [...new Set([t.gradient_group].concat(typeof window.klGroupList==='function'?window.klGroupList():[]))] : null;
+  K.sfHeroPriceApply(document, t, keys); }catch(e){} }
+window.klHeroPriceApply=klHeroPriceApply;
 function m1ApplyPage(){
+  klHeroPriceApply();
   if(!m1On()) return; const T=m1Texts(); if(!T) return;
   document.querySelectorAll('[data-kl-m1]').forEach(e=>{ const k=e.getAttribute('data-kl-m1'); if(typeof T[k]==='string') e.innerHTML=T[k]; });
   document.querySelectorAll('#grid .card').forEach(cd=>{
@@ -1723,8 +1760,8 @@ function cookieChoice(accepted){
   window.__klSfBooted=true;
   window.klSF={families:fam, progress:prog, sold_out:sf.sold_out==='last'?'last':'hide', refresh_s:Number(sf.refresh_s)||60};
   // css/storefront.css is linked statically in <head> (pre-paint layout); added here only if that link is missing
-  if(fam&&!(document.querySelector&&document.querySelector('link[href^="/css/storefront.css"]'))){ var l=document.createElement('link'); l.rel='stylesheet'; l.href='/css/storefront.css?v=pr3'; document.head.appendChild(l); }
-  var s=document.createElement('script'); s.src='/js/storefront.js?v=pr3'; s.async=true; document.body.appendChild(s);
+  if(fam&&!(document.querySelector&&document.querySelector('link[href^="/css/storefront.css"]'))){ var l=document.createElement('link'); l.rel='stylesheet'; l.href='/css/storefront.css?v=pr4'; document.head.appendChild(l); }
+  var s=document.createElement('script'); s.src='/js/storefront.js?v=pr4'; s.async=true; document.body.appendChild(s);
 };
 /* families OFF (or /api/stock failed) after the pre-paint families layout: back to today's old page, once */
 window.klSfUndo=function(){
