@@ -160,7 +160,7 @@ test('runtime: /api/stock ladders change the fee, threshold, free-at-qty and lad
   const q = page()
   assert.equal(q.applyLadderShipping({ shipping: { free_threshold_pence: 'x' } }), false)
   assert.equal(q.applyLadderShipping(null), false)
-  assert.equal(q.shipSentence(), '£1.49 UK delivery · free with 10+ items', 'fallback = M1 ladders.json shipping')
+  assert.equal(q.shipSentence(), '£1.49 UK delivery · free with any 10+ items', 'fallback = M1 ladders.json shipping (K-047 wording)')
 })
 
 
