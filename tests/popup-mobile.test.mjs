@@ -15,6 +15,7 @@ test('popup: 7-day cap unchanged and checked before firing', () => {
 });
 test('popup: never opens over an open modal/bag (#ovl)', () => {
   assert.match(block, /function busy\(\)/);
+  assert.match(block, /cookie-banner/);
   assert.match(block, /if\(busy\(\)\)\{ setTimeout\(show, 4000\)/);
 });
 test('popup: desktop exit-intent kept', () => {
@@ -22,4 +23,10 @@ test('popup: desktop exit-intent kept', () => {
 });
 test('popup: consent/form markup unchanged', () => {
   assert.match(html, /<button class="klpop-submit" id="klpopBtn" onclick="submitEmailPopup\(\)">Notify Me<\/button>/);
+});
+
+test('popup: no unverified claims, privacy link at collection (K&D N1/N2)', () => {
+  const pop = html.slice(html.indexOf('<div class="klpop"'), html.indexOf('<script>', html.indexOf('<div class="klpop"')));
+  assert.doesNotMatch(pop, /limited edition|exclusive/i);
+  assert.match(pop, /href="\/privacy\.html"[^>]*>Privacy<\/a>/);
 });

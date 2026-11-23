@@ -1642,13 +1642,13 @@ applyShipTexts(); render(DATA); updateBag(); renderCart(); firePurchaseIfSuccess
   <button class="klpop-close" onclick="closeEmailPopup()" aria-label="Close">&#x2715;</button>
   <div class="klpop-gem">&#x1F48E;</div>
   <div class="klpop-title">Get early access &amp;<br>new-drop alerts</div>
-  <div class="klpop-sub">Join the Karmi Laven list for first access to new colours,<br>limited editions, and exclusive multi-buy offers.</div>
+  <div class="klpop-sub">Join the Karmi Laven list to hear first<br>when new colours and styles arrive.</div>
   <div class="klpop-form">
     <input class="klpop-input" id="klpopEmail" type="email" placeholder="Your email address" autocomplete="email">
     <button class="klpop-submit" id="klpopBtn" onclick="submitEmailPopup()">Notify Me</button>
   </div>
   <button class="klpop-skip" onclick="closeEmailPopup()">No thanks</button>
-  <div class="klpop-consent" style="font-size:11px;opacity:.6;margin-top:8px;line-height:1.4">Join for launches &amp; offers. We&#x2019;ll only email about new drops &amp; deals &#x2014; unsubscribe anytime.</div>
+  <div class="klpop-consent" style="font-size:11px;opacity:.6;margin-top:8px;line-height:1.4">Join for launches &amp; offers. We&#x2019;ll only email about new drops &amp; deals &#x2014; unsubscribe anytime. &#xB7; <a href="/privacy.html" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Privacy</a></div>
   <div class="klpop-thanks" id="klpopThanks">Thank you &#x2014; you are on the list!</div>
 </div>
 <script>
@@ -1697,7 +1697,9 @@ applyShipTexts(); render(DATA); updateBag(); renderCart(); firePurchaseIfSuccess
   };
   var fired=false;
   // Never cover an open product modal / bag / bundle drawer (they share #ovl): wait until it is closed.
-  function busy(){ var o=document.getElementById('ovl'); return !!(o && o.classList.contains('open')); }
+  // Also wait while the cookie banner is showing, so the two never stack (K&D N3, 23 Nov).
+  function busy(){ var o=document.getElementById('ovl'), cb=document.getElementById('cookie-banner');
+    return !!((o && o.classList.contains('open')) || (cb && cb.classList.contains('visible'))); }
   function show(){ if(busy()){ setTimeout(show, 4000); return; } openEmailPopup(); }
   function fire(){ if(fired || !canShow()) return; fired=true; setTimeout(show, 500); }
   // Desktop: exit-intent (pointer leaves through the top edge) or tab hidden.
