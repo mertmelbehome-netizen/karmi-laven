@@ -59,8 +59,14 @@ async function liveLike() {
     if (c.family) await db.query(`insert into karmi_online_products (product_id, family, unit_cap, listed, source, set_by)
       values ($1, $2, $3, $4, 'live', 'live')`, [id, c.family, c.unit_cap, c.listed])
   }
+  for (const c of LIVE.photo_coming) {
+    const id = await product(db, { category: c.category, bc: c.bc, stockroom: c.wat_stockroom, pricePence: 599 })
+    await db.query(`insert into karmi_online_products (product_id, family, unit_cap, listed, source, set_by)
+      values ($1, $2, $3, $4, 'live', 'live')`, [id, c.family, c.unit_cap, c.listed])
+  }
   let n = 0
-  for (const [fam, k] of Object.entries(LIVE.other_listed)) for (let i = 0; i < k; i++) {
+  const fillers = (fam) => LIVE.other_listed[fam] - LIVE.photo_coming.filter((c) => c.family === fam && c.listed).length
+  for (const fam of Object.keys(LIVE.other_listed)) for (let i = 0; i < fillers(fam); i++) {
     const id = await product(db, { category: FAM_CAT[fam], bc: `F${++n}`, pricePence: 599 })
     await db.query(`insert into karmi_online_products (product_id, family, unit_cap, listed, source, set_by)
       values ($1, $2, 10, true, 'live', 'live')`, [id, fam])
@@ -81,10 +87,13 @@ const md5s = async (db) => (await db.query(`select p.oid::regprocedure::text sig
 const snapshot = async (db) => ({
   caps: (await db.query(`select family, category_names, display_label, max_products, max_units, enabled
     from karmi_online_caps order by family`)).rows,
-  products: (await db.query(`select pb.barcode, k.family, k.unit_cap, k.listed, k.source
+  products: (await db.query(`select pb.barcode, k.family, k.unit_cap, k.listed, k.display_name, k.source
     from karmi_online_products k join product_barcodes pb on pb.product_id = k.product_id order by pb.barcode`)).rows,
 })
 const CARD_BCS = LIVE.cards.map((c) => c.bc)
+const PHOTO_COMING = ['2025', '2003', '2007', '2026', '2030', '0562', '1369']
+const listedBy = async (db) => Object.fromEntries((await db.query(`select family, count(*) filter (where listed)::int n
+  from karmi_online_products group by 1`)).rows.map((r) => [r.family, r.n]))
 /** server pricing of a DB-admitted cart exactly as PR #47 /api/checkout does it (lineGroup -> priceUnits -> shipping) */
 function charge(r, items) {
   const byBc = Object.fromEntries(r.lines.map((l) => [l.bc, l]))
@@ -126,8 +135,36 @@ test('prep: rows, groups, listed, caps; every family stays CLOSED; price groups 
     .rows.map((r) => [r.family, r]))
   assert.deepEqual(Object.values(caps).filter((c) => c.enabled), [], 'every family stays enabled=false')
   assert.deepEqual(Object.fromEntries(Object.entries(caps).map(([f, c]) => [f, c.max_products])),
-    { diamond: 5, hair: 20, necklace_lux_stone: 20, stretch_charm: 32, stretch_double: 14,
+    { diamond: 5, hair: 16, necklace_lux_stone: 20, stretch_charm: 30, stretch_double: 14,
       stretch_bracelet: 7, necklace_lux: 4, bangle: 2 })
+  // only the 42 cards are listed: listed count per family = its card count (and no cap below it)
+  const cardsPer = {}
+  for (const c of LIVE.cards) { const f = by[c.bc].family; cardsPer[f] = (cardsPer[f] || 0) + 1 }
+  assert.deepEqual(await listedBy(db), cardsPer)
+  for (const [f, n] of Object.entries(cardsPer)) assert.ok(caps[f].max_products >= n, f)
+  const pc = (await db.query(`select pb.barcode, k.listed from karmi_online_products k join product_barcodes pb
+    on pb.product_id = k.product_id where pb.barcode = any ($1)`, [PHOTO_COMING])).rows
+  assert.deepEqual(pc.filter((r) => r.listed), [], '"Photo coming" cards are unlisted')
+  assert.equal(pc.length, 7)
+  // display_name "<name> · <line>" on all 42; K-08 words / % / was never appear
+  const dn = Object.fromEntries((await db.query(`select pb.barcode bc, k.display_name d from karmi_online_products k
+    join product_barcodes pb on pb.product_id = k.product_id where pb.barcode = any ($1)`, [CARD_BCS])).rows.map((r) => [r.bc, r.d]))
+  assert.equal(Object.values(dn).filter(Boolean).length, 42)
+  for (const [bc, d] of Object.entries(dn)) {
+    assert.match(d, /^[^·]+ · [^·]+$/, bc)
+    assert.doesNotMatch(d, /\b(diamond|lux|stone|was)\b|%/i, bc)
+    assert.ok(d.length <= 60, bc)
+  }
+  assert.equal(dn['6009'], 'Peach & Gold · Stretch Bracelet')
+  assert.equal(dn['7058'], 'Mint Daisy · Bead Necklace')
+  assert.equal(dn['81013'], 'Gold-tone Twin Butterfly · Sparkle Line')
+  // undo record: every pre-existing row of the card families, with its previous listed / display_name
+  const { rows: [u] } = await db.query(`select count(*)::int n, count(*) filter (where listed_before)::int listed,
+    count(*) filter (where display_name_before is not null)::int named from karmi_families_prep_undo`)
+  const fillersTotal = Object.keys(LIVE.other_listed).reduce((a, f) =>
+    a + LIVE.other_listed[f] - LIVE.photo_coming.filter((c) => c.family === f && c.listed).length, 0)
+  const pre = LIVE.cards.filter((c) => c.family).length + LIVE.photo_coming.length + fillersTotal
+  assert.deepEqual(u, { n: pre, listed: 60 + LIVE.cards.filter((c) => c.listed).length, named: 0 })
   assert.deepEqual([caps.stretch_bracelet.max_units, caps.necklace_lux.max_units, caps.bangle.max_units], [3450, 1420, 654])
   const groups = (await db.query(`select online_group, single_pence, tier_each_pence, active from karmi_online_groups order by 1`)).rows
   assert.deepEqual(groups, Object.entries(LADDERS.groups).map(([g, v]) => ({ online_group: g, single_pence: v.single,
@@ -169,7 +206,6 @@ test('after the manual OPEN (B+C+A): priced and unpriced B products both 800 + s
   const db = await prepared()
   // an unpriced B product (no WAT till price) in an open family, grouped B
   const id = await product(db, { category: 'Stretch Charm Bracelet', bc: '1999', pricePence: null })
-  await db.exec(`update karmi_online_caps set max_products = 33 where family = 'stretch_charm'`)
   await db.query(`insert into karmi_online_products (product_id, family, unit_cap, listed, online_group, source, set_by)
     values ($1, 'stretch_charm', 10, true, 'B', 'test', 'test')`, [id])
   assert.equal((await status(db, ['1999'])).items['1999'].sellable, 0, 'still closed before the open')
@@ -192,6 +228,16 @@ test('after the manual OPEN (B+C+A): priced and unpriced B products both 800 + s
     80012: ['C', 1300], 81004: ['C', 1300] })
   assert.deepEqual(charge(r, cart), { amount: 4 * 150 + 3 * 240 + 3 * 390, ship: 0 })
   assert.equal(charge(r, cart).amount, 2490)
+  // the checkout line names are the card display_names (Stripe line "{bc} · {name}"): no %, no "was"
+  const names = Object.fromEntries(r.lines.map((l) => [l.bc, l.name]))
+  assert.equal(names['6008'], 'Blush Daisy · Stretch Bracelet')
+  assert.equal(names['03010013'], 'Blue Fish · Hair Claw')
+  assert.equal(names['81004'], 'Gold-tone Swan · Sparkle Line')
+  for (const l of r.lines) assert.doesNotMatch(`${l.bc} · ${l.name}`, /%|\bwas\b|\b(diamond|lux|stone)\b/i, l.bc)
+  // a NON-card product in an opened family is not sold (unlisted by the prep): sellable 0, reserve refused
+  const nc = await status(db, ['F1', '2003', '1369'])
+  for (const bc of ['F1', '2003', '1369']) assert.deepEqual(nc.items[bc], { sellable: 0, stock: nc.items[bc].stock, price_pence: null }, bc)
+  assert.equal((await reserve(db, [{ bc: '2003', qty: 1 }])).ok, false)
   // 1-item carts per group: single price + £1.49 delivery
   for (const [bc, single] of [['6002', 500], ['2000', 800], ['6159', 1300]]) {
     const one = await reserve(db, [{ bc, qty: 1 }])
@@ -222,16 +268,20 @@ test('open B only: A + bangle-only C families stay closed; hair (B clips + C cla
 test('a product with NO group is still refused without a till price; with one, the DB admits it but M1 code finds no group', async () => {
   const db = await prepared()
   await db.exec(OPEN)
-  const s = await status(db, ['F1'])  // hair filler row: listed, no online_group, till 599
-  assert.deepEqual(s.items.F1, { sellable: 10, stock: 97, price_pence: 599, family: 'hair' })
-  const ok = await reserve(db, [{ bc: 'F1', qty: 1 }])
+  // a hand-listed hair product with a till price but NO online_group (hair has 12 cards, max_products 16)
+  const id = await product(db, { category: 'Hair Clips', bc: 'NG1', pricePence: 599 })
+  await db.query(`insert into karmi_online_products (product_id, family, unit_cap, listed, source, set_by)
+    values ($1, 'hair', 10, true, 'test', 'test')`, [id])
+  const s = await status(db, ['NG1'])
+  assert.deepEqual(s.items.NG1, { sellable: 10, stock: 97, price_pence: 599, family: 'hair' })
+  const ok = await reserve(db, [{ bc: 'NG1', qty: 1 }])
   assert.equal(ok.ok, true)
   assert.equal(ok.lines[0].online_group, null)
   assert.equal(lineGroup(ok.lines[0], LADDERS), null, 'hair is not in ladders.json family_groups → /api/checkout answers 503')
-  await db.exec(`delete from pos_promotion_products where barcode = 'F1'`)
-  const r = await reserve(db, [{ bc: 'F1', qty: 1 }])
-  assert.deepEqual([r.ok, r.items], [false, [{ bc: 'F1', requested: 1, available: 0 }]])
-  assert.deepEqual((await status(db, ['F1'])).items.F1, { sellable: 0, stock: 96, price_pence: null })
+  await db.exec(`delete from pos_promotion_products where barcode = 'NG1'`)
+  const r = await reserve(db, [{ bc: 'NG1', qty: 1 }])
+  assert.deepEqual([r.ok, r.items], [false, [{ bc: 'NG1', requested: 1, available: 0 }]])
+  assert.deepEqual((await status(db, ['NG1'])).items.NG1, { sellable: 0, stock: 96, price_pence: null })
 })
 
 test('pools mode switch: groups inactive → till price + no_price gate exactly as before', async () => {
@@ -265,6 +315,8 @@ test('manual close per group, then the prep ROLLBACK restores the live bodies an
   assert.deepEqual(after.caps.map(({ family, max_products, max_units, enabled }) => ({ family, max_products, max_units, enabled })),
     before.caps.map(({ family, max_products, max_units, enabled }) => ({ family, max_products, max_units, enabled })))
   assert.equal((await db.query(`select to_regclass('karmi_online_groups') r`)).rows[0].r, null)
+  assert.equal((await db.query(`select to_regclass('karmi_families_prep_undo') r`)).rows[0].r, null)
+  assert.deepEqual(await listedBy(db), { hair: 16, stretch_charm: 30, necklace_lux_stone: 20, stretch_double: 12, diamond: 0 })
   await db.exec(PREP) // and it can be re-applied after a rollback
 })
 
@@ -277,4 +329,26 @@ test('md5 guard: a live body that differs from the base refuses the whole file',
     null::text, 'x'::text, null::int, null::text, 0, 0, 0 $$`)
   await assert.rejects(db.exec(PREP), /differs from the one this file is based on/)
   assert.equal((await db.query(`select to_regclass('karmi_online_groups') r`)).rows[0].r, null)
+})
+
+test('only the 42 cards sell: the prep unlists exactly the 60 non-card rows, nothing outside the card families', async () => {
+  const db = await liveLike()
+  const before = (await db.query(`select product_id, family, listed from karmi_online_products`)).rows
+  await db.exec(PREP)
+  const after = Object.fromEntries((await db.query(`select product_id, listed from karmi_online_products`)).rows
+    .map((r) => [r.product_id, r.listed]))
+  const cardIds = new Set((await db.query(`select product_id from product_barcodes where barcode = any ($1)`, [CARD_BCS])).rows
+    .map((r) => r.product_id))
+  const unlisted = before.filter((r) => r.listed && !after[r.product_id])
+  assert.equal(unlisted.length, 60)
+  assert.ok(unlisted.every((r) => !cardIds.has(r.product_id)))
+  const per = {}
+  for (const r of unlisted) per[r.family] = (per[r.family] || 0) + 1
+  assert.deepEqual(per, { stretch_charm: 24, hair: 8, necklace_lux_stone: 17, stretch_double: 11 })
+  assert.equal(before.filter((r) => !r.listed && after[r.product_id]).length, 10)
+  // the Gradient Edit is not a caps family: no caps row, no product row; its holds keep family 'gradient'
+  assert.equal((await db.query(`select count(*)::int n from karmi_online_caps where family = 'gradient'`)).rows[0].n, 0)
+  await db.exec(PREP) // re-run: the undo record keeps the FIRST run's values
+  const { rows: [u] } = await db.query(`select count(*) filter (where listed_before)::int n from karmi_families_prep_undo`)
+  assert.equal(u.n, 60 + LIVE.cards.filter((c) => c.listed).length)
 })

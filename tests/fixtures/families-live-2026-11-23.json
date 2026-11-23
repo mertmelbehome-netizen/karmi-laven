@@ -1,5 +1,5 @@
 {
- "_doc": "Live state of the 42 O&W card styles in the ops DB, read 2026-11-23 (read-only SELECT) for tests/families-db.test.mjs. family/listed/unit_cap null = no karmi_online_products row. wat_price_pence = fn_karmi__wat_price_pence rule (72 h). other_listed = listed rows per family that are NOT cards.",
+ "_doc": "Live state of the 42 O&W card styles in the ops DB, read 2026-11-23 (read-only SELECT) for tests/families-db.test.mjs. family/listed/unit_cap null = no karmi_online_products row. wat_price_pence = fn_karmi__wat_price_pence rule (72 h). other_listed = listed rows per family that are NOT cards. photo_coming = the 7 photo_qc=false \"Photo coming\" cards of data/cards.json (not among the 42; other_listed counts include the listed ones).",
  "cards": [
   {
    "bc": "2023",
@@ -479,6 +479,64 @@
    "category_names": [
     "Stretch Double Bracelet"
    ]
+  }
+ ],
+ "photo_coming": [
+  {
+   "bc": "0562",
+   "family": "stretch_double",
+   "listed": false,
+   "category": "Stretch Double Bracelet",
+   "unit_cap": 6,
+   "wat_stockroom": 31
+  },
+  {
+   "bc": "1369",
+   "family": "stretch_double",
+   "listed": true,
+   "category": "Stretch Double Bracelet",
+   "unit_cap": 5,
+   "wat_stockroom": 10
+  },
+  {
+   "bc": "2003",
+   "family": "stretch_charm",
+   "listed": true,
+   "category": "Stretch Charm Bracelet",
+   "unit_cap": 7,
+   "wat_stockroom": 60
+  },
+  {
+   "bc": "2007",
+   "family": "stretch_charm",
+   "listed": true,
+   "category": "Stretch Charm Bracelet",
+   "unit_cap": 7,
+   "wat_stockroom": 60
+  },
+  {
+   "bc": "2025",
+   "family": "stretch_charm",
+   "listed": true,
+   "category": "Stretch Charm Bracelet",
+   "unit_cap": 4,
+   "wat_stockroom": 60
+  },
+  {
+   "bc": "2026",
+   "family": "stretch_charm",
+   "listed": true,
+   "category": "Stretch Charm Bracelet",
+   "unit_cap": 7,
+   "wat_stockroom": 60
+  },
+  {
+   "bc": "2030",
+   "family": "stretch_charm",
+   "listed": true,
+   "category": "Stretch Charm Bracelet",
+   "unit_cap": 10,
+   "wat_stockroom": 60
   }
  ]
 }

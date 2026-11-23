@@ -5,12 +5,12 @@
 -- What it restores
 --   * fn_karmi__state / fn_karmi_online_status / fn_karmi_checkout_reserve: the live bodies (pg_get_functiondef,
 --     23 Nov 2026, md5 d5fbac9f… / 39834fbf… / fa7bcc4a…), grants identical (service_role only).
---   * listed=false again on the 10 cards that were unlisted before the prep: 1472, Hair Claws 03010002 03010009
---     03010025 03010035, Sparkle Line 81004 81006 81009 81013 81014.
 --   * deletes the 14 karmi_online_products rows the prep created (source 'families-prep 2026-11-23 …').
---   * max_products back: stretch_charm 30, hair 16, diamond 0 (set_by 'O&W 2026-11-22').
---   * drops families stretch_bracelet / necklace_lux / bangle, column karmi_online_products.online_group and table
---     karmi_online_groups.
+--   * listed and display_name of every other row in the card families, from karmi_families_prep_undo (recorded by
+--     the prep's first run): the 60 non-card rows are listed again, the 10 relisted cards are unlisted again.
+--   * max_products back: diamond 0 (stretch_charm 30 / hair 16 were never raised).
+--   * drops families stretch_bracelet / necklace_lux / bangle, column karmi_online_products.online_group, tables
+--     karmi_online_groups and karmi_families_prep_undo.
 -- Data loss: the online_group values and the 3 new families' config (re-run the prep file to get them back). Holds and
 --   orders are not touched (karmi_online_holds.family is text; a sold line keeps its family name).
 
@@ -210,12 +210,17 @@ grant execute on function public.fn_karmi__state(text[]), public.fn_karmi_online
 do $$
 declare c_src constant text := 'families-prep 2026-11-23 (O&W cards, merch 05 caps)';
 begin
-  update karmi_online_products k set listed = false
-    from product_barcodes pb
-   where pb.product_id = k.product_id and k.listed
-     and pb.barcode in ('1472', '03010002', '03010009', '03010025', '03010035',
-                        '81004', '81006', '81009', '81013', '81014');
   delete from karmi_online_products where source = c_src;
+  if to_regclass('public.karmi_families_prep_undo') is not null then
+    -- unlist first, then list (the per-row variety guard counts the rows already listed)
+    update karmi_online_products k set listed = false
+      from karmi_families_prep_undo u
+     where u.product_id = k.product_id and k.listed and not u.listed_before;
+    update karmi_online_products k set listed = u.listed_before, display_name = u.display_name_before
+      from karmi_families_prep_undo u
+     where u.product_id = k.product_id
+       and (k.listed is distinct from u.listed_before or k.display_name is distinct from u.display_name_before);
+  end if;
   update karmi_online_caps c set max_products = v.mp, set_by = 'O&W 2026-11-22'
     from (values ('stretch_charm', 30), ('hair', 16), ('diamond', 0)) v(family, mp)
    where c.family = v.family and c.max_products > v.mp;
@@ -226,3 +231,4 @@ end $$;
 
 alter table public.karmi_online_products drop column if exists online_group;
 drop table if exists public.karmi_online_groups;
+drop table if exists public.karmi_families_prep_undo;

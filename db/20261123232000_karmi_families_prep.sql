@@ -21,11 +21,17 @@
 --   4. fn_karmi_online_status: an item that passes every gate also carries family + online_group (PR #47 /api/stock
 --      reads it.online_group). Closed / refused items are byte-for-byte as before.
 --   5. fn_karmi_checkout_reserve: each admitted line also carries online_group (PR #47 checkout lineGroup()).
---   6. Families: new stretch_bracelet (A, 3,450 units), necklace_lux (B "Bead Necklace", 1,420), bangle (C, 654);
---      unit caps from merch 05_caps_new_categories (orchestrator/projects/2026-11-23_karmi-relaunch/morning_review).
---      max_products of stretch_charm / hair / diamond is raised ONLY to what the listed cards need.
---   7. The 42 cards: a karmi_online_products row each (13 new), online_group set, listed = true (1472, the 4 unlisted
---      Hair Claws and the 5 Sparkle Line styles were listed=false). Existing unit_cap / display_name are kept.
+--   6. Families: new stretch_bracelet (A, 3,450 units, max_products 7), necklace_lux (B "Bead Necklace", 1,420, 4),
+--      bangle (C, 654, 2); unit caps from merch 05_caps_new_categories (orchestrator/projects/2026-11-23_karmi-relaunch/
+--      morning_review). max_products is raised only where the card count needs it: diamond 0 -> 5 (stretch_charm 30
+--      and hair 16 are enough once only the cards are listed). No cap is left below its family's card count.
+--   7. ONLY THE 42 CARDS SELL (O&W 23 Nov): every other row of the card families is set listed=false (60 rows live:
+--      stretch_charm 24, hair 8, necklace_lux_stone 17, stretch_double 11; includes the "Photo coming" cards 2025 2003
+--      2007 2026 2030 1369; 0562 was already unlisted). The Gradient Edit has no row in karmi_online_products.
+--      The 42 cards: a row each (14 new), online_group, listed = true (10 relisted: 1472, Hair Claws 03010002 03010009
+--      03010025 03010035, Sparkle Line 81004 81006 81009 81013 81014), display_name = "<name> · <line>" from
+--      data/cards.json (#47; checked: no Diamond / Lux / Stone, no percent sign or "was", <= 60 chars). Existing
+--      unit_cap kept. Previous listed / display_name of every pre-existing row -> karmi_families_prep_undo (ROLLBACK).
 --      Every card barcode must exist in products with the family's category (else the whole file is refused).
 -- Base bodies: pg_get_functiondef on the live DB, 23 Nov 2026 (md5 guard below; CR-normalised so a CRLF checkout of
 -- the repo chain matches the LF live text).
@@ -86,6 +92,18 @@ do $$ begin
     execute 'grant select on table public.karmi_online_groups to ops_reader';
   end if;
 end $$;
+
+-- undo record for the ROLLBACK: listed / display_name of each pre-existing row of the card families before the prep
+create table if not exists public.karmi_families_prep_undo (
+  product_id          uuid primary key,
+  family              text not null,
+  listed_before       boolean not null,
+  display_name_before text,
+  recorded_at         timestamptz not null default now()
+);
+alter table public.karmi_families_prep_undo enable row level security;
+revoke all on table public.karmi_families_prep_undo from public, anon, authenticated;
+grant select, insert, update, delete on table public.karmi_families_prep_undo to service_role;
 
 -- ───────────────────────────── 2. per-product group ─────────────────────────────
 alter table public.karmi_online_products
@@ -315,36 +333,62 @@ begin
      'group C; max_units = merch 05 family cap', c_src)
   on conflict (family) do nothing;
 
-  -- the 42 cards: barcode, family, group, unit_cap for the 14 NEW rows (merch 05 per-style cap; 2000 = merch 06 newcap)
-  create temp table _kfp_cards (bc text primary key, family text not null, grp text not null, new_cap int)   -- null = row exists today, keep its unit_cap
-    on commit drop;
+  -- the 42 cards: barcode, family, group, unit_cap for the 14 NEW rows (merch 05 per-style cap; 2000 = merch 06
+  -- newcap; null = the row exists today, keep its unit_cap), display_name = "<name> · <line>" from data/cards.json (#47)
+  create temp table _kfp_cards (bc text primary key, family text not null, grp text not null, new_cap int,
+                                dname text not null) on commit drop;
   insert into _kfp_cards values
     -- A · Stretch Bracelet
-    ('6002', 'stretch_bracelet', 'A', 40), ('6008', 'stretch_bracelet', 'A', 40), ('6009', 'stretch_bracelet', 'A', 40),
-    ('6011', 'stretch_bracelet', 'A', 40), ('6017', 'stretch_bracelet', 'A', 53), ('6042', 'stretch_bracelet', 'A', 23),
-    ('6058', 'stretch_bracelet', 'A', 40),
+    ('6002', 'stretch_bracelet', 'A', 40, 'Lotus Pink · Stretch Bracelet'),
+    ('6008', 'stretch_bracelet', 'A', 40, 'Blush Daisy · Stretch Bracelet'),
+    ('6009', 'stretch_bracelet', 'A', 40, 'Peach & Gold · Stretch Bracelet'),
+    ('6011', 'stretch_bracelet', 'A', 40, 'Sky Blue · Stretch Bracelet'),
+    ('6017', 'stretch_bracelet', 'A', 53, 'Turquoise Starfish · Stretch Bracelet'),
+    ('6042', 'stretch_bracelet', 'A', 23, 'White · Stretch Bracelet'),
+    ('6058', 'stretch_bracelet', 'A', 40, 'Clear & Gold · Stretch Bracelet'),
     -- B · Stretch Charm
-    ('2023', 'stretch_charm', 'B', null), ('2040', 'stretch_charm', 'B', null), ('1468', 'stretch_charm', 'B', null),
-    ('1470', 'stretch_charm', 'B', null), ('1472', 'stretch_charm', 'B', null), ('1474', 'stretch_charm', 'B', null),
-    ('1477', 'stretch_charm', 'B', null), ('2000', 'stretch_charm', 'B', 5),
+    ('2023', 'stretch_charm', 'B', null, 'Blue Starfish · Stretch Charm Bracelet'),
+    ('2040', 'stretch_charm', 'B', null, 'Blue & Lilac · Stretch Charm Bracelet'),
+    ('1468', 'stretch_charm', 'B', null, 'Clear Blossom · Stretch Charm Bracelet'),
+    ('1470', 'stretch_charm', 'B', null, 'Pink Blossom · Stretch Charm Bracelet'),
+    ('1472', 'stretch_charm', 'B', null, 'Lilac Bell · Stretch Charm Bracelet'),
+    ('1474', 'stretch_charm', 'B', null, 'Pink Bell · Stretch Charm Bracelet'),
+    ('1477', 'stretch_charm', 'B', null, 'Ice Blue Daisy · Stretch Charm Bracelet'),
+    ('2000', 'stretch_charm', 'B', 5, 'Lilac Butterfly · Stretch Charm Bracelet'),
     -- B · Hair Clips (family hair)
-    ('1849', 'hair', 'B', null), ('1850', 'hair', 'B', null), ('1854', 'hair', 'B', null), ('1859', 'hair', 'B', null),
-    ('1863', 'hair', 'B', null), ('1864', 'hair', 'B', null), ('1865', 'hair', 'B', null),
+    ('1849', 'hair', 'B', null, 'Blue & Pink · Butterfly Hair Clip'),
+    ('1850', 'hair', 'B', null, 'Yellow & Blue · Butterfly Hair Clip'),
+    ('1854', 'hair', 'B', null, 'White · Butterfly Hair Clip'),
+    ('1859', 'hair', 'B', null, 'Brown · Butterfly Hair Clip'),
+    ('1863', 'hair', 'B', null, 'Pink · Flower Hair Clip'),
+    ('1864', 'hair', 'B', null, 'Gold-tone · Flower Hair Clip'),
+    ('1865', 'hair', 'B', null, 'Brown · Flower Hair Clip'),
     -- B · Necklace Lux "Bead Necklace" (6093 left out: photo FAIL)
-    ('7058', 'necklace_lux', 'B', 55), ('7056', 'necklace_lux', 'B', 31), ('6095', 'necklace_lux', 'B', 26),
-    ('6091', 'necklace_lux', 'B', 34),
+    ('7058', 'necklace_lux', 'B', 55, 'Mint Daisy · Bead Necklace'),
+    ('7056', 'necklace_lux', 'B', 31, 'Aqua Daisy · Bead Necklace'),
+    ('6095', 'necklace_lux', 'B', 26, 'Aqua Starfish · Bead Necklace'),
+    ('6091', 'necklace_lux', 'B', 34, 'Blush Starfish · Bead Necklace'),
     -- C · Charm Necklace (necklace_lux_stone)
-    ('6159', 'necklace_lux_stone', 'C', null), ('6170', 'necklace_lux_stone', 'C', null), ('6180', 'necklace_lux_stone', 'C', null),
+    ('6159', 'necklace_lux_stone', 'C', null, 'Black & Gold · Charm Necklace'),
+    ('6170', 'necklace_lux_stone', 'C', null, 'Lilac Heart · Charm Necklace'),
+    ('6180', 'necklace_lux_stone', 'C', null, 'Rose, starfish charm · Charm Necklace'),
     -- C · Stretch Double
-    ('0624', 'stretch_double', 'C', null),
+    ('0624', 'stretch_double', 'C', null, 'Blue · Stretch Double Bracelet'),
     -- C · Bangle
-    ('80012', 'bangle', 'C', 34), ('80043', 'bangle', 'C', 15),
+    ('80012', 'bangle', 'C', 34, 'Light Blue Blossom · Bangle'),
+    ('80043', 'bangle', 'C', 15, 'Blue Blossom · Bangle'),
     -- C · Hair Claws (family hair)
-    ('03010002', 'hair', 'C', null), ('03010009', 'hair', 'C', null), ('03010013', 'hair', 'C', null),
-    ('03010025', 'hair', 'C', null), ('03010035', 'hair', 'C', null),
+    ('03010002', 'hair', 'C', null, 'Caramel Puppy · Hair Claw'),
+    ('03010009', 'hair', 'C', null, 'Turquoise Flower · Hair Claw'),
+    ('03010013', 'hair', 'C', null, 'Blue Fish · Hair Claw'),
+    ('03010025', 'hair', 'C', null, 'Peach Capybara · Hair Claw'),
+    ('03010035', 'hair', 'C', null, 'Hummingbird · Hair Claw'),
     -- C · Sparkle Line (diamond)
-    ('81004', 'diamond', 'C', null), ('81006', 'diamond', 'C', null), ('81009', 'diamond', 'C', null),
-    ('81013', 'diamond', 'C', null), ('81014', 'diamond', 'C', null);
+    ('81004', 'diamond', 'C', null, 'Gold-tone Swan · Sparkle Line'),
+    ('81006', 'diamond', 'C', null, 'Gold-tone Bow · Sparkle Line'),
+    ('81009', 'diamond', 'C', null, 'Gold-tone Halo · Sparkle Line'),
+    ('81013', 'diamond', 'C', null, 'Gold-tone Twin Butterfly · Sparkle Line'),
+    ('81014', 'diamond', 'C', null, 'Gold-tone Butterfly · Sparkle Line');
 
   -- every card barcode must exist, be one product per card, and (if configured) sit in the family the card says
   select string_agg(c.bc, ', ' order by c.bc) into v_bad
@@ -376,30 +420,58 @@ begin
      <> (select count(*) from _kfp_cards) then
     raise exception 'karmi families prep: two card barcodes share one product';
   end if;
+  -- K-08 / CMA: no "Diamond", "Lux", "Stone" in a customer line name; no "%" or "was" in the checkout line text
+  select string_agg(c.bc || ' "' || c.dname || '"', ', ' order by c.bc) into v_bad
+    from _kfp_cards c
+   where c.dname ~* '\m(diamond|lux|stone|was)\M' or strpos(c.dname, '%') > 0 or length(c.dname) > 60;
+  if v_bad is not null then
+    raise exception 'karmi families prep: display_name not allowed (K-08 word, percent sign / was, or over 60 chars): %', v_bad;
+  end if;
 
-  -- variety: raise max_products only as far as the listed cards need (never lowers it)
+  -- undo record (first run only): listed / display_name of every pre-existing row in the card families
+  insert into karmi_families_prep_undo (product_id, family, listed_before, display_name_before)
+  select k.product_id, k.family, k.listed, k.display_name
+    from karmi_online_products k
+   where k.family in (select distinct family from _kfp_cards) and k.source <> c_src
+  on conflict (product_id) do nothing;
+
+  -- O&W 23 Nov: only the 42 cards sell. Unlist every other row of the card families (incl. the photo_qc=false
+  -- "Photo coming" cards 2025 2003 2007 2026 2030 0562 1369). The Gradient Edit has no row here (not a caps family).
+  update karmi_online_products k
+     set listed = false
+   where k.listed
+     and k.family in (select distinct family from _kfp_cards)
+     and k.product_id not in (select pb.product_id from _kfp_cards c join product_barcodes pb on pb.barcode = c.bc);
+
+  -- variety: raise max_products only where the family's card count needs it (never lowers it; today: diamond 0 -> 5)
   update karmi_online_caps f
      set max_products = need.n, set_by = c_src
-    from (select fam.family,
-                 (select count(*) from karmi_online_products k
-                   where k.family = fam.family and k.listed
-                     and k.product_id not in (select pb.product_id from _kfp_cards c
-                                                join product_barcodes pb on pb.barcode = c.bc))::int
-                 + (select count(*) from _kfp_cards c where c.family = fam.family)::int as n
-            from (select distinct family from _kfp_cards) fam) need
+    from (select c.family, count(*)::int as n from _kfp_cards c group by c.family) need
    where f.family = need.family and f.max_products < need.n;
 
-  -- rows: create the missing ones (listed, grouped, merch cap); existing ones get listed + online_group only
-  insert into karmi_online_products (product_id, family, unit_cap, listed, online_group, source, set_by)
-  select pb.product_id, c.family, c.new_cap, true, c.grp, c_src, c_src
+  -- rows: create the missing ones (listed, grouped, merch cap); existing ones get listed + online_group + display_name
+  insert into karmi_online_products (product_id, family, unit_cap, listed, display_name, online_group, source, set_by)
+  select pb.product_id, c.family, c.new_cap, true, c.dname, c.grp, c_src, c_src
     from _kfp_cards c join product_barcodes pb on pb.barcode = c.bc
    where c.new_cap is not null
   on conflict (product_id) do nothing;
   update karmi_online_products k
-     set listed = true, online_group = c.grp
+     set listed = true, online_group = c.grp, display_name = c.dname
     from _kfp_cards c join product_barcodes pb on pb.barcode = c.bc
    where k.product_id = pb.product_id
-     and (not k.listed or k.online_group is distinct from c.grp);
+     and (not k.listed or k.online_group is distinct from c.grp or k.display_name is distinct from c.dname);
+
+  -- end state: in every card family exactly the cards are listed, and no cap sits below the family's card count
+  select string_agg(x.family || ' listed ' || x.listed_n || ' cards ' || x.cards_n || ' max ' || x.max_products, ', ')
+    into v_bad
+    from (select f.family, f.max_products,
+                 (select count(*) from karmi_online_products k where k.family = f.family and k.listed) as listed_n,
+                 (select count(*) from _kfp_cards c where c.family = f.family) as cards_n
+            from karmi_online_caps f where f.family in (select distinct family from _kfp_cards)) x
+   where x.listed_n <> x.cards_n or x.max_products < x.cards_n;
+  if v_bad is not null then
+    raise exception 'karmi families prep: end state wrong: %', v_bad;
+  end if;
 
   drop table pg_temp._kfp_cards;
 end $$;
