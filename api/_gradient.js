@@ -8,8 +8,8 @@ export const LADDER_TYPES = ['Lux Bracelet', 'Lux Cobra Bracelet'];
 
 /** barcode -> customer colour name */
 export const GRADIENT = Object.freeze({
-  "1074": "Champagne Crystal", // Lux Bracelet
-  "1111": "Champagne Crystal", // Lux Cobra Bracelet
+  "1074": "Champagne", // Lux Bracelet
+  "1111": "Champagne", // Lux Cobra Bracelet
   "1112": "Lotus Pink", // Lux Cobra Bracelet
   "1103": "Lotus Pink", // Lux Cobra Bracelet
   "1082": "Baby Green", // Lux Bracelet
@@ -21,7 +21,7 @@ export const GRADIENT = Object.freeze({
   "1113": "Jade", // Lux Cobra Bracelet
   "1077": "Dusty Rose", // Lux Bracelet
   "1055": "Sky Blue", // Lux Bracelet
-  "1049": "Champagne Crystal", // Lux Bracelet
+  "1049": "Champagne", // Lux Bracelet
   "1062": "Baby Pink", // Lux Bracelet
   "1045": "Clear", // Lux Bracelet
   "1070": "Clear", // Lux Bracelet

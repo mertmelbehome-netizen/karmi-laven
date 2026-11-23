@@ -92,7 +92,7 @@ test('#4 bag 1–9: "Add N more for 70% off every item", N = 10 − all units; p
   const p = page(M1P)
   const M = (lines) => p.m1Lines(lines).progress
   assert.equal(M([{ bc: G1, qty: 1 }]), 'Add 9 more for 70% off every item (from £2.40 each) and free UK delivery')
-  assert.equal(M([{ bc: G1, qty: 3 }]), 'Add 7 more (e.g. Crystal bracelets) for 70% off every item: your total becomes £24.00 with free delivery')
+  assert.equal(M([{ bc: G1, qty: 3 }]), 'Add 7 more (e.g. Bead bracelets) for 70% off every item: your total becomes £24.00 with free delivery')
   assert.equal(M([{ bc: G1, qty: 9 }]), 'Add 1 more for 70% off every item: total drops to £24.00 with free delivery')
   assert.equal(M([{ bc: 'SA', qty: 2 }, { bc: G1, qty: 1 }, { bc: 'SC', qty: 1 }]), 'Add 6 more (e.g. Stretch Bracelets) for 70% off every item: your total becomes £18.30 with free delivery')
   for (let g = 0; g <= 9; g++) for (let a = 0; a <= 4; a++) for (let c = 0; c <= 3; c++) {
