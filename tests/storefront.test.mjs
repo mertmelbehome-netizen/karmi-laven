@@ -7,6 +7,7 @@
 //      api/_pricing.js priceUnits on the same table; with the live table (no family pools) it is n × single.
 //   4. Data/perf guards: cards.json identity rules, no base64 images in index.html, every image file exists, no
 //      import.meta in api/*.js.
+import './fixtures/use-live-table.mjs' // pools-table tests: frozen 23 Nov table (see the file)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
@@ -235,7 +236,7 @@ test('Vercel CJS guard: no import.meta in api/*.js; ladders.json (+ ladders-prev
     const src = read('../api/' + f)
     assert.ok(!/import\.meta/.test(src.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')), `import.meta in api/${f}`)
     const all = (src.match(/readFileSync\(/g) || []).length
-    const ok = (src.match(/readFileSync\(join\(process\.cwd\(\), ('ladders\.json'|'ladders-preview', `\$\{n\}\.json`)\)/g) || []).length
+    const ok = (src.match(/readFileSync\(join\(process\.cwd\(\), ('ladders\.json'|TEST_TABLE \|\| 'ladders\.json'|'ladders-preview', `\$\{n\}\.json`)\)/g) || []).length
     assert.equal(all, ok, `api/${f}: every readFileSync reads <cwd>/ladders.json or <cwd>/ladders-preview/<allow-listed>.json`)
   }
   const vj = JSON.parse(read('../vercel.json'))

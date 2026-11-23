@@ -1,4 +1,5 @@
 // node --test tests/   (no dependencies; fetch is faked)
+import './fixtures/use-live-table.mjs' // pools-table tests: frozen 23 Nov table (see the file)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { computeAvailable, fetchAvailable, shortages, ONLINE_STOCKROOM_BUFFER } from '../api/_stock-lib.js'

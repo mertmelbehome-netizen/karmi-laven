@@ -1,4 +1,5 @@
 // /api/checkout with a fake Stripe and a fake ops DB (no network). Run: npm test
+import './fixtures/use-live-table.mjs' // pools-table tests: frozen 23 Nov table (see the file)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHandler } from '../api/checkout.js'

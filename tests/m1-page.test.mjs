@@ -23,19 +23,26 @@ const [G1, G2] = Object.keys(GRADIENT)
 const LIVE_SHA = '17b7e8734448670db1223d5bec098c1d1e16a83fd89496d47129ca991495e78d' // page before the M1 code (c3be709)
 
 // ---------- 1. live default unchanged ----------
+// The pools-era page code (M1_FALLBACK forced to null, the frozen 23 Nov table) still produces exactly what the page
+// did before M1 - also after the go-live, so a rollback (ladders.json back) restores the old behaviour byte for byte.
+const LIVE_FIX = JSON.parse(read('./fixtures/ladders.live-2026-11-23.json'))
+const HTML_POOLS = HTML.replace(/const M1_FALLBACK=.*?;   \/\/ GO-LIVE/, 'const M1_FALLBACK=null;   // GO-LIVE')
 test('live default: page output byte-identical to the page before M1 (sha256 pin)', () => {
-  if (LADDERS.mode === 'cart_qty_groups') return // after go-live this pin is retired (docs/GO_LIVE_M1.md step 3)
-  assert.equal(sha256(liveRecord(HTML, publicLadders(LADDERS))), LIVE_SHA)
+  assert.equal(sha256(liveRecord(HTML_POOLS, publicLadders(loadLadders(LIVE_FIX).table))), LIVE_SHA)
+})
+test('frozen 23 Nov table fixture = ladders.json while ladders.json is the pools table', () => {
+  const raw = JSON.parse(read('../ladders.json'))
+  if (raw.mode !== 'cart_qty_groups') assert.deepEqual(LIVE_FIX, raw)
+  else assert.equal(LIVE_FIX.version, 'live-2026-11-23')
 })
 
-test('live default: M1 code is dormant (m1On false before and after /api/stock answers)', () => {
-  if (LADDERS.mode === 'cart_qty_groups') return
-  for (const ladders of [null, publicLadders(LADDERS)]) {
-    const p = pageFns(HTML, { ladders })
+test('pools table: M1 code is dormant (m1On false before and after /api/stock answers)', () => {
+  for (const ladders of [null, publicLadders(loadLadders(LIVE_FIX).table)]) {
+    const p = pageFns(HTML_POOLS, { ladders })
     assert.equal(p.m1On(), false)
     assert.equal(p.m1Texts(), null)
   }
-  assert.match(HTML, /const M1_FALLBACK=null;/, 'fallback stays null while ladders.json is the pools table')
+  if (LADDERS.mode !== 'cart_qty_groups') assert.match(HTML, /const M1_FALLBACK=null;/, 'fallback stays null while ladders.json is the pools table')
 })
 
 test('live default: requests unchanged unless the page URL carries ?ladder= (preview only)', () => {
@@ -178,8 +185,12 @@ test('/api/stock: online_group served only with an M1 table; the live default bo
     assert.deepEqual(b.online_group, { S1: 'B', C1: 'C' })
     assert.deepEqual(b.sellable, { S1: 3, C1: 2, H1: 0 })
     b = await run({ bc: `${G1},S1,C1,H1` })
-    assert.equal('online_group' in b, false, 'live default: no online_group key')
-    assert.deepEqual(b.sellable, { S1: 3, C1: 2, H1: 2 }, 'live default sellable unchanged')
+    if (LADDERS.mode === 'cart_qty_groups') {
+      assert.deepEqual(b.online_group, { S1: 'B', C1: 'C' }, 'after go-live the default table is M1')
+    } else {
+      assert.equal('online_group' in b, false, 'live default: no online_group key')
+      assert.deepEqual(b.sellable, { S1: 3, C1: 2, H1: 2 }, 'live default sellable unchanged')
+    }
   } finally {
     globalThis.fetch = real
     for (const [k, v] of [['OPS_SUPABASE_URL', saved.u], ['OPS_SUPABASE_SERVICE_KEY', saved.k], ['KL_LADDER_PREVIEW', saved.p]]) { if (v === undefined) delete process.env[k]; else process.env[k] = v }

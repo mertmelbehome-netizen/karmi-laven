@@ -1,5 +1,6 @@
 // Page = server pricing. The page's pricing block (index.html /*KL-PRICING-START*/../*KL-PRICING-END*/) is evaluated
 // as-is and compared with api/_pricing.js, the code that actually charges.
+import './fixtures/use-live-table.mjs' // pools-table tests: frozen 23 Nov table (see the file)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'

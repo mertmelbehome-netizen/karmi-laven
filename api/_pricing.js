@@ -225,9 +225,16 @@ export function loadLadders(raw) {
 // createRequire: Vercel compiles api/*.js to CommonJS (no "type": "module"), where import.meta is a
 // load-time SyntaxError (preview 16f6c32: FUNCTION_INVOCATION_FAILED). vercel.json includeFiles puts the
 // file in the checkout + stock bundles; locally npm test runs from the repo root.
+// TEST-ONLY: under `node --test` (NODE_TEST_CONTEXT is set by the runner, never on Vercel) a test file may pin the
+// default table to a fixture in tests/fixtures/ (tests/fixtures/use-live-table.mjs) so the pools-table tests keep
+// proving the 23 Nov behaviour after ladders.json moves to M1. Any other path is ignored.
+const TEST_TABLE = (() => {
+  const f = process.env.NODE_TEST_CONTEXT ? process.env.KL_TEST_LADDERS_FILE : undefined;
+  return typeof f === 'string' && /^tests\/fixtures\/ladders\.[A-Za-z0-9_.-]+\.json$/.test(f) ? f : null;
+})();
 const loaded = (() => {
   let raw;
-  try { raw = JSON.parse(readFileSync(join(process.cwd(), 'ladders.json'), 'utf8')); } catch (e) { return { ok: false, error: `ladders.json unreadable: ${e.message}` }; }
+  try { raw = JSON.parse(readFileSync(join(process.cwd(), TEST_TABLE || 'ladders.json'), 'utf8')); } catch (e) { return { ok: false, error: `ladders.json unreadable: ${e.message}` }; }
   return loadLadders(raw);
 })();
 export const LADDERS = loaded.ok ? loaded.table : null;

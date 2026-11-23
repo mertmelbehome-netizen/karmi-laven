@@ -4,6 +4,7 @@
 // NON-MONOTONIC BY DESIGN: 9 × £8 = £72 but 10 × £2.40 = £24. The tests pin exactly where (q = 4..9 cost more than
 // 10 in every group) and that the cart answers with "Add 1 more: all 10 for £24.00".
 // The live default table is untouched: tests/ladders.test.mjs (golden + legacy) stays green.
+import './fixtures/use-live-table.mjs' // pools-table tests: frozen 23 Nov table (see the file)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync } from 'node:fs'
