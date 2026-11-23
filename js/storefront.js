@@ -14,6 +14,7 @@
   /*KL-SF-CORE-START*/ // pure functions (no DOM); tests/storefront.test.mjs evaluates this block as-is
   var SF_TABS = ['gradient', 'bracelets', 'necklaces', 'hair'];
   var SF_TITLE = { gradient: 'The Gradient Edit', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair' };
+  var SF_CHIP = { gradient: 'Gradient', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair' };   // short chip labels: all 4 fit one 390 px row (nav fix F4); panel titles keep SF_TITLE
   var SF_ORDER = { sellable: 0, single: 0, cap: 1, photo: 2, soldout: 3 };
   function sfMoney(p) { return '£' + (p / 100).toFixed(2); }
   /** Pool key exactly as the server (api/_pricing.js poolKey): Gradient Edit -> 'gradient'; any other product -> its
@@ -122,6 +123,28 @@
   }
   /*KL-SF-CORE-END*/
 
+  /*KL-SF-LAYOUT-START*/ // families view first screen (nav fix 23 Nov, 15_nav_findability F1/F3/F7); tests evaluate this block
+  /** Moves, never deletes: chip bar directly under the logo/Bag row (before the hero); hero keeps H1 + one short line;
+   *  the price + delivery line ("+ £1.49 UK delivery · free with any 10+ items"), the Christmas notice, the Melbe Home
+   *  line, the trust strip and the company/VAT line go into one block right after the product grids. */
+  function sfLayout(doc, bar) {
+    var q = function (s) { return doc.querySelector(s); };
+    var top = q('nav'), hero = q('header.hero');
+    if (top && top.parentNode) top.parentNode.insertBefore(bar, top.nextSibling);
+    var k = q('.hero-copy .k'); if (k) k.hidden = true;        // the dead "Bracelets · Necklaces · Hair" eyebrow: the chips above replace it
+    var cta = q('.hero .cta'); if (cta) cta.hidden = true;     // bundle / colour buttons stay in the Gradient panel + sticky bar
+    var p = q('.hero-copy p'); if (p) { p.textContent = 'Bracelets, necklaces and hair pieces. Build your own stack.'; p.removeAttribute('data-kl-m1'); }
+    var info = doc.createElement('section'); info.className = 'wrap kl-info'; info.id = 'klInfo';
+    info.setAttribute('aria-label', 'Prices, delivery and company details');
+    ['.hero .launch', '.hero .launchfee', '#klXmasHero', '.hero-copy .stars'].forEach(function (s) { var e = q(s); if (e) info.appendChild(e); });
+    var tb = q('.trustband'), tw = tb && tb.parentNode;
+    if (tw && tw !== hero) info.appendChild(tw);                 // trust strip + company/VAT line (tb-legal) together
+    var at = q('#klFam') || q('#palette');
+    if (at && at.parentNode) at.parentNode.insertBefore(info, at.nextSibling);
+    return info;
+  }
+  /*KL-SF-LAYOUT-END*/
+
   if (typeof document === 'undefined') return;
   var CFG = window.klSF || { families: false, progress: false };
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -150,8 +173,7 @@
   function buildShell() {
     document.documentElement.classList.add('kl-v2');
     // hero copy for a multi-category page (no "hand-strung"/"crystal" claim for hair and necklaces: 03 §2)
-    var k = $('.hero-copy .k'); if (k) k.textContent = 'Bracelets · Necklaces · Hair';   // the Melbe Home line already sits under the hero text (no repeat)
-    var p = $('.hero-copy p'); if (p) { p.textContent = 'Bracelets, necklaces and hair pieces in soft colour. Mix pieces, build your own stack.'; p.removeAttribute('data-kl-m1'); }   // M1 would put the Gradient-only line back
+    // hero eyebrow / sub-line: sfLayout (H1 + one short line; M1 would put the Gradient-only line back, so its key is dropped)
     // Gradient-only copy (15 shades / 4mm crystal / bracelet sizes, made-in, the Gradient 10+ answer): shown on the
     // Gradient Edit tab only (renderTabs); copy shown on every tab is made family-neutral here.
     $$('.story, section.faq').forEach(function (e) { e.setAttribute('data-kl-gonly', ''); });
@@ -169,9 +191,8 @@
       .forEach(function (x) { var e = $(x[0]); if (e && !e.getAttribute('aria-label')) e.setAttribute('aria-label', x[1]); });
     var nav = document.createElement('nav'); nav.className = 'kl-tabbar'; nav.setAttribute('aria-label', 'Shop by category');
     nav.innerHTML = '<div class="kl-tabs" role="tablist" aria-label="Categories">' + SF_TABS.map(function (t) {
-      return '<button role="tab" type="button" id="kltab-' + t + '" data-tab="' + t + '" aria-controls="' + (t === 'gradient' ? 'palette' : 'klFam') + '" aria-selected="' + (t === 'gradient') + '"' + (t === 'gradient' ? '' : ' hidden') + '>' + SF_TITLE[t] + ' <span class="n" data-count="' + t + '"></span></button>';
+      return '<button role="tab" type="button" id="kltab-' + t + '" data-tab="' + t + '" aria-controls="' + (t === 'gradient' ? 'palette' : 'klFam') + '" aria-selected="' + (t === 'gradient') + '"' + (t === 'gradient' ? '' : ' hidden') + '>' + SF_CHIP[t] + ' <span class="n" data-count="' + t + '"></span></button>';
     }).join('') + '</div>';
-    var sb = $('.swatchbar'); sb.parentNode.insertBefore(nav, sb);
     nav.querySelector('.kl-tabs').addEventListener('scroll', function () { tabScroll(false); }, { passive: true });
     window.addEventListener('resize', function () { tabScroll(true); });
     var pal = $('#palette'); pal.setAttribute('role', 'tabpanel'); pal.setAttribute('aria-labelledby', 'kltab-gradient');
@@ -182,6 +203,7 @@
       + '<div class="kl-empty" id="klEmpty" hidden><p class="et">Nothing here yet</p><p class="es">This category opens once its pieces are photographed.</p><a class="btn ghost" href="#gradient">See The Gradient Edit</a></div>'
       + '<div class="grid" id="klFamGrid"></div>';
     pal.parentNode.insertBefore(sec, pal.nextSibling);
+    sfLayout(document, nav);   // chips under the logo row, hero short, delivery/Christmas/trust/VAT after the grids
     // mobile: the bundle builder moves into the colour chip row so the first cards are on the first screen (V-01)
     var chip = document.createElement('button'); chip.type = 'button'; chip.className = 'sw kl-bundlechip'; chip.textContent = 'Build your bundle';
     chip.setAttribute('aria-haspopup', 'dialog'); chip.onclick = function () { openBundle(); };
@@ -228,6 +250,7 @@
       var sel = $('.kl-tabs [aria-selected="true"]');
       if (sel && row.scrollWidth > row.clientWidth) row.scrollLeft = Math.max(0, sel.offsetLeft - (row.clientWidth - sel.offsetWidth) / 2);
     }
+    try { document.documentElement.style.setProperty('--kl-tb-h', bar.offsetHeight + 'px'); } catch (e) {}   // swatch bar sticks under it, never under it
     var max = row.scrollWidth - row.clientWidth;
     bar.classList.toggle('kl-more-l', max > 1 && row.scrollLeft > 1);
     bar.classList.toggle('kl-more-r', max > 1 && row.scrollLeft < max - 1);
@@ -235,7 +258,7 @@
   /* hero price with families on: the Gradient-only '£8' would mislead next to £5 / £13 pieces, so it reads
    *  'Online prices from £x' = the lowest single price among everything sellable now (Gradient + family cards). */
   function syncHero() {
-    var hp = $('.hero .launch .p'), lb = $('.hero .launch > span'); if (!hp) return;
+    var hp = $('.launch .p'), lb = $('.launch > span'); if (!hp) return;   // moved to #klInfo by sfLayout
     var minP = null, t = L(), g = t && t.groups && t.gradient_group ? t.groups[t.gradient_group] : null;
     if (g && Number.isInteger(g.single)) minP = g.single;
     FAM.forEach(function (c) { var s = famState(c); if (s !== 'sellable' && s !== 'single') return;
@@ -299,9 +322,10 @@
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.scrollTo({ top: Math.max(0, y), behavior: reduce ? 'auto' : 'smooth' });
   }
-  function scrollToTabs() {
+  function scrollToTabs() {   // the open panel's start just under the stuck chip bar (the bar itself sits at the top of the page)
     var bar = $('.kl-tabbar'); if (!bar) return;
-    var y = bar.getBoundingClientRect().top + window.scrollY;
+    var sb = $('.swatchbar'), t = tab === 'gradient' ? (sb && !sb.hidden ? sb : $('#palette')) : $('#klFam'); if (!t) return;
+    var y = Math.max(0, t.getBoundingClientRect().top + window.scrollY - bar.offsetHeight);
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (Math.abs(window.scrollY - y) > 4) window.scrollTo({ top: y, behavior: reduce ? 'auto' : 'smooth' });
   }
