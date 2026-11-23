@@ -23,7 +23,8 @@
   },
   "rules": [],
   "ui": {
-    "progress_line": false
+    "progress_line": false,
+    "percent_claim": 70
   },
   "groups": {
     "A": {
@@ -37,7 +38,7 @@
       "tier_each": 240
     },
     "C": {
-      "label": "Diamond, Hair Claws, Necklace Lux Stone, Stretch Double, Bangle",
+      "label": "Sparkle Line, Hair Claws, Charm Necklace, Stretch Double, Bangle",
       "single": 1300,
       "tier_each": 390
     }

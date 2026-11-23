@@ -124,6 +124,11 @@ function loadGroupTable(raw) {
   if (raw.rules.length) throw new Error('ladders: cart-level rules are an extension point only');
   const ui = raw.ui === undefined ? {} : raw.ui;
   if (!isObj(ui) || (ui.progress_line !== undefined && typeof ui.progress_line !== 'boolean')) throw new Error('ladders: ui.progress_line must be boolean');
+  // ui.percent_claim (owner decision K-046, 23 Nov 2026): the ONE "x% off" figure the page may state. It is shown only for
+  // a group whose discount, computed from its own prices, is EXACTLY that whole number; absent/null = no percentage (S1).
+  if (ui.percent_claim !== undefined && ui.percent_claim !== null && !(Number.isInteger(ui.percent_claim) && ui.percent_claim >= 1 && ui.percent_claim <= 99)) {
+    throw new Error('ladders: ui.percent_claim must be a whole number 1..99 (or null)');
+  }
   if (raw.pools !== undefined && !(isObj(raw.pools) && Object.keys(raw.pools).length === 0)) {
     throw new Error(`ladders: mode '${MODE_GROUPS}' takes groups, not pools`);
   }
@@ -158,6 +163,7 @@ function loadGroupTable(raw) {
       freeShip: Object.freeze({ fromP: sh.free_threshold_pence, units: fq.enabled ? fq.qty : null, feeP: sh.below_threshold_fee_pence, derivedFrom: null }),
       rules: Object.freeze([]),
       progressLine: ui.progress_line === true,
+      percentClaim: Number.isInteger(ui.percent_claim) ? ui.percent_claim : null,
       pools: Object.freeze({}),
     }),
   };
@@ -449,6 +455,24 @@ export function progress(units, table = LADDERS) {
 const copyUnits = (units) => units.map((u) => ({ ladder: !!u.ladder, unitP: u.unitP, group: u.group }));
 
 /**
+ * Discount of one group from its own prices, as a whole-number percentage, ONLY when it is exact and equals the table's
+ * ui.percent_claim (owner-approved figure); else null (the page then shows no percentage). Integer arithmetic, no float.
+ */
+export function pctOff(gr, table = LADDERS) {
+  const t = need(table);
+  if (!isGroups(t) || !gr || t.percentClaim === null || t.percentClaim === undefined) return null;
+  const num = (gr.single - gr.tier_each) * 100;
+  if (num % gr.single !== 0) return null;
+  const p = num / gr.single;
+  return p === t.percentClaim ? p : null;
+}
+function groupsPctOff(groups, t) {
+  if (!groups.length) return null;
+  const ps = groups.map((g) => pctOff(g, t));
+  return ps.every((p) => p !== null && p === ps[0]) ? ps[0] : null;
+}
+
+/**
  * mode cart_qty_groups: BOTH prices and the difference, for the cart (Mert, 23 Nov: "cart must show both prices and
  * the saving"). single_total = every unit at its group single; tier_total = every unit at its group tier price;
  * charged = what the bag costs now (single_total below the threshold, tier_total from it).
@@ -495,6 +519,7 @@ export function cartSummary(units, table = LADDERS) {
     unlock_total_pence: unlockTotal,
     unlock_shipping_pence: unlockShipping,
     unlock_lowers_total: unlockTotal !== null && unlockTotal + unlockShipping < charged + shipping,
+    pct_off: groupsPctOff(groups, t),
     groups,
   };
 }
@@ -514,7 +539,17 @@ function groupProgress(units, t) {
   const bestUnlocked = s.tier_unlocked;
   const lines = [];
   const freeAtTier = s.unlock_shipping_pence === 0 && s.shipping_pence > 0;
-  if (next) {
+  // K-046 (23 Nov): "for x% off every item" only when every group in the cart is exactly the table's claimed percentage.
+  const pctFor = s.pct_off !== null ? ` for ${s.pct_off}% off every item` : '';
+  if (next && pctFor) {
+    if (s.unlock_lowers_total) {
+      lines.push(next.add === 1
+        ? `Add 1 more${pctFor}: total drops to ${gbp(next.total_pence)}${freeAtTier ? ' with free delivery' : ''}`
+        : `Add ${next.add} more${pctFor}: your total becomes ${gbp(next.total_pence)}${freeAtTier ? ' with free delivery' : ''}`);
+    } else {
+      lines.push(`Add ${next.add} more${pctFor} (from ${gbp(s.unlock_tier_each_pence)} each)${freeAtTier ? ' and free UK delivery' : ''}`);
+    }
+  } else if (next) {
     // Komuta rule (23 Nov): the figure is THIS cart at the threshold (cheapest group already in the cart). "drops" /
     // "becomes" only when that total (delivery included) is lower than the bag now; otherwise only name the unlock.
     if (s.unlock_lowers_total) {
@@ -551,7 +586,7 @@ export function publicLadders(table = LADDERS) {
         derived_from: null,
       },
       rules: [],
-      ui: { progress_line: table.progressLine },
+      ui: { progress_line: table.progressLine, percent_claim: table.percentClaim },
       pools: {},
     };
   }
