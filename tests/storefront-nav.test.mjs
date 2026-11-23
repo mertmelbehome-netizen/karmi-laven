@@ -207,7 +207,7 @@ test('bundle builder static fallback: no pools-era ladder price left in the sour
 
 test('phone: first screen shows the chips + at least one full card (hero photo off, H1/panel titles visually hidden, not removed)', () => {
   const css = readFileSync(new URL('../css/storefront.css', import.meta.url), 'utf8')
-  const m = css.match(/@media\(max-width:560px\)\{([\s\S]*?)\n\}/)
+  const m = css.match(/@media\(max-width:560px\)\{([\s\S]*?)\r?\n\}/)
   assert.ok(m)
   assert.match(m[1], /html\.kl-v2 \.hero-img\{display:none\}/)
   assert.match(m[1], /html\.kl-v2 \.hero h1, html\.kl-v2 #palette \.col-head h2, html\.kl-v2 #klFam \.col-head h2\{position:absolute; width:1px; height:1px;/)
@@ -240,7 +240,7 @@ test('N3: meta / og / JSON-LD name only categories on sale; hair wording added b
 })
 test('N1: phone cookie banner is compact (does not cover the first card price + delivery line)', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
-  assert.match(html, /@media\(max-width:600px\)\{\n  \/\* compact on phones[\s\S]*?#cookie-banner\{ flex-direction:row; flex-wrap:wrap; align-items:center; padding:8px 12px;/)
+  assert.match(html, /@media\(max-width:600px\)\{\r?\n  \/\* compact on phones[\s\S]*?#cookie-banner\{ flex-direction:row; flex-wrap:wrap; align-items:center; padding:8px 12px;/)
 })
 
 test('375x812 + 390x844: first card ends above the sticky bar (compact announce + logo row on phones)', () => {
