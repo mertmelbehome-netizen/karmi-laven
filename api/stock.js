@@ -35,6 +35,7 @@ import Stripe from 'stripe';
 import { status as capsStatus, resolveStaleHolds } from './_caps-lib.js';
 import { publicLadders, previewLadders } from './_pricing.js';
 import { storefrontConfig } from './_storefront.js';
+import { christmasNotice } from './_christmas.js';
 
 // `ladders` (23 Nov 2026, additive): the multi-buy table /api/checkout charges from (ladders.json via
 // api/_pricing.js publicLadders(): pools, bundles, tail, totals[q] per pool, shipping, rules, ui). null = the table did not
@@ -73,6 +74,12 @@ export default async function handler(req, res) {
     // products rather than hiding the catalogue. ok:false signals "no live data".
     return res.status(200).json({ ok: false, store: STORE, stock: {}, error: 'ops supabase env not set', ladders: ladderView, storefront: sf() });
   }
+
+  // `christmas` (23 Nov 2026, additive): { last_order_date, closes_at, limit_from } from karmi_online_window (api/_christmas.js),
+  // read in parallel with the stock reads. Absent when the DB can't be read, there is no window or it has closed: the
+  // page then shows no Christmas notice. Every other field is unchanged.
+  const xmasP = christmasNotice({ base, key });
+  const withXmas = async (b) => { const c = await xmasP; if (c) b.christmas = c; return b; };
 
   const H = { apikey: key, Authorization: `Bearer ${key}` };
   const q = (path) => fetch(`${base}/rest/v1/${path}`, { headers: H });
@@ -161,9 +168,9 @@ export default async function handler(req, res) {
 
     const body = { ok: true, store: STORE, stock, sellable, price_pence, window, ts: new Date().toISOString(), ladders: ladderView, storefront: sf() };
     if (groupMode) body.online_group = online_group; // additive, M1 only: the live default response is unchanged
-    return res.status(200).json(body);
+    return res.status(200).json(await withXmas(body));
   } catch (e) {
     // Fail OPEN on any error: empty stock + ok:false → storefront shows all products.
-    return res.status(200).json({ ok: false, store: STORE, stock: {}, error: String(e.message || e), ladders: ladderView, storefront: sf() });
+    return res.status(200).json(await withXmas({ ok: false, store: STORE, stock: {}, error: String(e.message || e), ladders: ladderView, storefront: sf() }));
   }
 }

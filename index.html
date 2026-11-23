@@ -1548,6 +1548,7 @@ function cookieChoice(accepted){
 };/*KL-SF-BOOT-END*/
 </script>
 
+<script src="/js/christmas.js?v=1"></script>
 <script>
 /* ---- LIVE STOCK — same-origin /api/stock (WAT, holds-aware), matched by BARCODE ---- */
 (function(){
@@ -1649,6 +1650,7 @@ function cookieChoice(accepted){
       var data=await res.json();
       // delivery fee / threshold / ladder totals for the display texts (served even when stock is unavailable)
       try{ if(data && data.ladders && typeof window.klApplyLadders==='function') window.klApplyLadders(data.ladders); }catch(e){}
+      try{ if(data && data.christmas && typeof window.klXmasApply==='function') window.klXmasApply(data.christmas); }catch(e){}   // Christmas last-order notice (js/christmas.js); no field = no notice
       if(!data || !data.ok || !data.stock){ boot(data); return false; }   // fail open: leave all shown
       if(Array.isArray(extra)) extra.forEach(function(bc){ bc=String(bc); if(!window.isLadder||!window.isLadder(bc)){ SELLABLE[bc]=0; delete PRICEP[bc]; } });   // a refresh without caps data = not sellable (fail closed)
       Object.keys(data.stock).forEach(function(bc){
