@@ -97,16 +97,16 @@ test('MONOTONIC RULE: violated by design ONLY at 9 -> 10; q = 4..9 cost more tha
   assert.match(loadLadders(raw).error, /non-monotonic by design/)
 })
 
-test('cart answer to the non-monotonic step: progress() says "Add 1 more: all 10 for £24.00", cartSummary shows both prices', () => {
+test('cart answer to the non-monotonic step: progress() says "Add 1 more: total drops to £24.00", cartSummary shows both prices', () => {
   let r = progress(grp('B', 9), M1)
   assert.deepEqual(r.next_tier, { pool: 'B', qty: 10, add: 1, total_pence: 2400, each_pence: null, same_total: false })
   assert.deepEqual(r.free_delivery_gap, { pence: null, units: 1 })
-  assert.deepEqual(r.lines, ['Add 1 more: all 10 for £24.00 with free delivery'])
-  // mixed bag of 7: the unlock total assumes the shopper adds the last-touched group
+  assert.deepEqual(r.lines, ['Add 1 more: total drops to £24.00 with free delivery'])
+  // mixed bag of 7: the unlock total pads with the cheapest group IN THE CART (Komuta rule 23 Nov)
   r = progress([...grp('C', 2), ...grp('A', 5)], M1)
   assert.equal(r.next_tier.add, 3)
   assert.equal(r.next_tier.total_pence, 2 * 390 + 5 * 150 + 3 * 150)
-  assert.equal(r.lines[0], 'Add 3 more: all 10 for £19.80 with free delivery')
+  assert.equal(r.lines[0], 'Add 3 more: your total becomes £19.80 with free delivery')
   r = progress(grp('A', 10), M1)
   assert.deepEqual([r.next_tier, r.best_unlocked, r.free_delivery_gap, r.lines], [null, true, null, ['Best multi-buy price unlocked']])
   for (let q = 1; q <= 12; q++) for (const k of ['A', 'B', 'C']) for (const line of progress(grp(k, q), M1).lines) assert.doesNotMatch(line, /%|save|was|off\b/i)
@@ -309,5 +309,46 @@ test('/api/stock ?ladder=M1_mert_list: M1 view on a preview, default table in pr
     })
   } finally {
     if (saved !== undefined) process.env.OPS_SUPABASE_URL = saved
+  }
+})
+
+// Komuta rule (23 Nov 2026): the "Add N more" figure is THIS cart completed to 10 with the cheapest group already in it
+// (10+ prices, delivery free). "drops/becomes" only when that is below the bag now (delivery included); otherwise
+// "Add N more to unlock 10+ prices (from £x each) and free UK delivery". Never a generic "cheapest 10" (£15).
+test('Komuta unlock line: 1–4 unit carts, mixed and single-group, penny-exact', () => {
+  const line = (u) => progress(u, M1).lines[0]
+  const sum = (u) => cartSummary(u, M1)
+  const cases = [
+    // [cart, unlock_total, lowers?, line]
+    [grp('A', 1), 1500, false, 'Add 9 more to unlock 10+ prices (from £1.50 each) and free UK delivery'],
+    [[...grp('A', 1), ...grp('B', 1)], 150 + 240 + 8 * 150, false, 'Add 8 more to unlock 10+ prices (from £1.50 each) and free UK delivery'],
+    [[...grp('A', 1), ...grp('B', 1), ...grp('C', 1)], 150 + 240 + 390 + 7 * 150, true, 'Add 7 more: your total becomes £18.30 with free delivery'],
+    [[...grp('A', 2), ...grp('B', 1), ...grp('C', 1)], 300 + 240 + 390 + 6 * 150, true, 'Add 6 more: your total becomes £18.30 with free delivery'],
+    [grp('A', 2), 1500, false, 'Add 8 more to unlock 10+ prices (from £1.50 each) and free UK delivery'],
+    [grp('A', 3), 1500, true, 'Add 7 more: your total becomes £15.00 with free delivery'],   // 3 x £5 + £1.49 = £16.49 > £15
+    [grp('A', 4), 1500, true, 'Add 6 more: your total becomes £15.00 with free delivery'],
+    [grad(1), 2400, false, 'Add 9 more to unlock 10+ prices (from £2.40 each) and free UK delivery'],
+    [grad(2), 2400, false, 'Add 8 more to unlock 10+ prices (from £2.40 each) and free UK delivery'],   // £17.49 < £24
+    [grad(3), 2400, true, 'Add 7 more: your total becomes £24.00 with free delivery'],             // £25.49 > £24
+    [grad(4), 2400, true, 'Add 6 more: your total becomes £24.00 with free delivery'],
+    [grp('C', 1), 3900, false, 'Add 9 more to unlock 10+ prices (from £3.90 each) and free UK delivery'],
+    [grp('C', 2), 3900, false, 'Add 8 more to unlock 10+ prices (from £3.90 each) and free UK delivery'],
+    [grp('C', 3), 3900, true, 'Add 7 more: your total becomes £39.00 with free delivery'],
+    [grp('C', 4), 3900, true, 'Add 6 more: your total becomes £39.00 with free delivery'],
+    [grp('B', 9), 2400, true, 'Add 1 more: total drops to £24.00 with free delivery'],
+  ]
+  for (const [u, unlock, lowers, want] of cases) {
+    const s = sum(u)
+    assert.equal(s.unlock_total_pence, unlock, want)
+    assert.equal(s.unlock_lowers_total, lowers, want)
+    assert.equal(s.unlock_lowers_total, s.unlock_total_pence + s.unlock_shipping_pence < s.charged_pence + s.shipping_pence)
+    assert.equal(line(u), want)
+  }
+  // a Gradient-only (group B) cart never pads with group A: £2.40, not £1.50
+  assert.equal(sum(grad(5)).unlock_group, 'B')
+  assert.equal(sum(grad(5)).unlock_tier_each_pence, 240)
+  // the generic "cheapest 10 = £15.00" never appears for a cart without group A
+  for (let q = 1; q <= 9; q++) for (const u of [grad(q), grp('C', q), [...grad(Math.ceil(q / 2)), ...grp('C', Math.floor(q / 2))]]) {
+    assert.doesNotMatch(line(u), /£15\.00/, String(q))
   }
 })

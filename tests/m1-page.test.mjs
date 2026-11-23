@@ -84,23 +84,39 @@ test('M1: mixed groups (A/B/C) page m1Summary = server cartSummary, every field'
   assert.equal(p.m1Summary([{ bc: 'NG', qty: 2 }]).ungrouped, 2)
 })
 
-test('M1 cart lines: 3 → "every item drops"; 9 → the cliff with free delivery; 10 → applied + promo off', () => {
+test('M1 cart lines (Komuta rule): figure from THIS cart; "drops/becomes" only when lower; 10+ applied + promo off', () => {
   const p = m1Page()
   const L = (q) => p.m1Lines([{ bc: G1, qty: q }])
   assert.deepEqual(L(0), { progress: null, applied: null, promo: null })
-  assert.deepEqual(L(3), { progress: 'Add 7 more: every item drops to its 10+ price', applied: null, promo: null })
-  // 4–8 (K&D / CTSI §20): the total it drops to, with free delivery; 1–3: 10 would not cost less, so no total
-  assert.equal(L(8).progress, 'Add 2 more: total drops to £24.00 with free delivery')
-  assert.equal(L(4).progress, 'Add 6 more: total drops to £24.00 with free delivery')
-  for (let q = 4; q <= 9; q++) assert.match(L(q).progress, /£24\.00 with free delivery$/, `${q}`)
-  assert.deepEqual(L(9), { progress: 'Add 1 more: all 10 for £24.00 with free delivery', applied: null, promo: null })
-  assert.equal(L(9).progress, progress(units([{ bc: G1, qty: 9 }]), M1).lines[0], 'same text as the engine progress()')
+  // Gradient-only (group B): 1–2 units, 10 at £2.40 = £24.00 is NOT below the bag (£9.49 / £17.49) -> unlock wording
+  assert.equal(L(1).progress, 'Add 9 more to unlock 10+ prices (from £2.40 each) and free UK delivery')
+  assert.equal(L(2).progress, 'Add 8 more to unlock 10+ prices (from £2.40 each) and free UK delivery')
+  // 3–8: £24.00 is below the bag -> "your total becomes", with an example from the cart
+  assert.equal(L(3).progress, 'Add 7 more (e.g. Crystal bracelets): your total becomes £24.00 with free delivery')
+  assert.equal(L(5).progress, 'Add 5 more (e.g. Crystal bracelets): your total becomes £24.00 with free delivery')
+  assert.equal(L(8).progress, 'Add 2 more (e.g. Crystal bracelets): your total becomes £24.00 with free delivery')
+  assert.deepEqual(L(9), { progress: 'Add 1 more: total drops to £24.00 with free delivery', applied: null, promo: null })
   assert.deepEqual(L(10), { progress: null, applied: '10+ price applied: £2.40 each', promo: 'Promo codes can’t be used with the 10+ price.' })
   assert.equal(L(14).applied, '10+ price applied: £2.40 each')
   // mixed 10: different 10+ prices -> no single "each" figure
   assert.equal(p.m1Lines([{ bc: G1, qty: 4 }, { bc: 'SA', qty: 3 }, { bc: 'SC', qty: 3 }]).applied, '10+ price applied: every item at its 10+ price')
-  // 9 mixed: unlock total uses the last-touched group (engine rule)
-  assert.equal(p.m1Lines([{ bc: 'SC', qty: 3 }, { bc: G1, qty: 6 }]).progress, `Add 1 more: all 10 for £${((3 * 390 + 7 * 240) / 100).toFixed(2)} with free delivery`)
+  // Komuta cases, mixed carts 1–4 units (A = SA, B = Gradient, C = SC)
+  const M = (lines) => p.m1Lines(lines).progress
+  assert.equal(M([{ bc: 'SA', qty: 1 }]), 'Add 9 more to unlock 10+ prices (from £1.50 each) and free UK delivery')
+  assert.equal(M([{ bc: 'SA', qty: 1 }, { bc: G1, qty: 1 }]), 'Add 8 more to unlock 10+ prices (from £1.50 each) and free UK delivery')
+  assert.equal(M([{ bc: 'SA', qty: 1 }, { bc: G1, qty: 1 }, { bc: 'SC', qty: 1 }]), 'Add 7 more (e.g. Stretch Bracelets): your total becomes £18.30 with free delivery')
+  assert.equal(M([{ bc: 'SA', qty: 2 }, { bc: G1, qty: 1 }, { bc: 'SC', qty: 1 }]), 'Add 6 more (e.g. Stretch Bracelets): your total becomes £18.30 with free delivery')
+  assert.equal(M([{ bc: 'SC', qty: 3 }]), 'Add 7 more (e.g. Bangles): your total becomes £39.00 with free delivery')
+  assert.equal(M([{ bc: 'SC', qty: 2 }]), 'Add 8 more to unlock 10+ prices (from £3.90 each) and free UK delivery')
+  // a cart without group A never shows the generic £15.00
+  for (let q = 1; q <= 9; q++) assert.doesNotMatch(M([{ bc: G1, qty: q }, { bc: 'SC', qty: 1 }]) || '', /£15\.00/)
+  // page line = engine progress() line (the "(e.g. …)" example is page-only), every cart 1..9 of A/B/C mixes
+  for (let g = 0; g <= 9; g++) for (let a = 0; a <= 4; a++) for (let c = 0; c <= 3; c++) {
+    const n = g + a + c
+    if (!n || n >= 10) continue
+    const lines = [g && { bc: G1, qty: g }, a && { bc: 'SA', qty: a }, c && { bc: 'SC', qty: c }].filter(Boolean)
+    assert.equal(M(lines).replace(/ \(e\.g\. [^)]*\)/, ''), progress(units(lines), M1).lines[0], `${g}/${a}/${c}`)
+  }
 })
 
 test('M1 texts (S1): card/modal price, delivery, static swaps; no %, strike-through or "save"', () => {
