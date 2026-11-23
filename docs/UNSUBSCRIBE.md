@@ -24,7 +24,7 @@ Link: `https://karmilaven.com/api/unsubscribe?h=<sha256>&t=<token>`. No email ad
 
 The sender must sign with the same key as the deployed function. Use the same `OPS_SUPABASE_SERVICE_KEY`, or the same `KARMI_UNSUB_SECRET`.
 
-**No env step is needed.** As long as `KARMI_UNSUB_SECRET` is not set (this PR does not set it), both the function and the sender derive the key with the same code (`unsubSecret()` in `api/_unsub.js`) from the same `OPS_SUPABASE_SERVICE_KEY`. The sender must import `api/_unsub.js` (as `scripts/campaign-recipients.mjs` does) and must not re-implement the derivation. Set `KARMI_UNSUB_SECRET` only if the links should outlive a service-key rotation; it then has to be set in both places with the same value.
+**Env step needed before the first send (live test 23 Nov 2026).** The sender must sign with the exact key the deployed function uses. Links signed with the service-role key in `melbehome-ops-v2/.env.local` were rejected (400) by production, so Vercel's `OPS_SUPABASE_SERVICE_KEY` for this project is a different value (or `KARMI_UNSUB_SECRET` is already set there). Fix: generate one random value (e.g. `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`), set it as `KARMI_UNSUB_SECRET` in the Vercel project (Production), redeploy, and give the sender the same value. Then run the live check in the E2E section before any send. The sender must import `unsubSecret()` from `api/_unsub.js` (as `scripts/campaign-recipients.mjs` does) and must not re-implement the derivation.
 
 ## Sending (decided by Mert / Komuta, never automatic)
 
