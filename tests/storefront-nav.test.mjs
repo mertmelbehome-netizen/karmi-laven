@@ -185,3 +185,15 @@ test('CMA209: every fee1 delivery span (card each-line, sticky bar, family stick
   const sf = readFileSync(new URL('../js/storefront.js', import.meta.url), 'utf8')
   assert.match(sf, /data-kl="fee1">' \+ \(typeof window !== 'undefined' && typeof window\.cardShipText === 'function' \? window\.cardShipText\(\)/)
 })
+
+test('hero line names only the categories on sale (no "hair pieces" while the Hair tab is hidden)', () => {
+  const sfHeroLine = new Function(`${LAYOUT}; return sfHeroLine;`)()
+  assert.equal(sfHeroLine(['gradient', 'bracelets', 'necklaces']), 'Bracelets and necklaces. Build your own stack.')
+  assert.equal(sfHeroLine(['gradient', 'bracelets', 'necklaces', 'hair']), 'Bracelets, necklaces and hair pieces. Build your own stack.')
+  assert.equal(sfHeroLine(['gradient']), 'Bracelets. Build your own stack.')
+  assert.match(SF, /hp\.textContent = sfHeroLine\(vis\)/)
+})
+test('desktop: hero photo capped well under 60vh (first product cards on the first screen)', () => {
+  const css = readFileSync(new URL('../css/storefront.css', import.meta.url), 'utf8')
+  assert.match(css, /@media\(min-width:841px\)\{[\s\S]*?html\.kl-v2 \.hero-img img\{aspect-ratio:auto; height:min\(28vh,240px\)\}/)
+})

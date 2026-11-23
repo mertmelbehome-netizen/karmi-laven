@@ -43,6 +43,18 @@ html.kl-v2 .swatchbar{top:var(--kl-tb-h,54px)}
   html.kl-v2 .hero-img{order:0}
   html.kl-v2 .hero-img img{aspect-ratio:auto; height:42vh}
 }
+@media(min-width:841px){
+  /* desktop: hero photo capped so the first product cards reach the first screen (Komuta 23 Nov) */
+  /* measured 1440x900: first card top 1485 -> 759 */
+  html.kl-v2 .hero{padding-top:12px; padding-bottom:12px}
+  html.kl-v2 .hero-img img{aspect-ratio:auto; height:min(28vh,240px)}
+  html.kl-v2 .hero h1{font-size:clamp(40px,4.2vw,58px); margin-bottom:8px}
+  html.kl-v2 #palette{padding-top:14px}
+  html.kl-v2 #palette .bundlecta{margin-top:0; padding-top:10px; padding-bottom:10px}
+  html.kl-v2 #palette .bundletrust{margin-bottom:10px}
+  html.kl-v2 #palette .col-head{margin-top:0; margin-bottom:10px}
+  html.kl-v2 #palette .col-head h2{font-size:30px}
+}
 @media(max-width:560px){
   /* all 4 chips in one 390 px row: short labels, counts dropped, chips share the row (F4) */
   .kl-tabs{gap:6px; padding:4px 12px}

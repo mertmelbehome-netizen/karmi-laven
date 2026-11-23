@@ -133,7 +133,7 @@
     if (top && top.parentNode) top.parentNode.insertBefore(bar, top.nextSibling);
     var k = q('.hero-copy .k'); if (k) k.hidden = true;        // the dead "Bracelets · Necklaces · Hair" eyebrow: the chips above replace it
     var cta = q('.hero .cta'); if (cta) cta.hidden = true;     // bundle / colour buttons stay in the Gradient panel + sticky bar
-    var p = q('.hero-copy p'); if (p) { p.textContent = 'Bracelets, necklaces and hair pieces. Build your own stack.'; p.removeAttribute('data-kl-m1'); }
+    var p = q('.hero-copy p'); if (p) { p.textContent = sfHeroLine(['gradient', 'bracelets', 'necklaces', 'hair']); p.removeAttribute('data-kl-m1'); }
     var info = doc.createElement('section'); info.className = 'wrap kl-info'; info.id = 'klInfo';
     info.setAttribute('aria-label', 'Prices, delivery and company details');
     ['.hero .launch', '.hero .launchfee', '#klXmasHero', '.hero-copy .stars'].forEach(function (s) { var e = q(s); if (e) info.appendChild(e); });
@@ -142,6 +142,15 @@
     var at = q('#klFam') || q('#palette');
     if (at && at.parentNode) at.parentNode.insertBefore(info, at.nextSibling);
     return info;
+  }
+  /** Hero line names only the categories on sale now (visible tabs): no 'hair pieces' while the Hair tab is hidden;
+   *  it comes back by itself when a hair card is sellable again (Komuta 23 Nov). */
+  function sfHeroLine(vis) {
+    var w = ['Bracelets'];
+    if (vis.indexOf('necklaces') >= 0) w.push('necklaces');
+    if (vis.indexOf('hair') >= 0) w.push('hair pieces');
+    var list = w.length < 2 ? w[0] : w.slice(0, -1).join(', ') + ' and ' + w[w.length - 1];
+    return list + '. Build your own stack.';
   }
   /*KL-SF-LAYOUT-END*/
 
@@ -237,6 +246,7 @@
     $('#palette').hidden = !isG; $('.swatchbar').hidden = !isG;   // colour bar on the Gradient Edit only (K-11)
     $('#klFam').hidden = isG;
     $$('[data-kl-gonly]').forEach(function (e) { e.classList.toggle('kl-goff', !isG); });
+    var hp = $('.hero-copy p'); if (hp && hp.parentNode) hp.textContent = sfHeroLine(vis);
     tabScroll(true); syncSticky(); syncHero();
     // only the open tab's cards are in the page (no hidden duplicate buttons / texts)
     if (isG) { $('#klFamGrid').innerHTML = ''; if (!wasG || !grid.children.length) rerenderGradient(); }
