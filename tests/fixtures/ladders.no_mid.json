@@ -1,0 +1,60 @@
+{
+  "_doc": "TEST FIXTURE ONLY, not live. Option A with the intermediate 2/3/4/5 steps removed (online keeps only single + bulk tail/10).",
+  "version": "fixture-no_mid-2026-11-23",
+  "rule": {
+    "monotonic": true,
+    "rounding": "integer-pence-floor-spread",
+    "max_units": 99
+  },
+  "shipping": {
+    "free_threshold_pence": 1200,
+    "below_threshold_fee_pence": 149,
+    "free_at_qty": {
+      "enabled": true,
+      "qty": 5
+    },
+    "derive_threshold": null
+  },
+  "rules": [],
+  "ui": {
+    "progress_line": true
+  },
+  "pools": {
+    "400": {
+      "single": 400,
+      "bundles": {
+        "10": 1600
+      }
+    },
+    "599": {
+      "single": 599,
+      "bundles": {},
+      "tail": {
+        "from": 6,
+        "each": 299
+      }
+    },
+    "799": {
+      "single": 799,
+      "bundles": {},
+      "tail": {
+        "from": 6,
+        "each": 399
+      }
+    },
+    "999": {
+      "single": 999,
+      "bundles": {},
+      "tail": {
+        "from": 6,
+        "each": 499
+      }
+    },
+    "gradient": {
+      "single": 299,
+      "bundles": {
+        "10": 2400
+      }
+    }
+  }
+}

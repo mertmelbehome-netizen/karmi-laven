@@ -1,0 +1,73 @@
+{
+  "_doc": "TEST FIXTURE ONLY, not a live table. Option B 'Mert's shape for all' (karmi_price_ladder_options.md): 5 = 3 x single, 10 = 4 x single, 6-9 = 60% of single each (rounded down to the penny); GBP 4 pool = option A. No discount at 3.",
+  "version": "fixture-B-2026-11-23",
+  "rule": {
+    "monotonic": true,
+    "rounding": "integer-pence-floor-spread",
+    "max_units": 99
+  },
+  "shipping": {
+    "free_threshold_pence": 1200,
+    "below_threshold_fee_pence": 149,
+    "free_at_qty": {
+      "enabled": true,
+      "qty": 5
+    },
+    "derive_threshold": null
+  },
+  "rules": [],
+  "ui": {
+    "progress_line": true
+  },
+  "pools": {
+    "400": {
+      "single": 400,
+      "bundles": {
+        "3": 1200,
+        "5": 1200,
+        "10": 1600
+      }
+    },
+    "599": {
+      "single": 599,
+      "bundles": {
+        "5": 1797,
+        "10": 2396
+      },
+      "tail": {
+        "from": 6,
+        "each": 359
+      }
+    },
+    "799": {
+      "single": 799,
+      "bundles": {
+        "5": 2397,
+        "10": 3196
+      },
+      "tail": {
+        "from": 6,
+        "each": 479
+      }
+    },
+    "999": {
+      "single": 999,
+      "bundles": {
+        "5": 2997,
+        "10": 3996
+      },
+      "tail": {
+        "from": 6,
+        "each": 599
+      }
+    },
+    "gradient": {
+      "single": 299,
+      "bundles": {
+        "2": 550,
+        "3": 750,
+        "5": 1200
+      }
+    }
+  }
+}

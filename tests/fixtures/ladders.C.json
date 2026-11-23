@@ -1,0 +1,112 @@
+{
+  "_doc": "TEST FIXTURE ONLY, not a live table. Option C 'soft ladder' (karmi_price_ladder_options.md): per unit 2 = -10%, 3 = -20%, 4 = -25%, 5-9 = -30%, 10+ = -40%. Bundle totals as in the options file; 6-9 and 11+ as per-unit tails (rounded down to the penny).",
+  "version": "fixture-C-2026-11-23",
+  "rule": {
+    "monotonic": true,
+    "rounding": "integer-pence-floor-spread",
+    "max_units": 99
+  },
+  "shipping": {
+    "free_threshold_pence": 1200,
+    "below_threshold_fee_pence": 149,
+    "free_at_qty": {
+      "enabled": true,
+      "qty": 5
+    },
+    "derive_threshold": null
+  },
+  "rules": [],
+  "ui": {
+    "progress_line": true
+  },
+  "pools": {
+    "400": {
+      "single": 400,
+      "bundles": {
+        "2": 720,
+        "3": 960,
+        "4": 1200,
+        "5": 1400,
+        "10": 2400
+      },
+      "tail": [
+        {
+          "from": 6,
+          "each": 280
+        },
+        {
+          "from": 11,
+          "each": 240
+        }
+      ]
+    },
+    "599": {
+      "single": 599,
+      "bundles": {
+        "2": 1078,
+        "3": 1438,
+        "4": 1797,
+        "5": 2096,
+        "10": 3594
+      },
+      "tail": [
+        {
+          "from": 6,
+          "each": 419
+        },
+        {
+          "from": 11,
+          "each": 359
+        }
+      ]
+    },
+    "799": {
+      "single": 799,
+      "bundles": {
+        "2": 1438,
+        "3": 1918,
+        "4": 2397,
+        "5": 2796,
+        "10": 4794
+      },
+      "tail": [
+        {
+          "from": 6,
+          "each": 559
+        },
+        {
+          "from": 11,
+          "each": 479
+        }
+      ]
+    },
+    "999": {
+      "single": 999,
+      "bundles": {
+        "2": 1798,
+        "3": 2398,
+        "4": 2997,
+        "5": 3496,
+        "10": 5994
+      },
+      "tail": [
+        {
+          "from": 6,
+          "each": 699
+        },
+        {
+          "from": 11,
+          "each": 599
+        }
+      ]
+    },
+    "gradient": {
+      "single": 299,
+      "bundles": {
+        "2": 550,
+        "3": 750,
+        "5": 1200
+      }
+    }
+  }
+}
