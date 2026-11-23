@@ -94,6 +94,12 @@ without `mode` is the pools model above; the live `ladders.json` has no `mode` a
 
 ## Changelog
 
+- 2026-11-23 — M1 page + go-live kit (`feat/ladder-m1-on-master`): index.html reads mode `cart_qty_groups` from
+  /api/stock (dormant with the pools table: page output sha256-pinned, old-vs-new page text equal); cart line from THIS
+  cart (`Add N more …: your total becomes £X with free delivery` / `Add 1 more: total drops to £X …` / `Add N more to
+  unlock 10+ prices (from £x each) …`), also above Secure Checkout; `cartSummary()` unlock fields; legacy exports safe
+  with an M1 default; pools-table tests pinned to `tests/fixtures/ladders.live-2026-11-23.json`. Go-live = one commit,
+  `docs/GO_LIVE_M1.patch` (runbook + rollback + DB SQL: `docs/GO_LIVE_M1.md`). No 'capped' option (Mert 23 Nov).
 - 2026-11-23 — `cart_qty_groups` mode + preview table `M1_mert_list` (preview/test only). Live default outputs
   byte-identical (before/after snapshot of live + 7 fixtures + checkout params + /api/stock).
 
