@@ -56,6 +56,18 @@ html.kl-v2 .swatchbar{top:var(--kl-tb-h,54px)}
   html.kl-v2 #palette .col-head h2{font-size:30px}
 }
 @media(max-width:560px){
+  /* phone first screen = chips + at least 1 full product card (K&D 23 Nov; measured 390x844: Gradient card 305-756,
+     Bracelets card 261-751, sticky bar from 779). The logo row already carries 'Colour, worn softly'; the H1 and panel
+     titles stay for screen readers and search (visually hidden), the hero photo is not shown on phones. */
+  html.kl-v2 header.hero{padding:0; gap:0; min-height:0}
+  html.kl-v2 .hero-img{display:none}
+  html.kl-v2 .hero-copy{padding:0}
+  html.kl-v2 .hero-copy p, html.kl-v2 .hero-copy .spectrum{display:none}
+  html.kl-v2 .hero h1, html.kl-v2 #palette .col-head h2, html.kl-v2 #klFam .col-head h2{position:absolute; width:1px; height:1px;
+    margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
+  html.kl-v2 #palette{padding-top:2px}
+  html.kl-v2 #palette .col-head, html.kl-v2 #klFam .col-head{margin:0 0 6px}
+  html.kl-v2 #klFam{padding-top:6px}
   /* all 4 chips in one 390 px row: short labels, counts dropped, chips share the row (F4) */
   .kl-tabs{gap:6px; padding:4px 12px}
   .kl-tabs [role=tab]{flex:1 1 auto; padding:0 10px; font-size:13px; letter-spacing:.01em; min-width:44px}

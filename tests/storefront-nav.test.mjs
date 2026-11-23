@@ -197,3 +197,19 @@ test('desktop: hero photo capped well under 60vh (first product cards on the fir
   const css = readFileSync(new URL('../css/storefront.css', import.meta.url), 'utf8')
   assert.match(css, /@media\(min-width:841px\)\{[\s\S]*?html\.kl-v2 \.hero-img img\{aspect-ratio:auto; height:min\(28vh,240px\)\}/)
 })
+
+test('bundle builder static fallback: no pools-era ladder price left in the source (M1)', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  assert.match(html, /id="bTot">–<\/span>/)
+  assert.match(html, /id="bEach">Add items to build your bundle<\/div>/)
+  assert.doesNotMatch(html, /£7\.50<\/span>|≈ £2\.50 each|3 bracelets<\/div>/)
+})
+
+test('phone: first screen shows the chips + at least one full card (hero photo off, H1/panel titles visually hidden, not removed)', () => {
+  const css = readFileSync(new URL('../css/storefront.css', import.meta.url), 'utf8')
+  const m = css.match(/@media\(max-width:560px\)\{([\s\S]*?)\n\}/)
+  assert.ok(m)
+  assert.match(m[1], /html\.kl-v2 \.hero-img\{display:none\}/)
+  assert.match(m[1], /html\.kl-v2 \.hero h1, html\.kl-v2 #palette \.col-head h2, html\.kl-v2 #klFam \.col-head h2\{position:absolute; width:1px; height:1px;/)
+  assert.doesNotMatch(m[1], /\.hero h1\{display:none|col-head h2\{display:none/, 'titles stay for screen readers')
+})
