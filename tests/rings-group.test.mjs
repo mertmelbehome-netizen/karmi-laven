@@ -60,11 +60,14 @@ test('disabled: hero / meta / FAQ / CTA / tier-hint texts unchanged (same as the
   assert.equal(pageTexts(null), pageTexts(publicLadders(OFF_REF)), 'before /api/stock answers (fallback) too')
 })
 
-test('even ENABLED, R never enters the ladder groups, so FAQ / JSON-LD range / hero texts stay the same (ring texts are the Rings tab job)', () => {
+test('even ENABLED, R never enters the ladder groups; texts stay the same except the E1b "(rings not included)" note on 10+ free claims', () => {
   const v = publicLadders(ON)
   assert.deepEqual(Object.keys(v.groups), Object.keys(publicLadders(OFF_REF).groups))
   assert.deepEqual(v.flat_groups, { R: { label: 'Rings', unit_name: 'ring', each: 400, min_qty: 5, counts_to_tier: false, counts_to_free_shipping: false, enabled: true } })
-  assert.equal(pageTexts(v), pageTexts(publicLadders(OFF_REF)))
+  // K&D E1b: the only text change when rings are ON is the note on every 'free with any 10+ items' claim
+  assert.equal(pageTexts(v).replace(/ \(rings not included\)/g, ''), pageTexts(publicLadders(OFF_REF)))
+  assert.match(pageTexts(v), /free with any 10\+ items \(rings not included\)/)
+  assert.doesNotMatch(pageTexts(publicLadders(OFF_REF)), /rings not included/)
 })
 
 test('disabled: engine results for non-ring bags identical to the table without R', () => {
