@@ -78,6 +78,48 @@
     });
   }
   function sfEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]; }); }
+  /** Price shown on a family card. M1 table (mode cart_qty_groups): the group single price + the same M1 text as the
+   *  Gradient cards (index.html m1PriceHtml, so a percentage appears only when the table makes it exact); no group =
+   *  no price (card hidden, K-12). Pools table: the till price (/api/stock price_pence). W = window (or a test stand-in). */
+  function sfPriceLine(bc, W) {
+    if (W && typeof W.m1On === 'function' && W.m1On()) {
+      var u = typeof W.unitPrice === 'function' ? W.unitPrice(bc) : null, p = u > 0 ? Math.round(u * 100) : null;
+      var h = p && typeof W.m1PriceHtml === 'function' ? W.m1PriceHtml(bc) : '';
+      return h ? { p: p, html: h, m1: true } : { p: null, html: '', m1: true };
+    }
+    var k = W && typeof W.klPrice === 'function' ? W.klPrice(bc) : null, q = k > 0 ? Math.round(k * 100) : null;
+    return { p: q, html: q ? sfMoney(q) : '', m1: false };
+  }
+  function sfAddText(p, full, dis) { return full && !dis ? 'All available in your bag' : 'Add to bag — ' + sfMoney(p); }
+  /** Family card markup. o = {line: sfPriceLine(), badge, ship, full, dis, why}. */
+  function sfFamCard(c, st, o) {
+    var p = o.line && o.line.p, b = o.badge, media, body = '';
+    if (st === 'photo') {
+      media = '<div class="kl-tone" style="background-color:' + sfEsc(c.swatch) + '" role="img" aria-label="Colour tile, not a photo"></div>';
+      body = '<p class="kl-stt">Photo coming</p><p class="kl-why">Colour tile is a guide only. Coming soon.</p>';
+    } else {
+      media = '<div class="imgwrap"><img src="' + sfEsc(c.photo) + '" width="400" height="500" loading="lazy" alt="' + sfEsc(c.name + ', ' + c.line) + '"></div>';
+      if (st === 'sellable' || st === 'single') {
+        if (st === 'sellable' && b) body += '<p class="kl-from">from ' + sfMoney(b.each) + ' each when you buy ' + b.n + '</p>';
+        body += '<button type="button" class="add" data-kl-add data-bc="' + sfEsc(c.barcode) + '"' + (o.dis || o.full ? ' disabled aria-disabled="true"' : '') + '>' + sfAddText(p, o.full, o.dis) + '</button>';
+      } else if (st === 'soldout') {
+        body = '<p class="kl-stt">Sold out</p>';
+      } else if (st === 'cap') {
+        body = '<p class="kl-stt">Limit reached</p><p class="kl-why">' + sfEsc(o.why || '') + '</p><button type="button" class="add" data-kl-add data-bc="' + sfEsc(c.barcode) + '" disabled aria-disabled="true">Add to bag</button>';
+      }
+    }
+    return '<article class="card in kl-card' + (st === 'soldout' ? ' kl-soldout' : '') + '" data-kl-card data-kl-state="' + st + '"' + (st === 'photo' ? ' data-kl-photo="pending"' : '') + ' data-bc="' + sfEsc(c.barcode) + '">'
+      + media + '<div class="cbody">' + (c.ai_image && st !== 'photo' ? '<p class="kl-ai">AI-styled image</p>' : '') + '<h3 class="nm">' + sfEsc(c.name) + '</h3><div class="sub"><span class="d" style="background:' + sfEsc(c.swatch) + '" aria-hidden="true"></span>' + sfEsc(c.line) + '</div>'
+      + (p ? '<div class="pr">' + o.line.html + '</div><div class="fee" data-kl="cardship">' + sfEsc(o.ship || '') + '</div>' : '') + body + '</div></article>';
+  }
+  /** Mobile sticky bar with an empty bag, per tab. Gradient Edit: null = keep the page's own bar ("Each £8.00" +
+   *  "Build your bundle"). Other tabs: the lowest single price among the tab's sellable cards + the delivery line;
+   *  the button takes the shopper back to the tab's pieces (the bundle builder is Gradient-only). */
+  function sfSticky(tab, minP, feeP) {
+    if (tab === 'gradient' || SF_TABS.indexOf(tab) < 0) return null;
+    var fee = '<span class="dl" data-kl="fee1">' + (feeP ? '+ ' + sfMoney(feeP) + ' UK delivery' : 'Free UK delivery') + '</span>';
+    return { info: (minP > 0 ? 'From <b>' + sfMoney(minP) + '</b> each' : '') + fee, btn: 'Shop ' + SF_TITLE[tab] };
+  }
   /*KL-SF-CORE-END*/
 
   if (typeof document === 'undefined') return;
@@ -89,7 +131,7 @@
   var FAMBY = {};          // barcode -> family card
   var tab = 'gradient', lastPool = null, showOther = false, stockErr = false;
 
-  function priceP(bc) { var p = typeof window.klPrice === 'function' ? window.klPrice(bc) : null; return p > 0 ? Math.round(p * 100) : null; }
+  function priceP(bc) { return sfPriceLine(bc, window).p; }   // M1: group single (no group = null = hidden); else till price
   function isGrad(bc) { return typeof window.isLadder === 'function' && window.isLadder(String(bc)); }
   function unitP(bc) { return isGrad(bc) ? Math.round(PRICE * 100) : priceP(bc); }
   function poolOfBc(bc) { return sfPoolKey(L(), isGrad(bc), unitP(bc)); }
@@ -109,7 +151,17 @@
     document.documentElement.classList.add('kl-v2');
     // hero copy for a multi-category page (no "hand-strung"/"crystal" claim for hair and necklaces: 03 §2)
     var k = $('.hero-copy .k'); if (k) k.textContent = 'Part of Melbe Home · shops in Watford & Guildford';
-    var p = $('.hero-copy p'); if (p) p.textContent = 'Bracelets, necklaces and hair pieces in soft colour. Mix pieces, build your own stack.';
+    var p = $('.hero-copy p'); if (p) { p.textContent = 'Bracelets, necklaces and hair pieces in soft colour. Mix pieces, build your own stack.'; p.removeAttribute('data-kl-m1'); }   // M1 would put the Gradient-only line back
+    // Gradient-only copy (15 shades / 4mm crystal / bracelet sizes, made-in, the Gradient 10+ answer): shown on the
+    // Gradient Edit tab only (renderTabs); copy shown on every tab is made family-neutral here.
+    $$('.story, section.faq').forEach(function (e) { e.setAttribute('data-kl-gonly', ''); });
+    $$('.gtknow .faq').forEach(function (e) {
+      var q = e.querySelector('.faq-q'); if (!q) return;
+      if (/bracelets made/i.test(q.textContent) || q.hasAttribute('data-kl-m1')) e.setAttribute('data-kl-gonly', '');
+      else if (/online only/i.test(q.textContent)) { var a = e.querySelector('.faq-a'); if (a) a.innerHTML = 'No — Karmi Laven is part of <b>Melbe Home UK Ltd</b>, an established UK retailer with physical shops in Watford and Guildford. karmilaven.com is our online home.'; }
+    });
+    var ft = $('footer .ftag'); if (ft) ft.textContent = 'Colour, worn softly';
+    var h2 = $('#palette .col-head h2'); if (h2) h2.innerHTML = 'The Gradient <em>Edit</em>';   // the count line under it says how many shades are on sale
     var md = $('.modal .mdesc'); if (md) md.textContent = 'A single thread of 4mm faceted beads on a gold-tone chain with a delicate charm. Wear it alone, or stack it into the gradient.';
     var sub = $('nav .submark'); if (sub) sub.textContent = 'Colour, worn softly';
     // names for icon-only controls (V-15 / WCAG 4.1.2)
@@ -120,6 +172,8 @@
       return '<button role="tab" type="button" id="kltab-' + t + '" data-tab="' + t + '" aria-controls="' + (t === 'gradient' ? 'palette' : 'klFam') + '" aria-selected="' + (t === 'gradient') + '"' + (t === 'gradient' ? '' : ' hidden') + '>' + SF_TITLE[t] + ' <span class="n" data-count="' + t + '"></span></button>';
     }).join('') + '</div>';
     var sb = $('.swatchbar'); sb.parentNode.insertBefore(nav, sb);
+    nav.querySelector('.kl-tabs').addEventListener('scroll', function () { tabScroll(false); }, { passive: true });
+    window.addEventListener('resize', function () { tabScroll(true); });
     var pal = $('#palette'); pal.setAttribute('role', 'tabpanel'); pal.setAttribute('aria-labelledby', 'kltab-gradient');
     var sec = document.createElement('section'); sec.className = 'wrap collection kl-fam'; sec.id = 'klFam'; sec.hidden = true;
     sec.setAttribute('role', 'tabpanel'); sec.setAttribute('tabindex', '-1');
@@ -160,9 +214,41 @@
     var isG = tab === 'gradient', wasG = !$('#palette').hidden;
     $('#palette').hidden = !isG; $('.swatchbar').hidden = !isG;   // colour bar on the Gradient Edit only (K-11)
     $('#klFam').hidden = isG;
+    $$('[data-kl-gonly]').forEach(function (e) { e.classList.toggle('kl-goff', !isG); });
+    tabScroll(true); syncSticky();
     // only the open tab's cards are in the page (no hidden duplicate buttons / texts)
     if (isG) { $('#klFamGrid').innerHTML = ''; if (!wasG || !grid.children.length) rerenderGradient(); }
     else { if (grid.children.length) grid.innerHTML = ''; renderFam(vis.indexOf(tab) >= 0); }
+  }
+  /* 390 px: the tab row scrolls sideways by itself (never the page); edge fades show there is more; the selected tab
+     is brought into view. center=true: scroll the selected tab to the middle of the row. */
+  function tabScroll(center) {
+    var row = $('.kl-tabs'), bar = $('.kl-tabbar'); if (!row || !bar) return;
+    if (center) {
+      var sel = $('.kl-tabs [aria-selected="true"]');
+      if (sel && row.scrollWidth > row.clientWidth) row.scrollLeft = Math.max(0, sel.offsetLeft - (row.clientWidth - sel.offsetWidth) / 2);
+    }
+    var max = row.scrollWidth - row.clientWidth;
+    bar.classList.toggle('kl-more-l', max > 1 && row.scrollLeft > 1);
+    bar.classList.toggle('kl-more-r', max > 1 && row.scrollLeft < max - 1);
+  }
+  /* mobile sticky bar, empty bag: per tab (sfSticky). The Gradient Edit keeps the page's own text and bundle button. */
+  var stickyOrig = null;
+  function syncSticky() {
+    var inf = $('#stickyInfo'), btn = $('#stickyBtn'); if (!inf || !btn) return;
+    if (!stickyOrig) stickyOrig = { text: btn.textContent, click: btn.onclick };
+    if (totalQty() > 0) return;   // a bag with items: the page's bag total + View bag on every tab
+    var minP = null;
+    FAM.forEach(function (c) {
+      if (c.tab !== tab) return; var s = famState(c); if (s !== 'sellable' && s !== 'single') return;
+      var p = priceP(c.barcode); if (p && (minP === null || p < minP)) minP = p;
+    });
+    var st = sfSticky(tab, minP, SHIP.feeP);
+    if (!st) {
+      if (btn.textContent !== stickyOrig.text) { btn.textContent = stickyOrig.text; btn.onclick = stickyOrig.click; updateBag(); }
+      return;
+    }
+    inf.innerHTML = st.info; btn.textContent = st.btn; btn.onclick = function () { scrollToGrid(); };
   }
   var inRerender = false;
   function rerenderGradient() {   // back on the Gradient Edit: today's grid, with today's colour filter if one is set
@@ -170,27 +256,10 @@
     try { render(typeof active !== 'undefined' && active ? DATA.filter(function (d) { return d.color_en === active; }) : DATA); } finally { inRerender = false; }
   }
   function famCardHTML(c, st) {
-    var p = priceP(c.barcode), key = sfPoolKey(L(), false, p), b = sfFromBadge(L(), key), dis = stockErr;
-    var media, body = '';
-    if (st === 'photo') {
-      media = '<div class="kl-tone" style="background-color:' + sfEsc(c.swatch) + '" role="img" aria-label="Colour tile, not a photo"></div>';
-      body = '<p class="kl-stt">Photo coming</p><p class="kl-why">Colour tile is a guide only. Coming soon.</p>';
-    } else {
-      media = '<div class="imgwrap"><img src="' + sfEsc(c.photo) + '" width="400" height="500" loading="lazy" alt="' + sfEsc(c.name + ', ' + c.line) + '"></div>';
-      if (st === 'sellable' || st === 'single') {
-        if (st === 'sellable' && b) body += '<p class="kl-from">from ' + sfMoney(b.each) + ' each when you buy ' + b.n + '</p>';
-        var full = inBag(c.barcode) >= (window.klAvail ? window.klAvail(c.barcode) : 0);
-        body += '<button type="button" class="add" data-kl-add data-bc="' + sfEsc(c.barcode) + '"' + (dis || full ? ' disabled aria-disabled="true"' : '') + '>' + (full && !dis ? 'All available in your bag' : 'Add to bag — ' + sfMoney(p)) + '</button>';
-      } else if (st === 'soldout') {
-        body = '<p class="kl-stt">Sold out</p>';
-      } else if (st === 'cap') {
-        var w = window.klWindow, why = w && w.open === false ? (w.message || 'Online orders are closed right now.') : 'This piece is fully reserved for now.';
-        body = '<p class="kl-stt">Limit reached</p><p class="kl-why">' + sfEsc(why) + '</p><button type="button" class="add" data-kl-add data-bc="' + sfEsc(c.barcode) + '" disabled aria-disabled="true">Add to bag</button>';
-      }
-    }
-    return '<article class="card in kl-card' + (st === 'soldout' ? ' kl-soldout' : '') + '" data-kl-card data-kl-state="' + st + '"' + (st === 'photo' ? ' data-kl-photo="pending"' : '') + ' data-bc="' + sfEsc(c.barcode) + '">'
-      + media + '<div class="cbody"><h3 class="nm">' + sfEsc(c.name) + '</h3><div class="sub"><span class="d" style="background:' + sfEsc(c.swatch) + '" aria-hidden="true"></span>' + sfEsc(c.line) + '</div>'
-      + (p ? '<div class="pr">' + sfMoney(p) + '</div><div class="fee" data-kl="cardship">' + sfEsc(cardShipText()) + '</div>' : '') + body + '</div></article>';
+    var line = sfPriceLine(c.barcode, window), key = sfPoolKey(L(), false, line.p), w = window.klWindow;
+    return sfFamCard(c, st, { line: line, badge: sfFromBadge(L(), key), ship: cardShipText(), dis: stockErr,
+      full: inBag(c.barcode) >= (window.klAvail ? window.klAvail(c.barcode) : 0),
+      why: w && w.open === false ? (w.message || 'Online orders are closed right now.') : 'This piece is fully reserved for now.' });
   }
   function renderFam(has) {
     $('#klFamTitle').textContent = SF_TITLE[tab];
@@ -209,8 +278,14 @@
       var bc = b.dataset.bc, c = FAMBY[bc]; if (!c) return; var st = famState(c); if (st !== 'sellable' && st !== 'single') return;
       var full = inBag(bc) >= (window.klAvail ? window.klAvail(bc) : 0), dis = stockErr || full;
       b.disabled = dis; if (dis) b.setAttribute('aria-disabled', 'true'); else b.removeAttribute('aria-disabled');
-      b.textContent = full && !stockErr ? 'All available in your bag' : 'Add to bag — ' + sfMoney(priceP(bc));
+      b.textContent = sfAddText(priceP(bc), full, stockErr);
     });
+  }
+  function scrollToGrid() {   // the open tab's first cards just under the sticky tab bar (also when the bar is stuck)
+    var s = $('#klFam'), bar = $('.kl-tabbar'); if (!s) return;
+    var y = s.getBoundingClientRect().top + window.scrollY - (bar ? bar.offsetHeight : 0);
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: Math.max(0, y), behavior: reduce ? 'auto' : 'smooth' });
   }
   function scrollToTabs() {
     var bar = $('.kl-tabbar'); if (!bar) return;
@@ -238,6 +313,7 @@
       if (CFG.sold_out === 'hide') card.classList.remove('kl-show');
       else card.classList.add('kl-show');
     });
+    var ce = $('#count'); if (ce && grid.children.length) ce.textContent = window.countText(grid.children.length);
   }
 
   /* ---------------- bag progress line (ladders.json ui.progress_line) ---------------- */
@@ -291,6 +367,14 @@
     if (CFG.families) {
       var origR = window.render;
       window.render = function () { origR.apply(this, arguments); try { decorateGradient(); renderTabs(); } catch (e) {} };
+      var origUB = window.updateBag;
+      window.updateBag = function () { origUB.apply(this, arguments); try { syncSticky(); } catch (e) {} };
+      // Gradient count line: the shades actually on sale (sold-out hidden), not every shade in the page data
+      var origCT = window.countText;
+      window.countText = function (n) {
+        var cs = $$('#grid [data-kl-card]'), on = cs.filter(function (c) { return !c.classList.contains('sold-out'); }).length;
+        return origCT(cs.length && CFG.sold_out === 'hide' ? on : n);
+      };
     }
   }
 

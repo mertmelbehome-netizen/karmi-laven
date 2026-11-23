@@ -142,13 +142,19 @@ export default async function handler(req, res) {
           if (!it) continue;
           stock[bc] = Number(it.stock) || 0;
           sellable[bc] = Number(it.sellable) || 0;
-          if (Number.isInteger(it.price_pence) && it.price_pence > 0) price_pence[bc] = it.price_pence;
-          else sellable[bc] = 0;
-          // M1 (cart_qty_groups only): the DB online_group (fn_karmi_online_status, docs/GO_LIVE_M1.md); none = not sold online.
+          // M1 (cart_qty_groups only): the DB online_group (fn_karmi_online_status, docs/GO_LIVE_M1.md); none = not sold
+          // online. The ONLINE price is the group price, so a missing till price does not block a grouped product
+          // (command centre 23 Nov); price_pence is then the group single (display only; checkout charges priceUnits).
           if (groupMode) {
             const g = typeof it.online_group === 'string' ? it.online_group : (ladderView.family_groups || {})[it.family];
-            if (typeof g === 'string' && ladderView.groups[g]) online_group[bc] = g; else sellable[bc] = 0;
+            if (typeof g === 'string' && ladderView.groups[g]) {
+              online_group[bc] = g;
+              price_pence[bc] = Number.isInteger(it.price_pence) && it.price_pence > 0 ? it.price_pence : ladderView.groups[g].single;
+            } else sellable[bc] = 0;
+            continue;
           }
+          if (Number.isInteger(it.price_pence) && it.price_pence > 0) price_pence[bc] = it.price_pence;
+          else sellable[bc] = 0;
         }
       }
     }
