@@ -17,7 +17,9 @@ import { blocks, pageFns, liveRecord, sha256 } from './fixtures/page-snapshot.mj
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8')
 const HTML = read('../index.html')
-const M1 = loadLadders(JSON.parse(read('../ladders-preview/M1_mert_list.json'))).table
+const RAW_PCT = JSON.parse(read('../ladders-preview/M1_mert_list.json'))   // ui.percent_claim 70 (K-046)
+// S1 (no percentage claim) keeps the two-price wording tests below; the 70% tests use M1P
+const M1 = loadLadders({ ...RAW_PCT, ui: { ...RAW_PCT.ui, percent_claim: null } }).table
 const M1V = publicLadders(M1)
 const [G1, G2] = Object.keys(GRADIENT)
 const LIVE_SHA = '17b7e8734448670db1223d5bec098c1d1e16a83fd89496d47129ca991495e78d' // page before the M1 code (c3be709)
