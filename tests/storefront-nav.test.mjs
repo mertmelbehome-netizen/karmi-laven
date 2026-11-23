@@ -7,7 +7,7 @@
 // the real index.html markup.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8')
 const HTML = read('../index.html')
@@ -348,4 +348,13 @@ test('pre-paint css: nodes waiting to move out of the hero are never painted the
   assert.match(SF, /var nav = \$\('nav\.kl-tabbar'\) \|\| KL\.sfBar\(document, \['gradient'\], null, 'gradient'\);/)
   assert.match(SF, /KL\.sfBundleChip\(document\);/)
   assert.match(SF, /localStorage\.setItem\('kl_sf_tabs', JSON\.stringify\(\{ v: vis, n: seen \}\)\)/)
+})
+
+test('unfaithful Gradient renders withdrawn: 1266 1267 1269 1271 1272 1302 1310 show a colour tile, never the render', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  for (const bc of ['1266', '1267', '1269', '1271', '1272', '1302', '1310']) {
+    assert.match(html, new RegExp(`\{"barcode": "${bc}"[^}]*"img": "/img/tone/${bc}\.svg"`), bc)
+    assert.ok(!existsSync(new URL(`../img/gradient/${bc}.jpg`, import.meta.url)), 'render file removed ' + bc)
+  }
+  assert.match(html, /colour tile, not a photo/)
 })
