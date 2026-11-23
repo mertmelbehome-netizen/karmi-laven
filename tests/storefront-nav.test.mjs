@@ -394,7 +394,7 @@ test('line labels match the real product (Komuta 23 Nov): 6159 Chip Bead Necklac
   const cards = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url), 'utf8')).cards
   const by = Object.fromEntries(cards.map((c) => [c.barcode, c]))
   assert.equal(by['6159'].line, 'Chip Bead Necklace')
-  assert.equal(by['0624'].line, 'Stretch Bracelet')
+  assert.equal(by['0624'].line, 'Cube Bead Stretch Bracelet')
   assert.equal(by['6180'].line, 'Charm Necklace'); assert.equal(by['6170'].line, 'Charm Necklace')
   for (const c of cards) assert.doesNotMatch(c.line, /stone|onyx|quartz|crystal/i, c.barcode)
 })
@@ -409,4 +409,11 @@ test('og-image.jpg exists (was 404) and is a 1200x630 JPEG; alt has no product o
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
   const alt = html.match(/<meta property="og:image:alt" content="([^"]*)">/)[1]
   assert.doesNotMatch(alt, /crystal|glass|stone|hair/i)
+})
+
+test('one line label = one family (so one online price group): no shared name across groups (K&D #65 post-hoc, 0624)', () => {
+  const cards = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url), 'utf8')).cards
+  const fam = {}
+  for (const c of cards) (fam[c.line] = fam[c.line] || new Set()).add(c.family)
+  for (const [line, s] of Object.entries(fam)) assert.equal(s.size, 1, `${line}: ${[...s].join(', ')}`)
 })
