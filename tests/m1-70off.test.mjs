@@ -160,3 +160,15 @@ test('page CTA: card form + the delivery sentence once (the ad line stays out of
   assert.equal(S.cta, 'Mix any shades · £8 each · £2.40 each when you buy 10 or more · <span data-kl="ship">£1.49 UK delivery · free with 10+ items</span>')
   assert.equal(S.ad, null)
 })
+
+test('#10 accessibility: the secondary "70% off" lines are >= 12 px and #6b6457 (5.5:1 on the page background); bag line #8f5a52', () => {
+  for (const [sel, rule] of [['.bundlecta .s', 'font-size:12px; color:#6b6457'], ['.col-head .c', 'font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:#6b6457'],
+    ['.story .row .it', 'font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:#6b6457'], ['.cart-m1 .m1on', 'color:#8f5a52; font-weight:600']]) {
+    assert.ok(HTML.includes(`${sel}{${rule}`), sel)
+  }
+})
+
+test('static first paint = JS text from ladders.json (cta, each, faqq, faqa): change the table -> change the HTML too', () => {
+  const T = page(LADDERS).m1Texts()
+  for (const k of ['cta', 'each', 'faqq', 'faqa']) assert.ok(HTML.includes(`data-kl-m1="${k}">${T[k]}</`), `static ${k} != m1Texts().${k} (regenerate the static HTML)`)
+})
