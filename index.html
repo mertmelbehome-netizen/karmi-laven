@@ -809,7 +809,9 @@ function filter(col,btn){
 }
 function stockTxt(d){
   const t=d.total||0; if(!t) return '';
-  if(t<=6) return 'Only '+t+' left';
+  // never 'Only N left' from the baked DATA snapshot: scarcity comes from LIVE stock only (K&D #62: 0381 showed
+  // 'Only 3 left' with /api/stock down while live stock was 0). The live loader sets it from LIVEQTY.
+  if(t<=6) return '';
   const st=Object.keys(d.stock||{}).map(s=>STORENAMES[s]||s);
   // phone (<=560px): one short line on the photo (Komuta 23 Nov: the 3-line label covered a third of the card photo)
   if(typeof matchMedia==='function' && matchMedia('(max-width:560px)').matches) return 'Ships in 1–2 business days';
@@ -1610,7 +1612,8 @@ function cookieChoice(accepted){
         var iwb=iw&&iw.querySelector('.sold-out-badge'); if(iwb) iwb.remove();
         if(!lad && addBtn){ var pt=window.priceTxt?window.priceTxt(bc):''; addBtn.removeAttribute('disabled'); addBtn.style.display=''; addBtn.textContent='Add to bag — '+pt; var pr=card.querySelector('.pr'); if(pr){ if(typeof window.m1On==='function'&&window.m1On()) pr.innerHTML=window.m1PriceHtml(bc); else pr.textContent=pt; } }
         var q=LIVEQTY[bc];
-        if(stk && typeof q==='number'){ stk.textContent = q<=LOWMAX ? ('Only '+q+' left') : (stk.textContent||''); }
+        // live qty only: 1..LOWMAX -> 'Only N left'; anything else clears it (no stale static text survives)
+        if(stk){ stk.textContent = (typeof q==='number' && q>0 && q<=LOWMAX) ? ('Only '+q+' left') : ''; }
       }
     });
     // swatch bar: strike sold-out colours ONLY if every barcode of that colour is sold

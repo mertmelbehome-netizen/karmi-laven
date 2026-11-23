@@ -248,3 +248,15 @@ test('375x812 + 390x844: first card ends above the sticky bar (compact announce 
   assert.match(css, /html\.kl-v2 body > nav:not\(\.kl-tabbar\)\{padding:10px 0 8px\}/)
   assert.match(css, /html\.kl-v2 \.announce\{padding:7px 10px; font-size:10\.5px; letter-spacing:\.1em; line-height:1\.4\}/)
 })
+
+test('no false scarcity: "Only N left" comes from LIVE stock only (API down -> none; live q>6 -> cleared)', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+  const src = html.match(/function stockTxt\(d\)\{[\s\S]*?\n\}/)[0]
+  const STORENAMES = { WAT: 'Watford' }
+  const stockTxt = new Function('STORENAMES', 'matchMedia', `${src}; return stockTxt;`)(STORENAMES, undefined)
+  assert.equal(stockTxt({ total: 3, stock: { WAT: 3 } }), '', 'baked DATA total 3 (0381 June snapshot) must not say Only 3 left')
+  assert.equal(stockTxt({ total: 0 }), '')
+  assert.doesNotMatch(src, /'Only '/)
+  assert.match(html, /if\(stk\)\{ stk\.textContent = \(typeof q==='number' && q>0 && q<=LOWMAX\) \? \('Only '\+q\+' left'\) : ''; \}/)
+  assert.doesNotMatch(html, /stk\.textContent\|\|''/)
+})
