@@ -104,9 +104,9 @@ test('M1 cart lines (Komuta rule): figure from THIS cart; "drops/becomes" only w
   assert.equal(L(1).progress, 'Add 9 more to unlock 10+ prices (from £2.40 each) and free UK delivery')
   assert.equal(L(2).progress, 'Add 8 more to unlock 10+ prices (from £2.40 each) and free UK delivery')
   // 3–8: £24.00 is below the bag -> "your total becomes", with an example from the cart
-  assert.equal(L(3).progress, 'Add 7 more (e.g. Crystal bracelets): your total becomes £24.00 with free delivery')
-  assert.equal(L(5).progress, 'Add 5 more (e.g. Crystal bracelets): your total becomes £24.00 with free delivery')
-  assert.equal(L(8).progress, 'Add 2 more (e.g. Crystal bracelets): your total becomes £24.00 with free delivery')
+  assert.equal(L(3).progress, 'Add 7 more (e.g. Bead bracelets): your total becomes £24.00 with free delivery')
+  assert.equal(L(5).progress, 'Add 5 more (e.g. Bead bracelets): your total becomes £24.00 with free delivery')
+  assert.equal(L(8).progress, 'Add 2 more (e.g. Bead bracelets): your total becomes £24.00 with free delivery')
   assert.deepEqual(L(9), { progress: 'Add 1 more: total drops to £24.00 with free delivery', applied: null, promo: null })
   assert.deepEqual(L(10), { progress: null, applied: '10+ price applied: £2.40 each', promo: 'Promo codes can’t be used with the 10+ price.' })
   assert.equal(L(14).applied, '10+ price applied: £2.40 each')
