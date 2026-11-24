@@ -41,7 +41,22 @@
    "swatch": "#a9c3e3",
    "photo": "/img/fam/2023.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/2023.jpg",
+     "type": "main",
+     "alt": "Blue Starfish, Stretch Charm Bracelet",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/2023_2.jpg",
+     "type": "gallery",
+     "alt": "Blue Starfish, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "2026",
@@ -62,7 +77,22 @@
    "swatch": "#d2c4d8",
    "photo": "/img/fam/2040.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/2040.jpg",
+     "type": "main",
+     "alt": "Blue & Lilac, Stretch Charm Bracelet",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/2040_2.jpg",
+     "type": "gallery",
+     "alt": "Blue & Lilac, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "2030",
@@ -164,7 +194,22 @@
    "swatch": "#e9b9c6",
    "photo": "/img/fam/6180.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/6180.jpg",
+     "type": "main",
+     "alt": "Rose, starfish charm, Charm Necklace",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/6180_2.jpg",
+     "type": "gallery",
+     "alt": "Rose, starfish charm, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "1860",
@@ -295,7 +340,22 @@
    "swatch": "#e8ecee",
    "photo": "/img/fam/1468.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/1468.jpg",
+     "type": "main",
+     "alt": "Clear Blossom, Stretch Charm Bracelet",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/1468_2.jpg",
+     "type": "gallery",
+     "alt": "Clear Blossom, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "1470",
@@ -317,7 +377,22 @@
    "swatch": "#c9b6de",
    "photo": "/img/fam/1472.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/1472.jpg",
+     "type": "main",
+     "alt": "Lilac Bell, Stretch Charm Bracelet",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/1472_2.jpg",
+     "type": "gallery",
+     "alt": "Lilac Bell, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "1474",
@@ -339,7 +414,22 @@
    "swatch": "#a9c3e3",
    "photo": "/img/fam/1477.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/1477.jpg",
+     "type": "main",
+     "alt": "Ice Blue Daisy, Stretch Charm Bracelet",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/1477_2.jpg",
+     "type": "gallery",
+     "alt": "Ice Blue Daisy, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "2000",
@@ -350,7 +440,22 @@
    "swatch": "#c9b6de",
    "photo": "/img/fam/2000.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/2000.jpg",
+     "type": "main",
+     "alt": "Lilac Butterfly, Stretch Charm Bracelet",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/2000_2.jpg",
+     "type": "gallery",
+     "alt": "Lilac Butterfly, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "6008",
@@ -372,7 +477,22 @@
    "swatch": "#e9a9bf",
    "photo": "/img/fam/6002.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/6002.jpg",
+     "type": "main",
+     "alt": "Lotus Pink, Stretch Bracelet",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/6002_2.jpg",
+     "type": "gallery",
+     "alt": "Lotus Pink, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "6009",
@@ -394,7 +514,22 @@
    "swatch": "#bbd8ef",
    "photo": "/img/fam/6011.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/6011.jpg",
+     "type": "main",
+     "alt": "Sky Blue, Stretch Bracelet",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/6011_2.jpg",
+     "type": "gallery",
+     "alt": "Sky Blue, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "6017",
@@ -427,7 +562,22 @@
    "swatch": "#e8ecee",
    "photo": "/img/fam/6058.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/6058.jpg",
+     "type": "main",
+     "alt": "Clear & Gold, Stretch Bracelet",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/6058_2.jpg",
+     "type": "gallery",
+     "alt": "Clear & Gold, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "80012",
@@ -449,7 +599,22 @@
    "swatch": "#a9c3e3",
    "photo": "/img/fam/80043.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/80043.jpg",
+     "type": "main",
+     "alt": "Blue Blossom, Bangle",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/80043_2.jpg",
+     "type": "gallery",
+     "alt": "Blue Blossom, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "6159",
@@ -471,7 +636,22 @@
    "swatch": "#c9b6de",
    "photo": "/img/fam/6170.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/6170.jpg",
+     "type": "main",
+     "alt": "Lilac Heart, Charm Necklace",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/6170_2.jpg",
+     "type": "gallery",
+     "alt": "Lilac Heart, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "7058",
@@ -482,7 +662,22 @@
    "swatch": "#a9d6c0",
    "photo": "/img/fam/7058.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/7058.jpg",
+     "type": "main",
+     "alt": "Mint Daisy, Bead Necklace",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/7058_2.jpg",
+     "type": "gallery",
+     "alt": "Mint Daisy, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "7056",
@@ -504,7 +699,22 @@
    "swatch": "#a9d6c0",
    "photo": "/img/fam/6095.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/6095.jpg",
+     "type": "main",
+     "alt": "Aqua Starfish, Bead Necklace",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/6095_2.jpg",
+     "type": "gallery",
+     "alt": "Aqua Starfish, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "6091",
@@ -576,7 +786,22 @@
    "swatch": "#d9c08a",
    "photo": "/img/fam/81004.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/81004.jpg",
+     "type": "main",
+     "alt": "Gold-tone Swan, Sparkle Line",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/81004_2.jpg",
+     "type": "gallery",
+     "alt": "Gold-tone Swan, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "81006",
@@ -587,7 +812,22 @@
    "swatch": "#d9c08a",
    "photo": "/img/fam/81006.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/81006.jpg",
+     "type": "main",
+     "alt": "Gold-tone Bow, Sparkle Line",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/81006_2.jpg",
+     "type": "gallery",
+     "alt": "Gold-tone Bow, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "81009",
@@ -609,7 +849,22 @@
    "swatch": "#d9c08a",
    "photo": "/img/fam/81013.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/81013.jpg",
+     "type": "main",
+     "alt": "Gold-tone Twin Butterfly, Sparkle Line",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/81013_2.jpg",
+     "type": "gallery",
+     "alt": "Gold-tone Twin Butterfly, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "81014",
@@ -620,7 +875,22 @@
    "swatch": "#d9c08a",
    "photo": "/img/fam/81014.jpg",
    "photo_qc": true,
-   "ai_image": true
+   "ai_image": true,
+   "photos": [
+    {
+     "src": "/img/fam/81014.jpg",
+     "type": "main",
+     "alt": "Gold-tone Butterfly, Sparkle Line",
+     "qc": true
+    },
+    {
+     "src": "/img/fam/81014_2.jpg",
+     "type": "gallery",
+     "alt": "Gold-tone Butterfly, close-up detail",
+     "qc": true,
+     "ai": true
+    }
+   ]
   },
   {
    "barcode": "82005",
