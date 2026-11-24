@@ -4,6 +4,7 @@ import { fetchAvailable, shortages } from './_stock-lib.js';
 import { GRADIENT, isGradient } from './_gradient.js';
 import { priceUnits, freeShipping, shippingFeeP, LADDERS, MODE_GROUPS, previewLadders, previewAllowed, lineGroup, cartSummary, flatMinShortfall, shipBasis, groupSingleP } from './_pricing.js';
 import { reserve, attach, release, gradientFallback, resolveStaleHolds, MSG_UNAVAILABLE } from './_caps-lib.js';
+import { fromBody, toMetadata } from './_attribution.js';
 
 const clampN = n => Math.max(1, Math.min(99, parseInt(n) || 1));
 export const MSG_PRICING_UNAVAILABLE = 'Checkout is unavailable right now, please try again shortly.';
@@ -230,7 +231,9 @@ export function createHandler({
         phone_number_collection: { enabled: true },
         allow_promotion_codes: gradientOnly,
         client_reference_id: event_id || undefined,
-        metadata: { event_id: event_id || '', qty: String(totalQty), items: itemsCsv, items_named: itemsNamed, kl_sid: klSid, consent: consentState, hold_ref: held ? ref : '' },
+        metadata: { event_id: event_id || '', qty: String(totalQty), items: itemsCsv, items_named: itemsNamed, kl_sid: klSid, consent: consentState, hold_ref: held ? ref : '',
+          // where the order came from (24 Nov 2026, api/_attribution.js): cleaned here, cleaned again in the webhook
+          ...toMetadata(fromBody(req.body?.attribution)) },
         success_url: `${origin}/?checkout=success`,
         cancel_url: `${origin}/?checkout=cancel`,
       };
