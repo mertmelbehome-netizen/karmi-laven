@@ -215,11 +215,34 @@
   /** Mobile sticky bar with an empty bag, per tab. Gradient Edit: null = keep the page's own bar ("Each £8.00" +
    *  "Build your bundle"). Other tabs: the lowest single price among the tab's sellable cards + the delivery line;
    *  the button takes the shopper back to the tab's pieces (the bundle builder is Gradient-only). */
-  function sfSticky(tab, minP, feeP, ring) {
+  function sfSticky(tab, minP, feeP, ring, deal) {
     if (tab === 'gradient' || SF_TABS.indexOf(tab) < 0) return null;
     if (ring) return { info: '<b>' + sfEsc(ring.price) + '</b><span class="dl" data-kl="ringship">' + sfEsc(ring.ship) + '</span>', btn: 'Shop ' + SF_TITLE[tab] };   // K-069: never the generic 10+ free line next to rings
     var fee = '<span class="dl" data-kl="fee1">' + (typeof window !== 'undefined' && typeof window.cardShipText === 'function' ? window.cardShipText() : (feeP ? '+ ' + sfMoney(feeP) + ' UK delivery' : 'Free UK delivery')) + '</span>';   // CMA209: fee + 10+ condition
+    // deal-first (owner 24 Nov): the lowest 10+ price of the tab + its condition lead (the hero block's short form 'for any
+    // 10+ items', one bar line at 375 px). The single prices are on every card right above the bar (14 px, same view); a
+    // longer bar would push the first full card under it (V-01, 375x812)
+    if (deal && minP > 0) return { info: (deal.from ? 'From ' : '') + '<b>' + sfEsc(deal.big) + '</b> each ' + sfEsc(deal.short || deal.cond0 || deal.cond) + fee, btn: 'Shop ' + SF_TITLE[tab] };
     return { info: (minP > 0 ? 'From <b>' + sfMoney(minP) + '</b> each' : '') + fee, btn: 'Shop ' + SF_TITLE[tab] };
+  }
+  /** Deal parts for a set of sellable barcodes (sticky bar / info line): the group with the lowest 10+ price gives the
+   *  bold figure + its condition (index.html m1Deal, so a percentage only where the table makes it exact); 'from' when
+   *  the groups' 10+ prices differ; one = that group's single text, or 'Single pieces from £x' when singles differ.
+   *  Flat groups (rings) never take part. null without the M1 table. W = window (or a test stand-in). */
+  function sfDeal(bcs, W) {
+    if (!W || typeof W.m1On !== 'function' || !W.m1On() || typeof W.m1Deal !== 'function' || typeof W.m1Group !== 'function') return null;
+    var t = W.m1T(), gs = [];
+    bcs.forEach(function (bc) { var k = W.m1Group(bc), g = k && t.groups && Object.prototype.hasOwnProperty.call(t.groups, k) ? t.groups[k] : null; if (g && gs.indexOf(g) < 0) gs.push(g); });
+    if (!gs.length) return null;
+    var lo = gs.reduce(function (a, g) { return g.tier_each < a.tier_each ? g : a; }), d = W.m1Deal(lo);
+    var tiers = gs.filter(function (g) { return g.tier_each !== lo.tier_each; }).length, sMin = Math.min.apply(null, gs.map(function (g) { return g.single; }));
+    var singles = gs.filter(function (g) { return g.single !== lo.single; }).length;
+    return { from: tiers > 0, big: d.big, cond: d.cond, cond0: d.cond0, short: d.short, one: singles ? 'Single pieces from ' + sfMoney(sMin) : d.one };
+  }
+  /** The barcodes SHOWN on a tab + sub-chip (Komuta 24 Nov: per-tab 'from' price). rows = [{bc, tab, line, ok}] (ok =
+   *  sellable now). Pure; js tabBcs() feeds it the page's cards. */
+  function sfTabPick(tab, sk, rows) {
+    return rows.filter(function (r) { return r.ok && r.tab === tab && (!sk || sk === 'all' || sfSubOf(tab, r.line) === sk); }).map(function (r) { return String(r.bc); });
   }
   /*KL-SF-CORE-END*/
 
@@ -422,15 +445,36 @@
   }
   /* hero price with families on: the Gradient-only '£8' would mislead next to £5 / £13 pieces, so it reads
    *  'Online prices from £x' = the lowest single price among everything sellable now (Gradient + family cards). */
+  /* Per-tab 'from' price (Komuta 24 Nov, CMA: a 'from' price must be available on what is shown): the priced, sellable
+   * barcodes shown on the ACTIVE tab and sub-chip (Gradient: its pieces on sale; Gifts: the picks; family tabs: their
+   * cards). Rings never take part (K-069: flat price, not in the 10+ offer). Drives the hero block (index.html
+   * klHeroPriceApply via window.klTabGroups), the sticky bar and the info line after the grids. */
+  function tabBcs() {
+    var on = function (s) { return s === 'sellable' || s === 'single'; }, rows;
+    if (tab === 'gradient') rows = (window.DATA || []).filter(function (d) { return isGrad(d.barcode); }).map(function (d) { return { bc: d.barcode, tab: 'gradient', line: d.type, ok: gradOk(d.barcode) }; });
+    else if (tab === 'gifts') rows = giftRows().filter(function (r) { return r.bc; }).map(function (r) { return { bc: r.bc, tab: 'gifts', line: '', ok: true }; });
+    else rows = FAM.map(function (c) { return { bc: c.barcode, tab: c.tab, line: c.line, ok: on(famState(c)) }; });
+    return sfTabPick(tab, tab === 'gifts' ? 'all' : sub[tab], rows).filter(function (bc) { return !isRing(bc) && priceP(bc) > 0; });   // K-069: rings never set the 'from' price
+  }
+  /** groups (non-flat, in the served table) of the cards on the active tab; null = not known yet (family data not
+   *  loaded, or families off): the page then keeps the landing (Gradient) figure. */
+  window.klTabGroups = function () {
+    var t = L(); if (!CFG.families || !t || !t.groups || typeof window.m1Group !== 'function') return null;
+    if (tab !== 'gradient' && !FAM.length) return null;
+    var ks = [];
+    tabBcs().forEach(function (bc) { var k = window.m1Group(bc); if (k && Object.prototype.hasOwnProperty.call(t.groups, k) && ks.indexOf(k) < 0) ks.push(k); });
+    return ks;
+  };
   function syncHero() {
     var hp = $('.launch .p'), lb = $('.launch > span'); if (!hp) return;   // moved to #klInfo by sfLayout
-    var minP = null, t = L(), g = t && t.groups && t.gradient_group ? t.groups[t.gradient_group] : null;
-    if (g && Number.isInteger(g.single)) minP = g.single;
-    FAM.forEach(function (c) { var s = famState(c); if (s !== 'sellable' && s !== 'single') return;
-      if (isRing(c.barcode)) return;   // K-069: a £4 ring (min 5, not in the 10+ offer) never sets the 'from' price next to the 10+ line
-      var p = priceP(c.barcode); if (p && (minP === null || p < minP)) minP = p; });
+    var minP = null, bcs = tabBcs();   // per tab (Komuta 24 Nov)
+    bcs.forEach(function (bc) { var p = priceP(bc); if (p && (minP === null || p < minP)) minP = p; });
     if (minP === null) return;
-    hp.removeAttribute('data-kl-m1'); hp.textContent = 'from ' + sfMoney(minP);
+    // deal-first (owner 24 Nov): the lowest 10+ price + its condition lead, the single prices follow in the same line
+    var d = sfDeal(bcs, window);
+    hp.removeAttribute('data-kl-m1');
+    if (d) hp.innerHTML = '<span class="m1d">' + (d.from ? 'from ' : '') + '<b class="m1big">' + sfEsc(d.big) + '</b> each <span class="m1c">' + sfEsc(d.cond) + '</span></span><span class="m1sep"> · </span><span class="m1one">' + sfEsc(d.one) + '</span>';
+    else hp.textContent = 'from ' + sfMoney(minP);
     if (lb) lb.textContent = 'Online prices';
   }
   /* mobile sticky bar, empty bag: per tab (sfSticky). The Gradient Edit keeps the page's own text and bundle button. */
@@ -439,12 +483,11 @@
     var inf = $('#stickyInfo'), btn = $('#stickyBtn'); if (!inf || !btn) return;
     if (!stickyOrig) stickyOrig = { text: btn.textContent, click: btn.onclick };
     if (totalQty() > 0) return;   // a bag with items: the page's bag total + View bag on every tab
-    var minP = null;
+    var minP = null, dealBcs = tab === 'rings' ? [] : tabBcs();   // per tab + sub-chip (Komuta 24 Nov)
     var on = function (s) { return s === 'sellable' || s === 'single'; };
-    (tab === 'gifts' ? giftRows().filter(function (r) { return r.bc; }).map(function (r) { return giftCard(r.bc); })
-      : FAM.filter(function (c) { return c.tab === tab && on(famState(c)); }))
-      .forEach(function (c) { var p = priceP(c.barcode); if (p && (minP === null || p < minP)) minP = p; });
-    var st = sfSticky(tab, minP, SHIP.feeP, tab === 'rings' ? ringTexts() : null);
+    (tab === 'rings' ? FAM.filter(function (c) { return c.tab === tab && on(famState(c)); }).map(function (c) { return c.barcode; }) : dealBcs)
+      .forEach(function (bc) { var p = priceP(bc); if (p && (minP === null || p < minP)) minP = p; });
+    var st = sfSticky(tab, minP, SHIP.feeP, tab === 'rings' ? ringTexts() : null, tab === 'rings' ? null : sfDeal(dealBcs, window));
     if (!st) {
       if (btn.textContent !== stickyOrig.text) { btn.textContent = stickyOrig.text; btn.onclick = stickyOrig.click; updateBag(); }
       return;

@@ -48,8 +48,11 @@ test('the headline price is genuinely available: 10 of the cheapest group cost e
   assert.equal(money(priceUnits(units) / units.length), sfHeroPrice(SERVED).big)
 })
 
-test('static first-paint block = sfHeroPrice(ladders.json) + the delivery sentence (no text change, no layout jump)', () => {
-  const h = sfHeroPrice(RAW)
+// re-pinned 24 Nov 2026 on purpose (Komuta, CMA: a 'from' price must be available on what is shown): the hero is PER TAB;
+// the first paint is the landing tab = the Gradient Edit (its group only: '£2.40 each when you buy any 10+ items', 'Single piece £8')
+test('static first-paint block = sfHeroPrice(ladders.json, [gradient group]) + the delivery sentence (no text change, no layout jump)', () => {
+  const h = sfHeroPrice(RAW, [RAW.gradient_group])
+  assert.deepEqual(h, { from: false, big: '£2.40', cond: 'when you buy any 10+ items', singles: 'Single piece £8' })
   const l1 = (h.from ? '<span class="kl-hp-from">from</span> ' : '') + `<b class="kl-hp-big">${h.big}<small> each</small></b> <span class="kl-hp-cond">${h.cond}</span>`
   assert.ok(BLOCK.includes(`<div class="kl-hp-l1">${l1}</div>`), BLOCK)
   assert.ok(BLOCK.includes(`<div class="kl-hp-single">${h.singles}</div>`), BLOCK)
@@ -86,7 +89,10 @@ test('sfHeroPriceApply writes the same nodes; hidden for a non-M1 table', () => 
 
 test('wiring: M1 page update + storefront renderTabs refresh the block; groups on sale only after the family stock', () => {
   assert.match(HTML, /function m1ApplyPage\(\)\{\r?\n  klHeroPriceApply\(\);/)
-  assert.match(HTML, /window\.__klGroupsKnown \? \[\.\.\.new Set\(\[t\.gradient_group\]\.concat\(/)
+  // per tab (24 Nov): the groups of the active tab's cards; unknown yet = the landing (Gradient) group; [] = no block
+  assert.match(HTML, /let keys=typeof window\.klTabGroups==='function'\?window\.klTabGroups\(\):null; if\(!keys&&t\) keys=\[t\.gradient_group\];/)
+  assert.match(SFJS, /window\.klTabGroups = function \(\) \{/)
+  assert.equal(sfHeroPrice(SERVED, []), null, 'a tab with no 10+ piece (Rings) shows no 10+ block')
   assert.match(SFJS, /if \(ok && FAM\.length\) window\.__klGroupsKnown = true;/)
   assert.match(SFJS, /window\.klHeroPriceApply\(\)/)
 })

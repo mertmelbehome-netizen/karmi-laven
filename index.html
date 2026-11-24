@@ -160,6 +160,20 @@ nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
 .ci-grp .ci:last-child{border-bottom:0} .cart-m1near .kl-near{display:block} .cart-m1near .kl-near+.kl-near{margin-top:4px; font-weight:400}
 .cart-m1near{font-size:13.5px; font-weight:600; line-height:1.35; color:var(--ink); background:#f6eee6; border:1px solid var(--accent); border-radius:8px; padding:9px 12px; margin:0 0 10px; text-align:center}
 .modal .mprice .p .m1t, .hero .launch .p .m1t{font-family:'Jost'; font-size:13px}
+/* deal-first price block (owner 24 Nov 2026): the 10+ price bold and ~1.5x, its condition in the same block, the single
+   price one step smaller on its own line, regular weight, >= 14 px, full ink (contrast > 4.5:1). Rings keep .m1s/.m1t. */
+.m1d{display:block; line-height:1.25; font-family:'Jost',sans-serif; font-size:14px; font-weight:500; color:var(--ink)}
+.m1d .m1big{font-size:21px; font-weight:600; letter-spacing:0}
+.m1sep{display:none}
+.m1one{display:block; margin-top:2px; font-family:'Jost',sans-serif; font-size:14px; font-weight:400; color:var(--ink); line-height:1.3}
+.cbody .pr .m1d, .cbody .pr .m1one{letter-spacing:.01em}
+.modal .mprice .p{display:block; margin-left:0}
+.modal .mprice .p .m1d{font-size:15px} .modal .mprice .p .m1d .m1big{font-size:24px}
+.hero .launch .p .m1d, .kl-info .launch .p .m1d{margin-top:4px; font-size:14px} .hero .launch .p .m1one, .kl-info .launch .p .m1one{font-size:14px}
+/* phone cards: the 10+ price + condition + single price keep the first full card above the sticky bar (V-01, 375x812);
+   the K-046 '(70% off)' note stays on wider cards, the modal and the bag lines */
+@media(max-width:560px){ .cbody .pr .m1pct{display:none} }
+.stickybar .sp .dl.one{font-size:14px; color:var(--ink); letter-spacing:0}
 .cbody .ship24{font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-top:7px}
 .cbody .add{display:block; text-align:center; text-decoration:none; margin-top:11px; font-family:'Jost'; font-weight:400; font-size:10.5px; letter-spacing:.2em;
   text-transform:uppercase; color:var(--ink); background:none; border:1px solid var(--hair); padding:10px 0;
@@ -495,12 +509,12 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 .sw.sold-out{display:none !important}
 .hide{display:none}
 </style>
-<meta name="description" content="Karmi Laven bracelets and necklaces — £5, £8 or £13 each · 70% off every item when you buy any 10+ items (£1.50, £2.40 or £3.90 each). Ships within 1–2 business days; UK delivery usually 2–5 business days after dispatch. £1.49 UK delivery · free with any 10+ items.">
+<meta name="description" content="Karmi Laven bracelets and necklaces — £1.50, £2.40 or £3.90 each when you buy any 10+ items (70% off every item, any mix); £5, £8 or £13 each for 1–9 items. Ships within 1–2 business days; UK delivery usually 2–5 business days after dispatch. £1.49 UK delivery · free with any 10+ items.">
 <link rel="canonical" href="https://www.karmilaven.com/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Karmi Laven">
 <meta property="og:url" content="https://www.karmilaven.com/">
-<meta property="og:title" content="Karmi Laven — Bracelets &amp; Necklaces · from £5 each">
+<meta property="og:title" content="Karmi Laven — Bracelets &amp; Necklaces · The Gradient Edit £2.40 each when you buy any 10+ items">
 <meta property="og:description" content="Faceted bead shades — find your colour. £1.49 UK delivery · free with any 10+ items.">
 <meta property="og:image" content="https://www.karmilaven.com/og-image.jpg">
 <meta property="og:image:width" content="1200">
@@ -508,7 +522,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 <meta property="og:image:alt" content="Karmi Laven: colour, worn softly. Bracelets and necklaces.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@karmilaven">
-<meta name="twitter:title" content="Karmi Laven — Bracelets &amp; Necklaces · from £5 each">
+<meta name="twitter:title" content="Karmi Laven — Bracelets &amp; Necklaces · The Gradient Edit £2.40 each when you buy any 10+ items">
 <meta name="twitter:description" content="Faceted bead shades. Find your colour. £1.49 UK delivery · free with any 10+ items.">
 <meta name="twitter:image" content="https://www.karmilaven.com/og-image.jpg">
 </head>
@@ -536,13 +550,13 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
     <!-- families view hero price (25_hero_price): headline 10+ price + its condition + the single prices + delivery in ONE
          block (CMA/DMCC, ASA). Text = sfHeroPrice(ladders.json, every group); runtime: the served table + the groups on sale
          (sfHeroPriceApply). tests/hero-price.test.mjs keeps this static text = the table. Hidden on the old page (css). -->
-    <div class="kl-hp" id="klHeroPrice"><div class="kl-hp-l1"><span class="kl-hp-from">from</span> <b class="kl-hp-big">£1.50<small> each</small></b> <span class="kl-hp-cond">when you buy any 10+ items</span></div><div class="kl-hp-single">Single pieces £5 / £8 / £13</div><div class="kl-hp-dlv" data-kl="ship">£1.49 UK delivery · free with any 10+ items</div></div>
+    <div class="kl-hp" id="klHeroPrice"><div class="kl-hp-l1"><b class="kl-hp-big">£2.40<small> each</small></b> <span class="kl-hp-cond">when you buy any 10+ items</span></div><div class="kl-hp-single">Single piece £8</div><div class="kl-hp-dlv" data-kl="ship">£1.49 UK delivery · free with any 10+ items</div></div>
     <div class="stars fadein d2"><span class="num">Part of Melbe Home · with shops in Watford &amp; Guildford</span></div>
     <div class="cta fadein d3">
       <button class="btn" onclick="openBundle()">Build your bundle</button>
       <button class="btn ghost" onclick="document.getElementById('palette').scrollIntoView({behavior:'smooth'})">Shop by colour</button>
     </div>
-    <div class="launch fadein d3"><span>Online price</span><span class="p" data-kl-m1="hero">£8</span><span class="lbl">Ships within 1–2 business days</span></div>
+    <div class="launch fadein d3"><span>Online price</span><span class="p" data-kl-m1="hero"><span class="m1d"><b class="m1big">£2.40</b> each <span class="m1c">when you buy any 10+ items<span class="m1pct"> (70% off)</span></span></span><span class="m1sep"> · </span><span class="m1one">£8 each for 1–9 items</span></span><span class="lbl">Ships within 1–2 business days</span></div>
     <div class="launchfee fadein d3" data-kl="cardship">+ £1.49 UK delivery · free with any 10+ items</div>
     <div class="spectrum fadein d4" id="spectrum"></div>
   </div>
@@ -670,7 +684,7 @@ function sfHeroLine(vis) {
 function sfHeroPrice(t, keys, note) {
   if (!t || t.mode !== 'cart_qty_groups' || !t.groups || !t.cart_qty_tier || !(t.cart_qty_tier.from > 0)) return null;
   var ok = function (k) { var g = Object.prototype.hasOwnProperty.call(t.groups, k) && t.groups[k]; return !!g && g.single > 0 && g.tier_each > 0; };
-  var ks = (keys && keys.length ? keys : Object.keys(t.groups)).filter(ok);
+  var ks = (keys ? keys : Object.keys(t.groups)).filter(ok);   // keys given = exactly those (per tab; [] = no block)
   if (!ks.length) return null;
   var gs = ks.map(function (k) { return t.groups[k]; });
   var m = function (p) { return p % 100 === 0 ? '£' + p / 100 : '£' + (p / 100).toFixed(2); };
@@ -736,7 +750,7 @@ function sfMetaCats(doc, hair) {
 
 <main class="wrap collection" id="palette">
   <div class="bundlecta">
-    <div><div class="t">Build your <em>gradient stack</em></div><div class="s" data-kl-m1="cta">Mix any shades · £8 each · 70% off when you buy any 10+ items (£2.40 each) · <span data-kl="ship">£1.49 UK delivery · free with any 10+ items</span></div></div>
+    <div><div class="t">Build your <em>gradient stack</em></div><div class="s" data-kl-m1="cta">Mix any shades · £2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items · <span data-kl="ship">£1.49 UK delivery · free with any 10+ items</span></div></div>
     <button class="btn" onclick="openBundle()">Build your bundle</button>
   </div>
   <div class="bundletrust">Backed by <b>Melbe Home</b> · shops in Watford &amp; Guildford · secure Stripe checkout · 14-day returns</div>
@@ -755,7 +769,7 @@ try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vi
   <div class="row">
     <div class="it"><b>15</b> shades</div>
     <div class="it"><b>4mm</b> faceted beads</div>
-    <div class="it" data-kl-m1="each"><b>£8</b> each · 70% off when you buy any 10+ items (£2.40 each) <span class="dl" data-kl="fee1">+ £1.49 UK delivery · free with any 10+ items</span></div>
+    <div class="it" data-kl-m1="each"><b>£2.40</b> each when you buy any 10+ items (70% off) · £8 each for 1–9 items <span class="dl" data-kl="fee1">+ £1.49 UK delivery · free with any 10+ items</span></div>
   </div>
 </section>
 
@@ -898,7 +912,7 @@ try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vi
 </aside>
 
 <div class="stickybar" id="stickybar">
-  <div class="sp" id="stickyInfo" aria-live="polite">Each <b>£8.00</b><span class="dl" data-kl="fee1">+ £1.49 UK delivery · free with any 10+ items</span></div>
+  <div class="sp" id="stickyInfo" aria-live="polite"><b>£2.40</b> each when you buy any 10+ items<span class="dl one">£8 each for 1–9 items</span><span class="dl" data-kl="fee1">+ £1.49 UK delivery · free with any 10+ items</span></div>
   <button class="sbtn" id="stickyBtn" onclick="openBundle()">Build your bundle</button>
   <button class="sbtn" id="stickyCart" onclick="openCart()" style="display:none;background:var(--accent);color:#fff;max-width:160px">View bag &middot; <span id="stickyN">0</span></button>
 </div>
@@ -1420,25 +1434,37 @@ function m1Lines(lines){
 // with an exact owner-approved percentage (K-046) the tier part reads "<pct>% off when you buy any 10+ items (£2.40 each)"
 function m1TierText(gr){ const t=m1T(), from=t.cart_qty_tier.from, p=m1Pct(gr), N=klRingsNote();
   return p!==null ? p+'% off when you buy any '+from+'+'+N+' items ('+gbpShort(gr.tier_each)+' each)' : gbpShort(gr.tier_each)+' each when you buy any '+from+' or more'+N+' items'; }
+// Deal-first (owner, 24 Nov 2026): the best per-item price (= the 10+ price) leads, bold, with its condition in the SAME
+// block ("£2.40 each when you buy any 10+ items"); the single price follows on the same view, smaller ("£8 each for
+// 1–9 items"). No was/now, no strike-through, no 'save'; the only % is K-046's exact claim. Rings (flat) keep their own text.
+function m1Deal(gr){ const t=m1T(), from=t.cart_qty_tier.from, p=m1Pct(gr), N=klRingsNote();
+  return { big: gbpShort(gr.tier_each), cond: 'when you buy any '+from+'+'+N+' items'+(p!==null?' ('+p+'% off)':''), cond0: 'when you buy any '+from+'+'+N+' items', short: 'for any '+from+'+'+N+' items', pct: p!==null?' ('+p+'% off)':'',
+    one: gbpShort(gr.single)+' each for '+(from>2?'1–'+(from-1)+N+' items':'1'+N+' item') }; }
+function m1DealText(gr){ const d=m1Deal(gr); return d.big+' each '+d.cond+' · '+d.one; }
+function m1DealHtml(gr){ const d=m1Deal(gr);
+  return '<span class="m1d"><b class="m1big">'+d.big+'</b> each <span class="m1c">'+d.cond0+(d.pct?'<span class="m1pct">'+d.pct+'</span>':'')+'</span></span><span class="m1sep"> · </span><span class="m1one">'+d.one+'</span>'; }
+// mobile sticky bar, empty bag (Gradient Edit; family tabs: js/storefront.js sfSticky with the same parts); the compact bar
+// carries the condition without the % (cond0): the cards right above it carry the K-046 claim
+function m1StickyHtml(gr){ const d=m1Deal(gr); return '<b>'+d.big+'</b> each '+d.cond0+'<span class="dl one">'+d.one+'</span><span class="dl" data-kl="fee1">'+cardShipText()+'</span>'; }
 function m1PriceText(bc){ const t=m1T(), g=m1Group(bc); if(!g) return '';
   if(m1Flat(g)) return m1RingTexts(g).price;
-  const gr=t.groups[g]; return gbpShort(gr.single)+' each · '+m1TierText(gr); }
+  return m1DealText(t.groups[g]); }
 function m1PriceHtml(bc){ const t=m1T(), g=m1Group(bc); if(!g) return '';
   if(m1Flat(g)) return m1RingTexts(g).priceHtml;
-  const gr=t.groups[g]; return '<span class="m1s"><span class="m1p">'+gbpShort(gr.single)+'</span> each</span><span class="m1t"> · '+m1TierText(gr)+'</span>'; }
+  return m1DealHtml(t.groups[g]); }
 // Static page texts that name the Gradient Edit price (data-kl-m1="key"), from the table.
 function m1Texts(){
   const t=m1T(); if(!t) return null; const gr=t.groups[t.gradient_group]; if(!gr) return null;
   const from=t.cart_qty_tier.from, s=gbpShort(gr.single), e=gbpShort(gr.tier_each);
   const fee=cardShipText();   // CMA209: the fee AND the 10+ free condition wherever a price shows
-  const p=m1Pct(gr), tt=m1TierText(gr), N=klRingsNote();   // rings ON: ' non-ring' (E1c)
+  const p=m1Pct(gr), N=klRingsNote();   // rings ON: ' non-ring' (E1c)
   // ad line (K-046): one percentage for every group sold on the page; 'from' = the lowest 10+ price among them
   const pg=m1PageGroups(), pp=m1GroupsPct(pg), lo=Math.min(...pg.map(g=>g.tier_each));
   const ag=m1AllGroups(), ap=m1GroupsPct(ag);
   const ad=pp!==null ? 'Buy '+from+'+'+(N?N+' items':'')+', get '+pp+'% off · from '+gbpP(lo)+' each · free UK delivery' : null;
   return {
-    hero: s,
-    meta: s+' each · '+tt,   // og/twitter title, meta + JSON-LD description (m1ApplyMeta)
+    hero: m1DealHtml(gr),   // deal-first (24 Nov): the 10+ price leads, its condition + the single price in the same block
+    meta: m1DealText(gr),   // og/twitter title, meta + JSON-LD description (m1ApplyMeta)
     ad,
     madd: 'Add to bag',   // the open modal sets 'Add to bag — £8.00' (openModal); closed, no price without its delivery fee
     // K-08 (K&D wording list): no 'hand-strung on' in M1 copy
@@ -1447,21 +1473,21 @@ function m1Texts(){
     faqmade: '4mm faceted beads on a gold-tone chain with a single delicate charm.',
     mdesc: 'A single thread of 4mm faceted beads on a gold-tone chain with a delicate charm. Wear it alone, or stack it into the gradient.',
     // the ad line (T.ad) is for ads/marketing only; on the page the CTA keeps the card form + the delivery sentence once
-    cta: 'Mix any shades · '+s+' each · '+tt+' · <span data-kl="ship">'+shipSentence()+'</span>',
-    each: '<b>'+s+'</b> each · '+(p!==null?p+'% off when you buy any '+from+'+'+N+' items ('+e+' each)':e+' each when you buy any '+from+' or more'+N+' items')+' <span class="dl" data-kl="fee1">'+fee+'</span>',
+    cta: 'Mix any shades · '+m1DealText(gr)+' · <span data-kl="ship">'+shipSentence()+'</span>',
+    each: '<b>'+e+'</b> each '+m1Deal(gr).cond+' · '+m1Deal(gr).one+' <span class="dl" data-kl="fee1">'+fee+'</span>',
     faqq: p!==null ? 'How does '+p+'% off when you buy any '+from+'+'+N+' items work?' : 'How does the '+from+'+ price work?',
     // group-wide (families live 23 Nov): a bag of £5 / £8 / £13 pieces must not read as 'every bracelet £8' (Komuta)
     faqa: (ag.length>1
       ? 'Prices are <b>'+m1OrList(ag.map(g=>gbpShort(g.single)))+'</b> per piece depending on the line (shown on each item). Put <b>any '+from+' or more'+N+' items</b> in your bag (any mix) and '+(ap!==null?'you get <b>'+ap+'% off every'+klRingsNote()+' item</b>: <b>'+m1OrList(ag.map(g=>gbpShort(g.tier_each)))+' each</b>':'every item is <b>'+m1OrList(ag.map(g=>gbpShort(g.tier_each)))+' each</b>')
       : 'Every bracelet is <b>'+s+' each</b>. Put <b>any '+from+' or more'+N+' items</b> in your bag (mix any shades) and '+(p!==null?'you get <b>'+p+'% off every'+klRingsNote()+' item</b>: <b>'+e+' each</b>':'every item is <b>'+e+' each</b>'))+', with free UK delivery. Under '+from+' items'+klRingsShipNote()+', UK delivery is '+gbpP(SHIP.feeP)+'. The '+from+'+ price is applied automatically in your bag; promo codes can’t be added to it.',
-    count: (n)=>n+' shades · '+s+' each · '+tt,
+    count: (n)=>n+' shades · '+m1DealText(gr),
   };
 }
 function m1TierHint(n){
   const t=m1T(), gr=t.groups[t.gradient_group], from=t.cart_qty_tier.from;
   const p=m1Pct(gr);
   return n>=from ? gbpP(gr.tier_each)+' each'+(p!==null?' ('+p+'% off)':'')+' · free UK delivery included'
-    : gbpShort(gr.single)+' each · '+m1TierText(gr)+' · '+cardShipText();
+    : m1DealText(gr)+' · '+cardShipText();
 }
 /*KL-M1-END*/
 // M1 DOM glue (no-ops with the live default table).
@@ -1471,8 +1497,11 @@ function m1LineText(bc){ const s=m1Summary(cart), g=m1Group(bc), b=g&&s.groups.f
 function countText(n){ if(m1On()){ const T=m1Texts(); if(T) return T.count(n); } return n+' shades · online price £'+PRICE.toFixed(2)+' + '+gbpP(SHIP.feeP)+' UK delivery'; }
 // Hero price block (families view): the served table + the groups on sale. Until storefront.js has the family stock
 // (window.__klGroupsKnown) every group in the table is used (= the static text), so the first paint never flips.
+// Per tab (Komuta 24 Nov, CMA: a 'from' price must be available on what is shown): the groups of the cards on the
+// active tab (js/storefront.js window.klTabGroups); unknown yet / families off = the landing tab (Gradient) group.
+// [] = nothing on the tab takes part in the 10+ price (e.g. Rings) = no block.
 function klHeroPriceApply(){ try{ const t=m1T(), K=window.klSfL; if(!K||!K.sfHeroPriceApply) return;
-  const keys=t&&window.__klGroupsKnown ? [...new Set([t.gradient_group].concat(typeof window.klGroupList==='function'?window.klGroupList():[]))] : null;
+  let keys=typeof window.klTabGroups==='function'?window.klTabGroups():null; if(!keys&&t) keys=[t.gradient_group];
   K.sfHeroPriceApply(document, t, keys, klRingsNote()); }catch(e){} }
 window.klHeroPriceApply=klHeroPriceApply;
 function m1ApplyPage(){
@@ -1493,12 +1522,12 @@ function m1ApplyPage(){
     document.getElementById('mAdd').textContent='Add to bag — '+priceTxt(bc); }
 }
 function m1ApplyMeta(T){
-  const ship=shipSentence(), N=klRingsNote(), SN=klRingsShipNote(), nr=s=>N?s.replace(/(free with any )?\b(\d+\+|\d+ or more) items/g,(m,pre,n)=>pre?m:n+N+' items').replace(/(free with any \d+\+ items)/g,'$1'+SN):s;   // E1c: rings ON = price claims 'non-ring items', free-delivery claims 'items (rings included)' (K-070)   // the static meta texts are M1 since go-live (no spend-threshold sentence left to swap)
+  const ship=shipSentence(), N=klRingsNote(), SN=klRingsShipNote(), nr=s=>N?s.replace(/(free with any )?\b(\d+\+|\d+ or more|1–\d+) items/g,(m,pre,n)=>pre?m:n+N+' items').replace(/(free with any \d+\+ items)/g,'$1'+SN):s;   // E1c: rings ON = price claims 'non-ring items', free-delivery claims 'items (rings included)' (K-070)   // the static meta texts are M1 since go-live (no spend-threshold sentence left to swap)
   document.querySelectorAll('meta[name="description"],meta[property="og:description"],meta[name="twitter:description"],meta[property="og:title"],meta[name="twitter:title"]').forEach(m=>{
-    m.setAttribute('content', nr(m.getAttribute('content').replace(/from £\d+\.\d\d/, T.meta))); });
+    m.setAttribute('content', nr(m.getAttribute('content').replace(/from £\d+\.\d\d(?! each when)/, T.meta))); });
   document.querySelectorAll('script[type="application/ld+json"]').forEach(sc=>{ try{ const j=JSON.parse(sc.textContent); if(!j.offers) return;
     const ag=m1AllGroups(), p=(ag[0].single/100).toFixed(2), hi=(ag[ag.length-1].single/100).toFixed(2);
-    if(j.description) j.description=nr(j.description.replace(/from £\d+\.\d\d/, T.meta));
+    if(j.description) j.description=nr(j.description.replace(/from £\d+\.\d\d(?! each when)/, T.meta));
     if('lowPrice' in j.offers) j.offers.lowPrice=p; if('highPrice' in j.offers) j.offers.highPrice=hi; if('price' in j.offers) j.offers.price=p;
     const sd=j.offers.shippingDetails; if(sd&&sd.shippingRate) sd.shippingRate.value=(SHIP.feeP/100).toFixed(2); if(sd&&sd.description) sd.description=ship;
     sc.textContent=JSON.stringify(j); }catch(e){} });
@@ -1567,7 +1596,8 @@ function updateBag(){
       // measurement hooks for the CMA209 check (total = items + delivery), no visual change
       inf.setAttribute('data-kl-total',''); inf.dataset.klItemsP=subP; inf.dataset.klShipP=d.feeP; inf.dataset.klTotalP=d.totalP; }
     else { inf.removeAttribute('data-kl-total'); }
-    if(!hasItems) inf.innerHTML='Each <b>'+(m1On()?priceTxt(colours[0]&&colours[0].bc):'£'+PRICE.toFixed(2))+'</b><span class="dl" data-kl="fee1">'+cardShipText()+'</span>';
+    if(!hasItems) inf.innerHTML=m1On()?m1StickyHtml(m1T().groups[m1Group(colours[0]&&colours[0].bc)]||m1T().groups[m1T().gradient_group])
+      :'Each <b>£'+PRICE.toFixed(2)+'</b><span class="dl" data-kl="fee1">'+cardShipText()+'</span>';
   }
   const bar=document.getElementById('stickybar'); if(bar) bar.classList.toggle('has',hasItems);
   document.body.classList.toggle('has-bar',hasItems); document.documentElement.classList.toggle('has-bar',hasItems);
@@ -1875,7 +1905,7 @@ var SHOW_REVIEWS = false;
   "@type": "ProductCollection",
   "name": "Karmi Laven Bracelets & Necklaces",
   "url": "https://www.karmilaven.com/",
-  "description": "Bracelets and necklaces, £5, £8 or £13 each, or £1.50, £2.40 or £3.90 each when you buy any 10 or more items.",
+  "description": "Bracelets and necklaces, £1.50, £2.40 or £3.90 each when you buy any 10 or more items (any mix), or £5, £8 or £13 each for 1–9 items.",
   "brand": {
     "@type": "Brand",
     "name": "Karmi Laven"

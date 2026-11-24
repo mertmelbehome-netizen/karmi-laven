@@ -43,8 +43,8 @@ test('#1 the % comes from the data: A 500/150, B 800/240, C 1300/390 = 70; any o
   assert.equal(pctOff(T.groups.B, T), null)
   assert.equal(pctOff(T.groups.A, T), 70)
   const p = page(T)
-  assert.equal(p.m1PriceText(G1), '£8 each · £2.50 each when you buy any 10 or more items')
-  assert.equal(p.m1PriceText('SA'), '£5 each · 70% off when you buy any 10+ items (£1.50 each)')
+  assert.equal(p.m1PriceText(G1), '£2.50 each when you buy any 10+ items · £8 each for 1–9 items')   // deal-first re-pin (owner 24 Nov 2026)
+  assert.equal(p.m1PriceText('SA'), '£1.50 each when you buy any 10+ items (70% off) · £5 each for 1–9 items')
   for (let q = 1; q <= 14; q++) {
     const L = p.m1Lines([{ bc: G1, qty: q }])
     assert.doesNotMatch([L.progress, L.applied].join(' '), /%/, `B@£2.50 q=${q}`)
@@ -61,16 +61,21 @@ test('#1 the % comes from the data: A 500/150, B 800/240, C 1300/390 = 70; any o
   assert.doesNotMatch(page(T60).m1PriceText(G1), /%/)
 })
 
-test('#2 card: "£8 each · 70% off when you buy any 10+ items (£2.40 each)" - single price first, condition + 10+ price on the same line', () => {
+// re-pinned 24 Nov 2026 on purpose (owner via Komuta: "deal fiyatı bold ve hero kısım en uygun fiyat olsun, single fiyatı değil"):
+// the 10+ price leads, bold, its condition in the same block; the single price follows on the same view, smaller
+test('#2 card (deal-first): "£2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items" - 10+ price + condition first, single price second', () => {
   const p = page(M1P)
-  assert.equal(p.m1PriceText(G1), '£8 each · 70% off when you buy any 10+ items (£2.40 each)')
-  assert.equal(p.m1PriceText('SA'), '£5 each · 70% off when you buy any 10+ items (£1.50 each)')
-  assert.equal(p.m1PriceText('SC'), '£13 each · 70% off when you buy any 10+ items (£3.90 each)')
-  assert.match(p.m1PriceHtml(G1), /<span class="m1p">£8<\/span> each<\/span><span class="m1t"> · 70% off when you buy any 10\+ items \(£2\.40 each\)<\/span>/)
+  assert.equal(p.m1PriceText(G1), '£2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items')
+  assert.equal(p.m1PriceText('SA'), '£1.50 each when you buy any 10+ items (70% off) · £5 each for 1–9 items')
+  assert.equal(p.m1PriceText('SC'), '£3.90 each when you buy any 10+ items (70% off) · £13 each for 1–9 items')
+  assert.equal(p.m1PriceHtml(G1), '<span class="m1d"><b class="m1big">£2.40</b> each <span class="m1c">when you buy any 10+ items<span class="m1pct"> (70% off)</span></span></span><span class="m1sep"> · </span><span class="m1one">£8 each for 1–9 items</span>')
   const T = p.m1Texts()
-  assert.equal(T.count(38), '38 shades · £8 each · 70% off when you buy any 10+ items (£2.40 each)')
-  assert.equal(T.meta, '£8 each · 70% off when you buy any 10+ items (£2.40 each)')
-  assert.match(T.each, /<b>£8<\/b> each · 70% off when you buy any 10\+ items \(£2\.40 each\) <span class="dl" data-kl="fee1">\+ £1\.49 UK delivery · free with any 10\+ items<\/span>/)
+  assert.equal(T.count(38), '38 shades · £2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items')
+  assert.equal(T.meta, '£2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items')
+  assert.equal(T.hero, p.m1PriceHtml(G1))
+  assert.ok(HTML.includes('data-kl-m1="hero">' + T.hero + '</span>'), 'static hero first paint = m1Texts().hero')
+  assert.match(T.each, /<b>£2\.40<\/b> each when you buy any 10\+ items \(70% off\) · £8 each for 1–9 items <span class="dl" data-kl="fee1">\+ £1\.49 UK delivery · free with any 10\+ items<\/span>/)
+  assert.ok(HTML.includes('data-kl-m1="each">' + T.each + '</div>'), 'static story line first paint = m1Texts().each')
   assert.equal(T.faqq, 'How does 70% off when you buy any 10+ items work?')
   // group-wide since families went live (23 Nov): never 'every bracelet £8' next to £5 / £13 pieces
   assert.match(T.faqa, /^Prices are <b>£5, £8 or £13<\/b> per piece depending on the line \(shown on each item\)\. Put <b>any 10 or more items<\/b> in your bag \(any mix\) and you get <b>70% off every item<\/b>: <b>£1\.50, £2\.40 or £3\.90 each<\/b>, with free UK delivery\. Under 10 items, UK delivery is £1\.49/)
@@ -80,7 +85,7 @@ test('#2 card: "£8 each · 70% off when you buy any 10+ items (£2.40 each)" - 
   const head = [...HTML.matchAll(/<meta (?:name|property)="[^"]+" content="([^"]*)"/g)].map((m) => m[1]).join(' | ')
     + [...HTML.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => m[1]).join(' ')
   assert.doesNotMatch(head, /£8 each|per bracelet|Every bracelet|"lowPrice": "8\.00"/)
-  assert.equal(p.m1TierHint(3), '£8 each · 70% off when you buy any 10+ items (£2.40 each) · + £1.49 UK delivery · free with any 10+ items')
+  assert.equal(p.m1TierHint(3), '£2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items · + £1.49 UK delivery · free with any 10+ items')
   assert.equal(p.m1TierHint(10), '£2.40 each (70% off) · free UK delivery included')
 })
 
@@ -159,12 +164,13 @@ test('#9 K-08 words: no "Diamond" / "Lux Stone" in the served group labels', () 
 
 test('page CTA: card form + the delivery sentence once (the ad line stays out of the page copy)', () => {
   const T = page(M1P).m1Texts()
-  assert.equal(T.cta, 'Mix any shades · £8 each · 70% off when you buy any 10+ items (£2.40 each) · <span data-kl="ship">£1.49 UK delivery · free with any 10+ items</span>')
+  assert.equal(T.cta, 'Mix any shades · £2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items · <span data-kl="ship">£1.49 UK delivery · free with any 10+ items</span>')   // deal-first re-pin (owner 24 Nov 2026)
+  assert.ok(HTML.includes('data-kl-m1="cta">' + T.cta + '</div>'), 'static CTA first paint = m1Texts().cta')
   assert.equal((T.cta.match(/delivery/g) || []).length, 1)
   // ad line (marketing, K&D #8): condition + from-price + delivery in one frame
   assert.equal(T.ad, 'Buy 10+, get 70% off · from £2.40 each · free UK delivery')
   const S = page(NOPCT).m1Texts()
-  assert.equal(S.cta, 'Mix any shades · £8 each · £2.40 each when you buy any 10 or more items · <span data-kl="ship">£1.49 UK delivery · free with any 10+ items</span>')
+  assert.equal(S.cta, 'Mix any shades · £2.40 each when you buy any 10+ items · £8 each for 1–9 items · <span data-kl="ship">£1.49 UK delivery · free with any 10+ items</span>')   // deal-first re-pin (owner 24 Nov 2026)
   assert.equal(S.ad, null)
 })
 
