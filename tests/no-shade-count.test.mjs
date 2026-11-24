@@ -8,3 +8,10 @@ test('index.html (visible + meta + inline JS copy) carries no shade-count claim'
   assert.doesNotMatch(html, /fifteen/i)
   assert.doesNotMatch(html, /\b15\s+(faceted|shades|colou?rs)/i)
 })
+
+// K&D #92: copy must not name a colour range we do not stock ("champagne to cobalt").
+test('index.html names no colour range (cobalt / champagne to)', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(!/cobalt/i.test(html), 'cobalt is not in stock');
+  assert.ok(!/champagne to/i.test(html), 'colour range claim');
+});
