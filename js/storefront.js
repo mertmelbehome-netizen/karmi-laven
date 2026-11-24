@@ -219,7 +219,7 @@
   function isRing(bc) { return typeof window.m1FlatOf === 'function' && !!window.m1FlatOf(String(bc)); }   // flat group (K-069 rings), from the served table
   function ringTexts() { return typeof window.m1RingTexts === 'function' ? window.m1RingTexts() : null; }
   /* Rings tab: the panel's delivery line, the sticky bar and the info block after the grids carry the RING line (min 5, rings
-     don't count toward free delivery), never the generic 'free with any 10+ items' line nor the 10+ hero price (E1 / N2). */
+     count toward free delivery, K-070: 'free with any 10+ items (rings included)'), never the 10+ hero price (E1 / N2). */
   function syncRingInfo() {
     var on = tab === 'rings', R = on ? ringTexts() : null, rd = $('#klRDlv'), gd = $('#klFam .col-head [data-kl="ship"]');
     if (rd) { rd.hidden = !R; rd.textContent = R ? R.price + ' · ' + R.ship : ''; }
