@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import crypto from 'crypto';
 import { complete, release, flagLate, overshoot, notifyHeaders } from './_caps-lib.js';
+import { fromSession, ATTRIBUTION_KEYS } from './_attribution.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET);
 
@@ -89,13 +90,16 @@ export async function recordOrder(s) {
     items,
     store_id: 'WAT',
     status: 'paid',
+    // where the order came from (24 Nov 2026): utm_* / landing_path / referrer_host, cleaned again here; only the
+    // non-empty ones, so an order with no campaign link writes nothing extra
+    ...fromSession(s),
   };
 
   console.log('[stripe-webhook] recordOrder → inserting session', s.id, 'items:', items.length);
   let insertStatus = null;
   let insertBody = null;
   try {
-    const resp = await fetch(`${base}/rest/v1/online_orders`, {
+    const post = (body) => fetch(`${base}/rest/v1/online_orders`, {
       method: 'POST',
       headers: {
         apikey: key,
@@ -103,8 +107,22 @@ export async function recordOrder(s) {
         'Content-Type': 'application/json',
         Prefer: 'resolution=ignore-duplicates,return=minimal',
       },
-      body: JSON.stringify(row),
+      body: JSON.stringify(body),
     });
+    let resp = await post(row);
+    // The attribution columns come from ops-v2 migration 20261124110500. If they are not there yet (PGRST204 /
+    // 42703 'column ... does not exist'), the ORDER must still be recorded: retry once without them.
+    if (!resp.ok && ATTRIBUTION_KEYS.some((k) => k in row)) {
+      const t = await resp.text().catch(() => '');
+      if (/PGRST204|42703|utm_|landing_path|referrer_host/.test(t)) {
+        console.warn('[stripe-webhook] attribution columns missing, order recorded without them');
+        const plain = { ...row };
+        for (const k of ATTRIBUTION_KEYS) delete plain[k];
+        resp = await post(plain);
+      } else {
+        resp = { ok: false, status: resp.status, text: async () => t };
+      }
+    }
     insertStatus = resp.status;
     // Read body for logging only on non-2xx
     if (!resp.ok) {
