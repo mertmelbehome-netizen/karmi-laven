@@ -615,7 +615,8 @@ export function cartSummary(units, table = LADDERS) {
   const shipping = n ? shippingFeeP(basis.amountP, basis.units, t) : 0;
   // after unlocking: the 10 ladder units + the flat units that count toward free delivery (K-070 rings)
   const unlockShipping = unlockTotal === null ? null : shippingFeeP(unlockTotal - flatShipOutP, t.tierFrom + flatShipInN, t);
-  const flatInfo = anyFlat(t) ? { tier_units: tierN, flat_short: flatMinShortfall(priced, t) } : {}; // additive, flat tables only
+  // additive, flat tables only; ship_units = units free delivery is judged on (rings counted when counts_to_free_shipping)
+  const flatInfo = anyFlat(t) ? { tier_units: tierN, ship_units: basis.units, flat_short: flatMinShortfall(priced, t) } : {};
   return {
     units: n,
     ...flatInfo,
@@ -654,7 +655,9 @@ function groupProgress(units, t) {
   }
   const bestUnlocked = s.tier_unlocked;
   const lines = (s.flat_short || []).map((x) => x.message); // K-069: "Rings are sold in fives or more: add 2 more rings"
-  const freeAtTier = s.unlock_shipping_pence === 0 && s.shipping_pence > 0;
+  // "with free delivery" on the unlock line only when delivery turns free exactly AT the unlock; counted rings (K-070) can
+  // make it free sooner (5 rings + 3 items: 2 more for free delivery, 7 more for the 10+ price) -> its own delivery line below
+  const freeAtTier = s.unlock_shipping_pence === 0 && s.shipping_pence > 0 && !(gap && gap.units !== null && gap.units < s.to_unlock);
   // K-046 (23 Nov): "for x% off every item" only when every group in the cart is exactly the table's claimed percentage.
   const pctFor = s.pct_off !== null ? ` for ${s.pct_off}% off every item` : '';
   if (next && pctFor) {

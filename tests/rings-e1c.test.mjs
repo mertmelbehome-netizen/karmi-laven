@@ -1,7 +1,8 @@
-// K&D E1b/E1c (K-069, reviewer note karmi #76): rings never count toward the 10+ price nor free delivery
-// (counts_to_tier:false, counts_to_free_shipping:false). With rings ON (an enabled flat group) EVERY visible claim about
-// "10+ items" / "10 or more items" / "any mix" says "non-ring items" (one helper, klRingsNote(), inserted where the 10+
-// condition is generated). With rings OFF (production today) every text is byte-for-byte what master showed (sha pin).
+// K&D E1b/E1c (K-069, reviewer note karmi #76) + K-070/K-071 (Mert, 24 Nov 2026): rings never count toward the 10+ price
+// (counts_to_tier:false) but DO count toward free delivery (counts_to_free_shipping:true). With rings ON (an enabled flat
+// group) EVERY visible 10+ PRICE claim ("10+ items" / "10 or more items" / "any mix") says "non-ring items" (klRingsNote())
+// and every FREE-DELIVERY claim says "free with any 10+ items (rings included)" (klRingsShipNote()). With rings OFF
+// (production today) every text is byte-for-byte what master showed (sha pin).
 // The harness renders the page's own code as-is: pricing + delivery + M1 blocks, the bag footer (m1Foot), the bag line
 // (m1LineText), meta / JSON-LD (m1ApplyMeta) and the hero price block (klHeroPriceApply -> sfHeroPriceApply) on a stub DOM.
 import { test } from 'node:test'
@@ -119,40 +120,50 @@ test('rings OFF (ladders.json today + first paint): every page text byte-for-byt
 
 // a count claim: "10+" (not the price's name "10+ price"), "10 or more", "any mix"
 const CLAIM = /\b10\+(?! prices?\b)|\b10 or more\b|\bany mix\b|\bUnder 10\b/
-test('rings ON: every produced string with a 10+ / 10 or more / any mix claim says "non-ring items" (same string)', () => {
+test('rings ON: every 10+ / 10 or more / any mix claim says "non-ring items" (price) or "items (rings included)" (delivery)', () => {
   const r = record(ON), all = flat(r).map((s) => s.replace(/<[^>]*>/g, ''))
   let n = 0
   for (const s of all) {
     if (!CLAIM.test(s)) continue
     n++
-    assert.match(s, /non-ring item/, 'claim without the rings note: ' + s)
-    for (const m of s.matchAll(/\b10(\+| or more|(?<=Under 10))(?! prices?\b)(.{0,16})/g)) assert.match(m[2], /^ non-ring items?\b/, 'note right after the count: ' + m[0] + ' in ' + s)
+    assert.match(s, /non-ring item|items? \(rings included\)/, 'claim without the rings note: ' + s)
+    for (const m of s.matchAll(/\b10(\+| or more|(?<=Under 10))(?! prices?\b)(.{0,24})/g)) {
+      const pre = s.slice(Math.max(0, m.index - 20), m.index)
+      // a free-delivery claim counts rings (K-070): "free with any 10+ items (rings included)" / "Under 10 items (rings included), UK delivery"
+      if (/(free|delivery) with any $|Under $/.test(pre)) assert.match(m[2], /^ items? \(rings included\)/, 'delivery note right after the count: ' + m[0] + ' in ' + s)
+      else assert.match(m[2], /^ non-ring items?\b/, 'note right after the count: ' + m[0] + ' in ' + s)
+    }
+    assert.doesNotMatch(s, /free with any 10\+ non-ring/, 'rings count toward free delivery: ' + s)
   }
   assert.ok(n >= 20, 'scanned claims: ' + n)
   // the places the reviewer listed, explicitly
   const T = r.texts
-  assert.equal(T.cta.replace(/<[^>]*>/g, ''), 'Mix any shades · £8 each · 70% off when you buy any 10+ non-ring items (£2.40 each) · £1.49 UK delivery · free with any 10+ non-ring items')
+  assert.equal(T.cta.replace(/<[^>]*>/g, ''), 'Mix any shades · £8 each · 70% off when you buy any 10+ non-ring items (£2.40 each) · £1.49 UK delivery · free with any 10+ items (rings included)')
   assert.equal(T.faqq, 'How does 70% off when you buy any 10+ non-ring items work?')
   assert.match(T.faqa, /Put <b>any 10 or more non-ring items<\/b> in your bag \(any mix\)/)
+  assert.match(T.faqa, /Under 10 items \(rings included\), UK delivery is £1\.49\./)
   assert.equal(T.count[1], '8 shades · £8 each · 70% off when you buy any 10+ non-ring items (£2.40 each)')
   assert.equal(r.price[0][0], '£5 each · 70% off when you buy any 10+ non-ring items (£1.50 each)')
-  assert.equal(r.ship[1], '+ £1.49 UK delivery · free with any 10+ non-ring items')
+  assert.equal(r.ship[0], '£1.49 UK delivery · free with any 10+ items (rings included)')   // announce bar, hero, FAQ, footer (data-kl="ship")
+  assert.equal(r.ship[1], '+ £1.49 UK delivery · free with any 10+ items (rings included)')
   assert.match(r.hero[1], /<span class="kl-hp-cond">for any 10\+ non-ring items<\/span>/)
   const nine = r.bags[3].foot   // 9 B, no ring in the bag: the bag still says rings don't count
-  assert.equal(nine[1][1], '<span class="note">£1.49 UK delivery · free with any 10+ non-ring items</span>')
+  assert.equal(nine[1][1], '<span class="note">£1.49 UK delivery · free with any 10+ items (rings included)</span>')
   assert.equal(nine[4][0], 'Now £8 each · 70% off every non-ring item when your bag has 10+ non-ring items (£2.40 each)')
   assert.match(r.bags[10].lines.progress, /^Add 1 more non-ring item for 70% off every non-ring item/)
   assert.match(r.bags[11].lines.progress, /^Add 4 more non-ring items /)
-  assert.match(r.meta[0], /70% off every item when you buy any 10\+ non-ring items .* free with any 10\+ non-ring items\.$/)
+  assert.match(r.meta[0], /70% off every item when you buy any 10\+ non-ring items .* free with any 10\+ items \(rings included\)\.$/)
+  // 5 rings + 3 items: counted rings, delivery line of its own; 9 B + 3 rings = 12 items: delivery free
+  assert.equal(r.bags[10].foot[1][1], '<span class="free">FREE ✓</span>')
 })
 
-test('ON vs OFF: the only difference is the "non-ring" note (no other wording moved), the % rule kept, no save/strike', () => {
+test('ON vs OFF: the only differences are the "non-ring" / "(rings included)" notes (no other wording moved), the % rule kept, no save/strike', () => {
   // by path: ring lines ('Add 2 more rings to check out', L.rings) exist only ON and are compared nowhere else
   const paths = (o, p = '', out = {}) => { if (typeof o === 'string') out[p] = o; else if (o && typeof o === 'object') for (const k of Object.keys(o)) paths(o[k], p + '/' + k, out); return out }
   const pOn = paths(record(ON)), pOff = paths(record(OFF))
   // hero ON: 'for any 10+ non-ring items' (one line at 375px); progress: 'Add N more non-ring item(s)' (OFF 'Add N more');
   // every other claim: ' non-ring' before ' item(s)'
-  const strip = (s) => s.replace(/for any (\d+\+) non-ring items/g, 'when you buy any $1 items').replace(/(Add \d+ more) non-ring items?/g, '$1').replace(/(Buy \d+\+) non-ring items,/g, '$1,').replace(/ non-ring(?= items?\b)/g, '')
+  const strip = (s) => s.replace(/for any (\d+\+) non-ring items/g, 'when you buy any $1 items').replace(/(Add \d+ more) non-ring items?/g, '$1').replace(/(Buy \d+\+) non-ring items,/g, '$1,').replace(/ non-ring(?= items?\b)/g, '').replace(/ items \(rings included\)/g, ' items')
   let diff = 0
   for (const [k, s] of Object.entries(pOff)) {
     if (/^\/bags\/(\d+)\//.test(k) && BAGS[+k.split('/')[2]].some((c) => c.bc === RING)) continue   // a ring in the bag: priced only ON (rings-ui.test.mjs)
