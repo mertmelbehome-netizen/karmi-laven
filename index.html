@@ -954,6 +954,13 @@ function flTrack(eventType, payload){
     else{ fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:body,keepalive:true,mode:'cors'}).catch(function(){}); }
   }catch(e){}
 }
+// Where the visit came from (24 Nov 2026; cleaned on the server, api/_attribution.js). With cookie consent the FIRST
+// touch of the visit is kept in sessionStorage (kl_ft); without consent nothing is written to the device and only this
+// page's own URL params + document.referrer are sent at checkout. Never breaks the page.
+function klTouch(){ try{ var u=new URLSearchParams(location.search); return {utm_source:u.get('utm_source')||'',utm_medium:u.get('utm_medium')||'',utm_campaign:u.get('utm_campaign')||'',landing:location.pathname||'/',referrer:document.referrer||''}; }catch(e){ return {}; } }
+function klRememberFirstTouch(){ try{ if(klConsent()!=='accepted') return; if(sessionStorage.getItem('kl_ft')) return; sessionStorage.setItem('kl_ft', JSON.stringify(klTouch())); }catch(e){} }
+function klAttribution(){ try{ if(klConsent()==='accepted'){ var ft=sessionStorage.getItem('kl_ft'); if(ft) return JSON.parse(ft); } }catch(e){} return klTouch(); }
+klRememberFirstTouch();
 function uuid(){return 'kl-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);}
 function firePurchaseIfSuccess(){
   const u=new URLSearchParams(location.search);
@@ -1603,7 +1610,7 @@ async function checkout(){
   flTrack('begin_checkout',{cart_qty:q,cart_value:val});
   kl('Started Checkout',{$value:val,ItemNames:cart.map(c=>BY[c.bc].color_en),items:cart.map(c=>({ProductID:c.bc,SKU:c.bc,ProductName:BY[c.bc].color_en,Quantity:c.qty,ItemPrice:unitPrice(c.bc)||0})),CheckoutURL:'https://karmilaven.com/'});
   try{
-    const body={items,event_id:eventId,kl_sid:flSid(),consent:klConsent()}; const lp=klLadderParam(); if(lp) body.ladder=lp;   // preview only
+    const body={items,event_id:eventId,kl_sid:flSid(),consent:klConsent(),attribution:klAttribution()}; const lp=klLadderParam(); if(lp) body.ladder=lp;   // preview only
     const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify(body)});
     if(r.ok){const j=await r.json(); if(j.url){location.href=j.url;return;}}
@@ -1806,8 +1813,8 @@ function cookieChoice(accepted){
   var b=document.getElementById('cookie-banner');
   if(b){ b.classList.remove('visible'); setTimeout(function(){ b.style.display='none'; },450); }
   localStorage.setItem('kl_cookie_consent', accepted ? 'accepted' : 'rejected');
-  if(accepted) initConsentedAnalytics();
-  else { try{ localStorage.removeItem('kl_sid'); }catch(e){} }
+  if(accepted){ initConsentedAnalytics(); klRememberFirstTouch(); }
+  else { try{ localStorage.removeItem('kl_sid'); sessionStorage.removeItem('kl_ft'); }catch(e){} }
 }
 </script>
 
