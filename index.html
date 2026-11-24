@@ -1219,7 +1219,8 @@ function m1T(){ const L=(typeof window!=='undefined'&&window.klLadders)||M1_FALL
   return (L&&L.mode==='cart_qty_groups'&&L.groups&&L.cart_qty_tier&&Number.isInteger(L.cart_qty_tier.from))?L:null; }
 function m1On(){ return !!m1T(); }
 // Flat groups (K-069 rings; /api/stock serves ladders.flat_groups ONLY when one is enabled): one price per unit (each),
-// a minimum per order (min_qty), NOT on the 10+ ladder and NOT toward free delivery (= api/_pricing.js loadFlatGroups).
+// a minimum per order (min_qty), NOT on the 10+ ladder; toward free delivery only when counts_to_free_shipping is true
+// (K-070 rings, 24 Nov 2026) (= api/_pricing.js loadFlatGroups / shipBasis).
 // With no enabled flat group every function below gives exactly what it gave before (tests/rings-ui.test.mjs).
 function m1Flat(k){ const t=m1T(), F=t&&t.flat_groups, f=(typeof k==='string'&&F&&Object.prototype.hasOwnProperty.call(F,k))?F[k]:null;
   return (f&&f.enabled===true&&Number.isInteger(f.each)&&f.each>0&&Number.isInteger(f.min_qty)&&f.min_qty>0&&typeof f.unit_name==='string')?f:null; }
@@ -1235,12 +1236,12 @@ function m1Fee(amountP, units){ const free=(SHIP.freeP!==null&&amountP>=SHIP.fre
 const M1_NUMW={2:'twos',3:'threes',4:'fours',5:'fives',6:'sixes',7:'sevens',8:'eights',9:'nines',10:'tens'};
 // = cartSummary() for page lines [{bc,qty}] (cart order = unit order). Ungrouped lines are not priced (counted apart).
 // Unlock (Komuta rule 23 Nov): THIS cart completed to the threshold with the cheapest group already IN the cart.
-// Flat-group units (rings): priced at `each`, counted in units but NOT in the 10+ count (tier_units), the free-delivery
-// count or the % figure; flat_short = groups below their minimum (checkout refuses them).
+// Flat-group units (rings): priced at `each`, counted in units but NOT in the 10+ count (tier_units) or the % figure;
+// in the free-delivery count only with counts_to_free_shipping (K-070 rings: yes); flat_short = groups below their minimum.
 function m1Summary(lines){
-  const t=m1T(), by={}; let n=0, tn=0, single=0, tier=0, flatP=0, ungrouped=0;
+  const t=m1T(), by={}; let n=0, tn=0, single=0, tier=0, flatP=0, shipOutP=0, shipInN=0, ungrouped=0;
   lines.forEach(c=>{ const q=c.qty|0; if(q<=0) return; const g=m1Group(c.bc); if(!g){ ungrouped+=q; return; }
-    const f=m1Flat(g), gr=f?{single:f.each,tier_each:f.each}:t.groups[g]; n+=q; if(f) flatP+=q*f.each; else tn+=q;
+    const f=m1Flat(g), gr=f?{single:f.each,tier_each:f.each}:t.groups[g]; n+=q; if(f){ flatP+=q*f.each; if(f.counts_to_free_shipping===true) shipInN+=q; else shipOutP+=q*f.each; } else tn+=q;
     single+=q*gr.single; tier+=q*gr.tier_each;
     const b=by[g]||(by[g]={group:g,qty:0,single:gr.single,tier_each:gr.tier_each,each_charged:0}); b.qty+=q; });
   const from=t.cart_qty_tier.from, on=tn>=from, toUnlock=on?0:from-tn, charged=on?tier:single;
@@ -1248,7 +1249,7 @@ function m1Summary(lines){
   groups.forEach(b=>{ b.each_charged=on?b.tier_each:b.single; });
   let pad=null; lg.forEach(g=>{ if(!pad||g.tier_each<pad.tier_each) pad=g; });
   const unlock=(toUnlock&&pad)?tier+toUnlock*pad.tier_each:null;
-  const ship=n?m1Fee(charged-flatP,tn):0, uship=unlock===null?null:m1Fee(unlock-flatP,from);
+  const ship=n?m1Fee(charged-shipOutP,tn+shipInN):0, uship=unlock===null?null:m1Fee(unlock-shipOutP,from+shipInN);
   const fk=m1FlatKeys(), flat=fk.length?{tier_units:tn, flat_short:fk.map(k=>{ const f=m1Flat(k), b=by[k], q=b?b.qty:0, add=f.min_qty-q;
     return (q>0&&q<f.min_qty)?{group:k, qty:q, min_qty:f.min_qty, add, reason:f.unit_name+'s_min_'+f.min_qty,
       message:f.label+' are sold in '+(M1_NUMW[f.min_qty]||f.min_qty+'s')+' or more: add '+add+' more '+f.unit_name+(add===1?'':'s')}:null; }).filter(Boolean)}:{};
@@ -1257,7 +1258,7 @@ function m1Summary(lines){
     unlock_tier_each_pence:(toUnlock&&pad)?pad.tier_each:null, unlock_total_pence:unlock, unlock_shipping_pence:uship,
     unlock_lowers_total:unlock!==null&&unlock+uship<charged+ship, pct_off:m1GroupsPct(lg), groups, ungrouped};
 }
-// Bag delivery (display) = the server's (rings out of the free-delivery count); no ring in the bag = deliveryFor as before.
+// Bag delivery (display) = the server's (K-070: rings in the free-delivery count); no ring in the bag = deliveryFor as before.
 function m1BagDelivery(s, units){ if(!s||!(s.tier_units<s.units)) return deliveryFor(s?s.charged_pence:0, units);
   return {feeP:s.shipping_pence, totalP:s.charged_pence+s.shipping_pence, free:s.units>0&&s.shipping_pence===0}; }
 // Ring copy (K-069, safe copy until the owner answers 31_rings_ui_spec 'Open'): added on purpose, never picked up by the

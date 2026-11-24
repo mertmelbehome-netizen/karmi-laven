@@ -127,7 +127,7 @@ test('R enabled: page m1Summary = engine cartSummary for mixed bags, every field
   // the four named cases, in plain numbers
   const n = (lines) => { const s = p.m1Summary(lines); return [s.charged_pence, s.shipping_pence, s.tier_units, s.tier_unlocked, s.pct_off] }
   assert.deepEqual(n(bags['10 bracelets + 5 rings']), [10 * 150 + 2000, 0, 10, true, 70])
-  assert.deepEqual(n(bags['9 bracelets + 5 rings']), [9 * 500 + 2000, 149, 9, false, 70])
+  assert.deepEqual(n(bags['9 bracelets + 5 rings']), [9 * 500 + 2000, 0, 9, false, 70], '14 items incl. rings: free delivery, still no 10+ price')
   assert.deepEqual(n(bags['4 rings']), [1600, 149, 0, false, null])
   assert.deepEqual(n(bags['5 rings only']), [2000, 149, 0, false, null])
 })
