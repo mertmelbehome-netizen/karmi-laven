@@ -202,7 +202,7 @@ export function createHandler({
       const itemsCsv = bcList.map(x => `${x.bc}x${x.qty}`).join(',').slice(0, 480);
       const itemsNamed = bcList.map(x => `${x.bc} ${x.name} x${x.qty}`).join(' | ').slice(0, 480);
 
-      // Free delivery is judged without flat-group units (K-069: rings do not count); = (amount, totalQty) without them.
+      // Free delivery basis: shipBasis leaves out flat-group units with counts_to_free_shipping false (K-070: rings count).
       const sb = shipBasis(units, amount, table);
       const freeShip = freeShipping(sb.amountP, sb.units, table);
       const shipping_options = [ freeShip
