@@ -111,8 +111,8 @@ const sha = (o) => createHash('sha256').update(JSON.stringify(o)).digest('hex')
 // price second): only the price texts changed (texts.hero/meta/cta/each/count, hint 0-9, price[], meta/og/twitter/JSON-LD);
 // bag lines, progress, foot and hero block byte-identical to origin/master 2bc5018 (diffed record(OFF) before re-pinning)
 // sha256 of record(OFF) / record(null) taken on origin/master 9ed2989 (#77 meta, before this change): rings OFF = not one byte different
-const PIN_OFF = 'b3f7d8ad553ca4da567d971e9a1bef9f42c3105a8f7e94aef643b0d1761d6a8b'
-const PIN_FALLBACK = 'b3f7d8ad553ca4da567d971e9a1bef9f42c3105a8f7e94aef643b0d1761d6a8b'   // M1_FALLBACK = publicLadders(ladders.json)
+const PIN_OFF = '892e719b61ea3cb87b96fd5cf2ae6cb444df2929372301010c2dcca6b5fbfee0'
+const PIN_FALLBACK = '892e719b61ea3cb87b96fd5cf2ae6cb444df2929372301010c2dcca6b5fbfee0'   // M1_FALLBACK = publicLadders(ladders.json)
 
 test('rings OFF (ladders.json today + first paint): every page text byte-for-byte = master (sha pin)', () => {
   assert.equal(RAW.flat_groups.R.enabled, false)

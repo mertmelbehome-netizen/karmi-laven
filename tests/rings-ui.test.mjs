@@ -236,7 +236,7 @@ test('checkout: 1-4 rings never reach /api/checkout; the server 400 rings_min_5 
 })
 
 test('N2: on the Rings tab the 10+ hero price / delivery block steps aside for the ring line; rings never set the hero "from" price', () => {
-  assert.match(SF, /if \(isRing\(c\.barcode\)\) return;   \/\/ K-069/)
+  assert.match(SF, /\.filter\(function \(bc\) \{ return !isRing\(bc\) && priceP\(bc\) > 0; \}\);   \/\/ K-069: rings never set the 'from' price/)   // per-tab tabBcs (24 Nov)
   const fn = SF.match(/function syncRingInfo\(\) \{[\s\S]*?\n  \}/)[0]
   assert.match(fn, /\$\$\('\.launch, \.launchfee', info\)\.forEach\(function \(e\) \{ e\.classList\.toggle\('kl-roff', !!R\); \}\)/)
   assert.match(fn, /ri\.textContent = R \? R\.price \+ ' · ' \+ R\.ship : ''/)

@@ -514,7 +514,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Karmi Laven">
 <meta property="og:url" content="https://www.karmilaven.com/">
-<meta property="og:title" content="Karmi Laven — Bracelets &amp; Necklaces · from £1.50 each when you buy any 10+ items">
+<meta property="og:title" content="Karmi Laven — Bracelets &amp; Necklaces · The Gradient Edit £2.40 each when you buy any 10+ items">
 <meta property="og:description" content="Faceted bead shades — find your colour. £1.49 UK delivery · free with any 10+ items.">
 <meta property="og:image" content="https://www.karmilaven.com/og-image.jpg">
 <meta property="og:image:width" content="1200">
@@ -522,7 +522,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 <meta property="og:image:alt" content="Karmi Laven: colour, worn softly. Bracelets and necklaces.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@karmilaven">
-<meta name="twitter:title" content="Karmi Laven — Bracelets &amp; Necklaces · from £1.50 each when you buy any 10+ items">
+<meta name="twitter:title" content="Karmi Laven — Bracelets &amp; Necklaces · The Gradient Edit £2.40 each when you buy any 10+ items">
 <meta name="twitter:description" content="Faceted bead shades. Find your colour. £1.49 UK delivery · free with any 10+ items.">
 <meta name="twitter:image" content="https://www.karmilaven.com/og-image.jpg">
 </head>
@@ -550,7 +550,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
     <!-- families view hero price (25_hero_price): headline 10+ price + its condition + the single prices + delivery in ONE
          block (CMA/DMCC, ASA). Text = sfHeroPrice(ladders.json, every group); runtime: the served table + the groups on sale
          (sfHeroPriceApply). tests/hero-price.test.mjs keeps this static text = the table. Hidden on the old page (css). -->
-    <div class="kl-hp" id="klHeroPrice"><div class="kl-hp-l1"><span class="kl-hp-from">from</span> <b class="kl-hp-big">£1.50<small> each</small></b> <span class="kl-hp-cond">when you buy any 10+ items</span></div><div class="kl-hp-single">Single pieces £5 / £8 / £13</div><div class="kl-hp-dlv" data-kl="ship">£1.49 UK delivery · free with any 10+ items</div></div>
+    <div class="kl-hp" id="klHeroPrice"><div class="kl-hp-l1"><b class="kl-hp-big">£2.40<small> each</small></b> <span class="kl-hp-cond">when you buy any 10+ items</span></div><div class="kl-hp-single">Single piece £8</div><div class="kl-hp-dlv" data-kl="ship">£1.49 UK delivery · free with any 10+ items</div></div>
     <div class="stars fadein d2"><span class="num">Part of Melbe Home · with shops in Watford &amp; Guildford</span></div>
     <div class="cta fadein d3">
       <button class="btn" onclick="openBundle()">Build your bundle</button>
@@ -684,7 +684,7 @@ function sfHeroLine(vis) {
 function sfHeroPrice(t, keys, note) {
   if (!t || t.mode !== 'cart_qty_groups' || !t.groups || !t.cart_qty_tier || !(t.cart_qty_tier.from > 0)) return null;
   var ok = function (k) { var g = Object.prototype.hasOwnProperty.call(t.groups, k) && t.groups[k]; return !!g && g.single > 0 && g.tier_each > 0; };
-  var ks = (keys && keys.length ? keys : Object.keys(t.groups)).filter(ok);
+  var ks = (keys ? keys : Object.keys(t.groups)).filter(ok);   // keys given = exactly those (per tab; [] = no block)
   if (!ks.length) return null;
   var gs = ks.map(function (k) { return t.groups[k]; });
   var m = function (p) { return p % 100 === 0 ? '£' + p / 100 : '£' + (p / 100).toFixed(2); };
@@ -1497,8 +1497,11 @@ function m1LineText(bc){ const s=m1Summary(cart), g=m1Group(bc), b=g&&s.groups.f
 function countText(n){ if(m1On()){ const T=m1Texts(); if(T) return T.count(n); } return n+' shades · online price £'+PRICE.toFixed(2)+' + '+gbpP(SHIP.feeP)+' UK delivery'; }
 // Hero price block (families view): the served table + the groups on sale. Until storefront.js has the family stock
 // (window.__klGroupsKnown) every group in the table is used (= the static text), so the first paint never flips.
+// Per tab (Komuta 24 Nov, CMA: a 'from' price must be available on what is shown): the groups of the cards on the
+// active tab (js/storefront.js window.klTabGroups); unknown yet / families off = the landing tab (Gradient) group.
+// [] = nothing on the tab takes part in the 10+ price (e.g. Rings) = no block.
 function klHeroPriceApply(){ try{ const t=m1T(), K=window.klSfL; if(!K||!K.sfHeroPriceApply) return;
-  const keys=t&&window.__klGroupsKnown ? [...new Set([t.gradient_group].concat(typeof window.klGroupList==='function'?window.klGroupList():[]))] : null;
+  let keys=typeof window.klTabGroups==='function'?window.klTabGroups():null; if(!keys&&t) keys=[t.gradient_group];
   K.sfHeroPriceApply(document, t, keys, klRingsNote()); }catch(e){} }
 window.klHeroPriceApply=klHeroPriceApply;
 function m1ApplyPage(){

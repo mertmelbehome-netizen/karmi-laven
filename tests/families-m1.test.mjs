@@ -16,7 +16,7 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8')
 const HTML = read('../index.html')
 const SF = read('../js/storefront.js')
 const CORE = SF.match(/\/\*KL-SF-CORE-START\*\/([\s\S]*?)\/\*KL-SF-CORE-END\*\//)[1]
-const core = new Function(`${CORE}; return { sfPriceLine, sfFamCard, sfAddText, sfSticky, sfState, sfDeal };`)()
+const core = new Function(`${CORE}; return { sfPriceLine, sfFamCard, sfAddText, sfSticky, sfState, sfDeal, sfTabPick };`)()
 const RAW = JSON.parse(read('../ladders-preview/M1_mert_list.json'))
 const load = (raw) => { const r = loadLadders(raw); assert.ok(r.ok, r.error); return r.table }
 const [G1] = Object.keys(GRADIENT)
@@ -123,4 +123,35 @@ test('K-045/K-056: the referee-passed renders only (Karmi 08 A + L2 + 11 Showabl
   assert.doesNotMatch(core.sfFamCard({ ...c0, ai_image: false }, 'single', o), /AI-styled/)
   assert.match(core.sfFamCard(c0, 'single', o), /loading="lazy"/)
   assert.match(read('../css/storefront.css'), /\.kl-ai\{font-size:12px;[^}]*color:#6b6457/)
+})
+
+// Komuta 24 Nov 2026 (CMA: a 'from' price must be available on what is shown): the hero block and the sticky bar use the
+// lowest 10+ price among the cards SHOWN on the active tab + sub-chip, never a site-wide figure from another tab.
+test('per-tab "from": hero (sfHeroPrice) and sticky/info (sfDeal) = the lowest 10+ price of the cards on the active tab', () => {
+  const LAYOUT = HTML.match(/\/\*KL-SF-LAYOUT-START\*\/([\s\S]*?)\/\*KL-SF-LAYOUT-END\*\//)[1]
+  const { sfHeroPrice } = new Function(`${LAYOUT}; return { sfHeroPrice };`)()
+  const LINE = { 'Stretch Bracelet': 'A', 'Stretch Charm Bracelet': 'B', Bangle: 'C', 'Stretch Double Bracelet': 'C', 'Sparkle Line': 'C' }
+  const CARDS = JSON.parse(read('../data/cards.json')).cards.filter((c) => c.tab === 'bracelets')
+  const view = publicLadders(LADDERS)
+  const w = pageFns(HTML, { ladders: view, extra: CARDS.map((c) => ({ barcode: c.barcode, type: c.line, color_en: c.name })),
+    groups: Object.fromEntries(CARDS.filter((c) => LINE[c.line]).map((c) => [c.barcode, LINE[c.line]])) })
+  const money = (p) => (p % 100 === 0 ? '£' + p / 100 : '£' + (p / 100).toFixed(2))
+  const rows = [...Object.keys(GRADIENT).map((bc) => ({ bc, tab: 'gradient', line: 'Bead Bracelet', ok: true })),
+    ...CARDS.map((c) => ({ bc: c.barcode, tab: c.tab, line: c.line, ok: true }))]
+  const check = (tab, sub, want, from) => {
+    const bcs = core.sfTabPick(tab, sub, rows).filter((bc) => w.m1Group(bc))   // = js tabBcs(): priced pieces only
+    const keys = [...new Set(bcs.map((bc) => w.m1Group(bc)))]
+    const lowest = Math.min(...keys.map((k) => view.groups[k].tier_each))
+    assert.equal(money(lowest), want, `${tab}/${sub}`)
+    const h = sfHeroPrice(view, keys), d = core.sfDeal(bcs, w)
+    assert.equal(h.big, want, `hero ${tab}/${sub}`); assert.equal(h.from, from, `hero from ${tab}/${sub}`)
+    assert.equal(d.big, want, `sticky ${tab}/${sub}`); assert.equal(d.from, from, `sticky from ${tab}/${sub}`)
+    assert.equal(core.sfSticky(tab, 100, 149, null, d) && core.sfSticky(tab, 100, 149, null, d).info.indexOf('<b>' + want + '</b>') >= 0 || tab === 'gradient', true)
+  }
+  check('gradient', 'all', '£2.40', false)   // Gradient tab: its cards are group B only (never 'from £1.50')
+  check('bracelets', 'all', '£1.50', true)   // mixed A/B/C: the lowest price present, with 'from'
+  check('bracelets', 'stretch', '£1.50', false)   // only A cards
+  check('bracelets', 'charm', '£2.40', false)
+  check('bracelets', 'bangle', '£3.90', false)   // only C cards: never a lower figure from another tab
+  assert.deepEqual(core.sfTabPick('rings', 'all', rows), [], 'no ring rows here; js tabBcs drops rings anyway (K-069)')
 })

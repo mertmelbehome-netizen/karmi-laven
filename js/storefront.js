@@ -239,6 +239,11 @@
     var singles = gs.filter(function (g) { return g.single !== lo.single; }).length;
     return { from: tiers > 0, big: d.big, cond: d.cond, cond0: d.cond0, short: d.short, one: singles ? 'Single pieces from ' + sfMoney(sMin) : d.one };
   }
+  /** The barcodes SHOWN on a tab + sub-chip (Komuta 24 Nov: per-tab 'from' price). rows = [{bc, tab, line, ok}] (ok =
+   *  sellable now). Pure; js tabBcs() feeds it the page's cards. */
+  function sfTabPick(tab, sk, rows) {
+    return rows.filter(function (r) { return r.ok && r.tab === tab && (!sk || sk === 'all' || sfSubOf(tab, r.line) === sk); }).map(function (r) { return String(r.bc); });
+  }
   /*KL-SF-CORE-END*/
 
   /* families view first screen (nav fix 23 Nov, 15_nav_findability F1/F3/F7): sfBar / sfLayout / sfHeroLine / sfMetaCats
@@ -440,14 +445,30 @@
   }
   /* hero price with families on: the Gradient-only '£8' would mislead next to £5 / £13 pieces, so it reads
    *  'Online prices from £x' = the lowest single price among everything sellable now (Gradient + family cards). */
+  /* Per-tab 'from' price (Komuta 24 Nov, CMA: a 'from' price must be available on what is shown): the priced, sellable
+   * barcodes shown on the ACTIVE tab and sub-chip (Gradient: its pieces on sale; Gifts: the picks; family tabs: their
+   * cards). Rings never take part (K-069: flat price, not in the 10+ offer). Drives the hero block (index.html
+   * klHeroPriceApply via window.klTabGroups), the sticky bar and the info line after the grids. */
+  function tabBcs() {
+    var on = function (s) { return s === 'sellable' || s === 'single'; }, rows;
+    if (tab === 'gradient') rows = (window.DATA || []).filter(function (d) { return isGrad(d.barcode); }).map(function (d) { return { bc: d.barcode, tab: 'gradient', line: d.type, ok: gradOk(d.barcode) }; });
+    else if (tab === 'gifts') rows = giftRows().filter(function (r) { return r.bc; }).map(function (r) { return { bc: r.bc, tab: 'gifts', line: '', ok: true }; });
+    else rows = FAM.map(function (c) { return { bc: c.barcode, tab: c.tab, line: c.line, ok: on(famState(c)) }; });
+    return sfTabPick(tab, tab === 'gifts' ? 'all' : sub[tab], rows).filter(function (bc) { return !isRing(bc) && priceP(bc) > 0; });   // K-069: rings never set the 'from' price
+  }
+  /** groups (non-flat, in the served table) of the cards on the active tab; null = not known yet (family data not
+   *  loaded, or families off): the page then keeps the landing (Gradient) figure. */
+  window.klTabGroups = function () {
+    var t = L(); if (!CFG.families || !t || !t.groups || typeof window.m1Group !== 'function') return null;
+    if (tab !== 'gradient' && !FAM.length) return null;
+    var ks = [];
+    tabBcs().forEach(function (bc) { var k = window.m1Group(bc); if (k && Object.prototype.hasOwnProperty.call(t.groups, k) && ks.indexOf(k) < 0) ks.push(k); });
+    return ks;
+  };
   function syncHero() {
     var hp = $('.launch .p'), lb = $('.launch > span'); if (!hp) return;   // moved to #klInfo by sfLayout
-    var minP = null, t = L(), g = t && t.groups && t.gradient_group ? t.groups[t.gradient_group] : null, bcs = [];
-    if (g && Number.isInteger(g.single)) minP = g.single;
-    if ((window.DATA || [])[0]) bcs.push(window.DATA[0].barcode);
-    FAM.forEach(function (c) { var s = famState(c); if (s !== 'sellable' && s !== 'single') return;
-      if (isRing(c.barcode)) return;   // K-069: a £4 ring (min 5, not in the 10+ offer) never sets the 'from' price next to the 10+ line
-      var p = priceP(c.barcode); if (p) bcs.push(c.barcode); if (p && (minP === null || p < minP)) minP = p; });
+    var minP = null, bcs = tabBcs();   // per tab (Komuta 24 Nov)
+    bcs.forEach(function (bc) { var p = priceP(bc); if (p && (minP === null || p < minP)) minP = p; });
     if (minP === null) return;
     // deal-first (owner 24 Nov): the lowest 10+ price + its condition lead, the single prices follow in the same line
     var d = sfDeal(bcs, window);
@@ -462,11 +483,10 @@
     var inf = $('#stickyInfo'), btn = $('#stickyBtn'); if (!inf || !btn) return;
     if (!stickyOrig) stickyOrig = { text: btn.textContent, click: btn.onclick };
     if (totalQty() > 0) return;   // a bag with items: the page's bag total + View bag on every tab
-    var minP = null, dealBcs = [];
+    var minP = null, dealBcs = tab === 'rings' ? [] : tabBcs();   // per tab + sub-chip (Komuta 24 Nov)
     var on = function (s) { return s === 'sellable' || s === 'single'; };
-    (tab === 'gifts' ? giftRows().filter(function (r) { return r.bc; }).map(function (r) { return giftCard(r.bc); })
-      : FAM.filter(function (c) { return c.tab === tab && on(famState(c)); }))
-      .forEach(function (c) { var p = priceP(c.barcode); if (p) dealBcs.push(c.barcode); if (p && (minP === null || p < minP)) minP = p; });
+    (tab === 'rings' ? FAM.filter(function (c) { return c.tab === tab && on(famState(c)); }).map(function (c) { return c.barcode; }) : dealBcs)
+      .forEach(function (bc) { var p = priceP(bc); if (p && (minP === null || p < minP)) minP = p; });
     var st = sfSticky(tab, minP, SHIP.feeP, tab === 'rings' ? ringTexts() : null, tab === 'rings' ? null : sfDeal(dealBcs, window));
     if (!st) {
       if (btn.textContent !== stickyOrig.text) { btn.textContent = stickyOrig.text; btn.onclick = stickyOrig.click; updateBag(); }
