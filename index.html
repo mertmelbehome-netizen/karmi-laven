@@ -1404,7 +1404,7 @@ function m1ApplyPage(){
     document.getElementById('mAdd').textContent='Add to bag — '+priceTxt(bc); }
 }
 function m1ApplyMeta(T){
-  const ship=shipSentence(), N=klRingsNote(), SN=klRingsShipNote(), nr=s=>N?s.replace(/(?<!free with any )\b(\d+\+|\d+ or more) items/g,'$1'+N+' items').replace(/(free with any \d+\+ items)/g,'$1'+SN):s;   // E1c: rings ON = price claims 'non-ring items', free-delivery claims 'items (rings included)' (K-070)   // the static meta texts are M1 since go-live (no spend-threshold sentence left to swap)
+  const ship=shipSentence(), N=klRingsNote(), SN=klRingsShipNote(), nr=s=>N?s.replace(/(free with any )?\b(\d+\+|\d+ or more) items/g,(m,pre,n)=>pre?m:n+N+' items').replace(/(free with any \d+\+ items)/g,'$1'+SN):s;   // E1c: rings ON = price claims 'non-ring items', free-delivery claims 'items (rings included)' (K-070)   // the static meta texts are M1 since go-live (no spend-threshold sentence left to swap)
   document.querySelectorAll('meta[name="description"],meta[property="og:description"],meta[name="twitter:description"],meta[property="og:title"],meta[name="twitter:title"]').forEach(m=>{
     m.setAttribute('content', nr(m.getAttribute('content').replace(/from £\d+\.\d\d/, T.meta))); });
   document.querySelectorAll('script[type="application/ld+json"]').forEach(sc=>{ try{ const j=JSON.parse(sc.textContent); if(!j.offers) return;
