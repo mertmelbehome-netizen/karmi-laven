@@ -160,7 +160,7 @@ test('F4/F6: short chip labels, panel titles and tab roles unchanged', () => {
 test('CMA209: every priced card (Gradient + family) and the bag keep the delivery fee with the 10+ free condition', () => {
   // Gradient card template: the delivery line sits right under the price
   assert.match(HTML, /<div class="pr">\$\{m1On\(\)\?m1PriceHtml\(d\.barcode\):pt\}<\/div>\s*<div class="fee" data-kl="cardship">\$\{cardShipText\(\)\}<\/div>/)
-  assert.match(HTML, /function cardShipText\(\)\{[^\n]*'\+ '\+gbpP\(SHIP\.feeP\)\+' UK delivery'\+\(SHIP\.freeQty\?' · free with any '\+SHIP\.freeQty\+'\+'\+klRingsNote\(\)\+' items':''\)/)
+  assert.match(HTML, /function cardShipText\(\)\{[^\n]*'\+ '\+gbpP\(SHIP\.feeP\)\+' UK delivery'\+\(SHIP\.freeQty\?' · free with any '\+SHIP\.freeQty\+'\+ items'\+klRingsShipNote\(\):''\)/)
   // family card: price + delivery line together, for sellable and single states
   const c = { barcode: '1', name: 'Rose', line: 'Bead Necklace', swatch: '#fff', photo: '/x.jpg' }
   const ship = '+ £1.49 UK delivery · free with any 10+ items'

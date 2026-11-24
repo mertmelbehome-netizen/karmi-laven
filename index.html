@@ -1192,12 +1192,15 @@ function deliveryFor(subP, units){
 }
 function gbpP(p){ return '£'+(p/100).toFixed(2); }
 function gbpShort(p){ return p%100===0 ? '£'+(p/100) : gbpP(p); }
-function shipSentence(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with any '+SHIP.freeQty+'+'+klRingsNote()+' items':''); return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery, free on orders of '+gbpShort(SHIP.freeP)+'+'+(SHIP.freeQty?' (or '+SHIP.freeQty+'+ items)':''); }
-// K&D E1b/E1c (K-069): rings count toward neither the 10+ price nor free delivery, so while a flat group (rings) is ON every
-// 10+ / 10-or-more / any-mix claim says 'non-ring items' (inserted before ' item(s)' where the condition is generated:
-// delivery, tier text, FAQ, bag, progress, hero, meta). OFF = '' = every text byte-for-byte as before (tests/rings-e1c.test.mjs).
+function shipSentence(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with any '+SHIP.freeQty+'+ items'+klRingsShipNote():''); return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery, free on orders of '+gbpShort(SHIP.freeP)+'+'+(SHIP.freeQty?' (or '+SHIP.freeQty+'+ items)':''); }
+// K&D E1b/E1c (K-069) + K-070/K-071 (Mert, 24 Nov 2026): rings never count toward the 10+ PRICE (70%), so while a flat group
+// (rings) is ON every 10+ / 10-or-more / any-mix PRICE claim says 'non-ring items' (inserted before ' item(s)' where the
+// condition is generated: tier text, FAQ, bag, progress, hero, meta). Rings DO count toward free delivery, so every
+// free-delivery claim says 'free with any 10+ items (rings included)' (klRingsShipNote, after ' items').
+// OFF = '' = every text byte-for-byte as before (tests/rings-e1c.test.mjs).
 function klRingsNote(){ try{ return (typeof m1FlatKeys==='function' && m1FlatKeys().length) ? ' non-ring' : ''; }catch(e){ return ''; } }
-function cardShipText(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with any '+SHIP.freeQty+'+'+klRingsNote()+' items':''); return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery · free on orders of '+gbpShort(SHIP.freeP)+'+'+(SHIP.freeQty?' or '+SHIP.freeQty+'+ items':''); }
+function klRingsShipNote(){ try{ return (typeof m1FlatKeys==='function' && m1FlatKeys().length) ? ' (rings included)' : ''; }catch(e){ return ''; } }
+function cardShipText(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with any '+SHIP.freeQty+'+ items'+klRingsShipNote():''); return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery · free on orders of '+gbpShort(SHIP.freeP)+'+'+(SHIP.freeQty?' or '+SHIP.freeQty+'+ items':''); }
 function rollingText(subP, units){
   if(!(units>0)) return '';
   const d=deliveryFor(subP,units);
@@ -1231,13 +1234,13 @@ function m1Group(bc){ const t=m1T(); if(!t) return null;
   const k=isLadder(bc)?t.gradient_group:((typeof window!=='undefined'&&typeof window.klGroup==='function')?window.klGroup(bc):null);
   return (typeof k==='string'&&(Object.prototype.hasOwnProperty.call(t.groups,k)||!!m1Flat(k)))?k:null; }
 function m1Single(g){ const t=m1T(); if(!t||typeof g!=='string') return null; if(Object.prototype.hasOwnProperty.call(t.groups,g)) return t.groups[g].single; const f=m1Flat(g); return f?f.each:null; }
-// = server shippingFeeP (amount and units WITHOUT flat-group units)
+// = server shippingFeeP (amount and units WITHOUT the flat-group units that do not count toward free delivery)
 function m1Fee(amountP, units){ const free=(SHIP.freeP!==null&&amountP>=SHIP.freeP)||(SHIP.freeQty!==null&&units>=SHIP.freeQty); return free?0:SHIP.feeP; }
 const M1_NUMW={2:'twos',3:'threes',4:'fours',5:'fives',6:'sixes',7:'sevens',8:'eights',9:'nines',10:'tens'};
 // = cartSummary() for page lines [{bc,qty}] (cart order = unit order). Ungrouped lines are not priced (counted apart).
 // Unlock (Komuta rule 23 Nov): THIS cart completed to the threshold with the cheapest group already IN the cart.
 // Flat-group units (rings): priced at `each`, counted in units but NOT in the 10+ count (tier_units) or the % figure;
-// in the free-delivery count only with counts_to_free_shipping (K-070 rings: yes); flat_short = groups below their minimum.
+// in the free-delivery count (ship_units) only with counts_to_free_shipping (K-070 rings: yes); flat_short = groups below their minimum.
 function m1Summary(lines){
   const t=m1T(), by={}; let n=0, tn=0, single=0, tier=0, flatP=0, shipOutP=0, shipInN=0, ungrouped=0;
   lines.forEach(c=>{ const q=c.qty|0; if(q<=0) return; const g=m1Group(c.bc); if(!g){ ungrouped+=q; return; }
@@ -1250,7 +1253,7 @@ function m1Summary(lines){
   let pad=null; lg.forEach(g=>{ if(!pad||g.tier_each<pad.tier_each) pad=g; });
   const unlock=(toUnlock&&pad)?tier+toUnlock*pad.tier_each:null;
   const ship=n?m1Fee(charged-shipOutP,tn+shipInN):0, uship=unlock===null?null:m1Fee(unlock-shipOutP,from+shipInN);
-  const fk=m1FlatKeys(), flat=fk.length?{tier_units:tn, flat_short:fk.map(k=>{ const f=m1Flat(k), b=by[k], q=b?b.qty:0, add=f.min_qty-q;
+  const fk=m1FlatKeys(), flat=fk.length?{tier_units:tn, ship_units:tn+shipInN, flat_short:fk.map(k=>{ const f=m1Flat(k), b=by[k], q=b?b.qty:0, add=f.min_qty-q;
     return (q>0&&q<f.min_qty)?{group:k, qty:q, min_qty:f.min_qty, add, reason:f.unit_name+'s_min_'+f.min_qty,
       message:f.label+' are sold in '+(M1_NUMW[f.min_qty]||f.min_qty+'s')+' or more: add '+add+' more '+f.unit_name+(add===1?'':'s')}:null; }).filter(Boolean)}:{};
   return {units:n, ...flat, tier_from:from, tier_unlocked:on, single_total_pence:single, tier_total_pence:tier, charged_pence:charged,
@@ -1261,13 +1264,14 @@ function m1Summary(lines){
 // Bag delivery (display) = the server's (K-070: rings in the free-delivery count); no ring in the bag = deliveryFor as before.
 function m1BagDelivery(s, units){ if(!s||!(s.tier_units<s.units)) return deliveryFor(s?s.charged_pence:0, units);
   return {feeP:s.shipping_pence, totalP:s.charged_pence+s.shipping_pence, free:s.units>0&&s.shipping_pence===0}; }
-// Ring copy (K-069, safe copy until the owner answers 31_rings_ui_spec 'Open'): added on purpose, never picked up by the
+// Ring copy (K-069 + K-070/K-071, 31_rings_ui_spec): added on purpose, never picked up by the
 // FAQ / meta / JSON-LD texts (those read `groups` only). No %, no 'save', no strike-through; never the generic 10+ free line.
 function m1RingTexts(g){ const f=m1Flat(g||m1FlatKeys()[0]); if(!f) return null; const u=f.unit_name, us=u+'s';
   return { price: gbpShort(f.each*f.min_qty)+' for any '+f.min_qty+' '+us+' · '+gbpShort(f.each)+' each · minimum '+f.min_qty,
     priceHtml: '<span class="m1s"><span class="m1p">'+gbpShort(f.each*f.min_qty)+'</span> for any '+f.min_qty+' '+us+'</span><span class="m1t"> · '+gbpShort(f.each)+' each · minimum '+f.min_qty+'</span>',
-    ship: (SHIP.feeP===0?'Free UK delivery':'+ '+gbpP(SHIP.feeP)+' UK delivery')+' ('+us+' don\'t count towards free delivery)',
-    design: 'Designs vary — we pick from this style',
+    // K-070/K-071 (Mert, 24 Nov 2026): rings count toward free delivery (not toward 70%); blind pick within the ring type
+    ship: SHIP.feeP===0?'Free UK delivery':'+ '+gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?'; free with any '+SHIP.freeQty+'+ items ('+us+' included)':''),
+    design: 'We pick — every '+u+' is different, designs vary',
     short: function(add){ return 'Add '+add+' more '+u+(add===1?'':'s')+' to check out (minimum '+f.min_qty+')'; },
     group: f.label+' (min '+f.min_qty+')',
     sub: function(q){ return q+' '+u+(q===1?'':'s')+' · '+gbpP(q*f.each); } }; }
@@ -1301,7 +1305,11 @@ function m1Lines(lines){
       : s.tier_from+'+ price applied: '+(each.length===1?gbpP(each[0])+' each':'every'+klRingsNote()+' item at its '+s.tier_from+'+ price');
     out.promo='Promo codes can’t be used with the '+s.tier_from+'+ price.';
   } else if(s.unlock_total_pence!==null){
-    const freeToo=s.unlock_shipping_pence===0&&s.shipping_pence>0, fd=freeToo?' with free delivery':'';
+    // counted rings (K-070) can make delivery free BEFORE the 10+ unlock: then no 'with free delivery' on the unlock line,
+    // its own delivery line instead (= engine progress(); never without rings: ship_units only exists with rings ON)
+    const sg=(s.ship_units!==undefined&&SHIP.freeQty!==null&&s.shipping_pence>0)?SHIP.freeQty-s.ship_units:null;
+    const freeToo=s.unlock_shipping_pence===0&&s.shipping_pence>0&&!(sg!==null&&sg<s.to_unlock), fd=freeToo?' with free delivery':'';
+    if(sg!==null&&sg>0&&sg<s.to_unlock) out.delivery='Add '+sg+' more item'+(sg===1?'':'s')+klRingsShipNote()+' for free delivery';
     const pf=s.pct_off!==null?' for '+s.pct_off+'% off every'+klRingsNote()+' item':'';
     if(pf){   // = engine progress() with ui.percent_claim
       const eg=s.unlock_lowers_total&&s.to_unlock>1?m1Example(lines, s.unlock_group):null;
@@ -1356,7 +1364,7 @@ function m1Texts(){
     // group-wide (families live 23 Nov): a bag of £5 / £8 / £13 pieces must not read as 'every bracelet £8' (Komuta)
     faqa: (ag.length>1
       ? 'Prices are <b>'+m1OrList(ag.map(g=>gbpShort(g.single)))+'</b> per piece depending on the line (shown on each item). Put <b>any '+from+' or more'+N+' items</b> in your bag (any mix) and '+(ap!==null?'you get <b>'+ap+'% off every'+klRingsNote()+' item</b>: <b>'+m1OrList(ag.map(g=>gbpShort(g.tier_each)))+' each</b>':'every item is <b>'+m1OrList(ag.map(g=>gbpShort(g.tier_each)))+' each</b>')
-      : 'Every bracelet is <b>'+s+' each</b>. Put <b>any '+from+' or more'+N+' items</b> in your bag (mix any shades) and '+(p!==null?'you get <b>'+p+'% off every'+klRingsNote()+' item</b>: <b>'+e+' each</b>':'every item is <b>'+e+' each</b>'))+', with free UK delivery. Under '+from+N+' items, UK delivery is '+gbpP(SHIP.feeP)+'. The '+from+'+ price is applied automatically in your bag; promo codes can’t be added to it.',
+      : 'Every bracelet is <b>'+s+' each</b>. Put <b>any '+from+' or more'+N+' items</b> in your bag (mix any shades) and '+(p!==null?'you get <b>'+p+'% off every'+klRingsNote()+' item</b>: <b>'+e+' each</b>':'every item is <b>'+e+' each</b>'))+', with free UK delivery. Under '+from+' items'+klRingsShipNote()+', UK delivery is '+gbpP(SHIP.feeP)+'. The '+from+'+ price is applied automatically in your bag; promo codes can’t be added to it.',
     count: (n)=>n+' shades · '+s+' each · '+tt,
   };
 }
@@ -1396,7 +1404,7 @@ function m1ApplyPage(){
     document.getElementById('mAdd').textContent='Add to bag — '+priceTxt(bc); }
 }
 function m1ApplyMeta(T){
-  const ship=shipSentence(), N=klRingsNote(), nr=s=>N?s.replace(/\b(\d+\+|\d+ or more) items/g,'$1'+N+' items'):s;   // E1c: rings ON = 'non-ring items'   // the static meta texts are M1 since go-live (no spend-threshold sentence left to swap)
+  const ship=shipSentence(), N=klRingsNote(), SN=klRingsShipNote(), nr=s=>N?s.replace(/(?<!free with any )\b(\d+\+|\d+ or more) items/g,'$1'+N+' items').replace(/(free with any \d+\+ items)/g,'$1'+SN):s;   // E1c: rings ON = price claims 'non-ring items', free-delivery claims 'items (rings included)' (K-070)   // the static meta texts are M1 since go-live (no spend-threshold sentence left to swap)
   document.querySelectorAll('meta[name="description"],meta[property="og:description"],meta[name="twitter:description"],meta[property="og:title"],meta[name="twitter:title"]').forEach(m=>{
     m.setAttribute('content', nr(m.getAttribute('content').replace(/from £\d+\.\d\d/, T.meta))); });
   document.querySelectorAll('script[type="application/ld+json"]').forEach(sc=>{ try{ const j=JSON.parse(sc.textContent); if(!j.offers) return;
@@ -1406,19 +1414,19 @@ function m1ApplyMeta(T){
     const sd=j.offers.shippingDetails; if(sd&&sd.shippingRate) sd.shippingRate.value=(SHIP.feeP/100).toFixed(2); if(sd&&sd.description) sd.description=ship;
     sc.textContent=JSON.stringify(j); }catch(e){} });
 }
-// rolling bag text for a bag of lines; rings in it (K-069) are out of the free-delivery count (= server), else rollingText as before
+// rolling bag text for a bag of lines; with rings in it (K-069) = the server's delivery (rings counted, K-070), else rollingText as before
 function linesRolling(lines){ const n=lines.reduce((a,c)=>a+c.qty,0); if(m1On()){ const s=m1Summary(lines); if(s.tier_units<s.units){ const d=m1BagDelivery(s,n); return d.free?'Bag '+gbpP(d.totalP)+' · free UK delivery':'Bag '+gbpP(d.totalP)+' inc. '+gbpP(d.feeP)+' delivery'; } } return rollingText(Math.round(cartTotal(lines)*100), n); }
 function m1Foot(){
-  const s=m1Summary(cart), L=m1Lines(cart), q=s.units, dlv=m1BagDelivery(s,q), R=s.tier_units<s.units?m1RingTexts():null, ni=klRingsNote();   // rings ON: every 10+ line says 'non-ring items' (E1c)
+  const s=m1Summary(cart), L=m1Lines(cart), q=s.units, dlv=m1BagDelivery(s,q), R=s.tier_units<s.units?m1RingTexts():null, ni=klRingsNote(), sn=klRingsShipNote();   // rings ON: 10+ price lines 'non-ring items' (E1c), delivery lines 'items (rings included)' (K-070)
   document.getElementById('cartSub').textContent=q?gbpP(s.charged_pence):'—';   // K-11: no '£0.00' on screen
   // CMA209 §5.21: the fee sits in the SAME element as the 'free with 10+' claim
   document.getElementById('cartShipVal').innerHTML = dlv.free ? '<span class="free">FREE ✓</span>'
-    : (SHIP.freeQty?'<span class="note">'+gbpP(SHIP.feeP)+' UK delivery · free with any '+SHIP.freeQty+'+'+ni+' items</span>':gbpP(SHIP.feeP));
+    : (SHIP.freeQty?'<span class="note">'+gbpP(SHIP.feeP)+' UK delivery · free with any '+SHIP.freeQty+'+ items'+sn+'</span>':gbpP(SHIP.feeP));
   document.getElementById('cartTotal').textContent=q?gbpP(dlv.totalP):'—';
   const band=document.getElementById('cartShip');
-  if(L.progress) band.innerHTML='<b>'+L.progress+'</b> <button class="nudge-add" type="button" onclick="nudgeAddOne()">＋ Add</button>';
+  if(L.progress) band.innerHTML='<b>'+L.progress+'</b>'+(L.delivery?' · '+L.delivery:'')+' <button class="nudge-add" type="button" onclick="nudgeAddOne()">＋ Add</button>';
   else if(dlv.free) band.innerHTML='✓ <b>Free UK delivery</b>';
-  else band.textContent=R&&SHIP.freeQty&&SHIP.feeP?'Free UK delivery with any '+SHIP.freeQty+'+'+ni+' items · otherwise '+gbpP(SHIP.feeP):shipSentence();
+  else band.textContent=R&&SHIP.freeQty&&SHIP.feeP?'Free UK delivery with any '+SHIP.freeQty+'+ items'+sn+' · otherwise '+gbpP(SHIP.feeP):shipSentence();
   document.getElementById('shipFill').style.width=Math.min(100, (R?s.tier_units:q)/s.tier_from*100)+'%';
   const box=document.getElementById('cartM1'), t=m1T(), gr=t.groups[t.gradient_group];
   if(L.applied){ box.innerHTML='<span class="m1on">✓ '+L.applied+'</span><span class="m1promo">'+L.promo+'</span>'; box.hidden=false; }
@@ -1428,7 +1436,7 @@ function m1Foot(){
   // CTSI §20 (K&D): the same 'Add N more' line again right above Secure Checkout, the last screen before payment.
   // K-069: 1-4 rings = 'Add N more rings to check out (minimum 5)' above Secure Checkout, and checkout is disabled (the server refuses it too)
   const near=document.getElementById('cartM1Near'), rl=L.rings||[];
-  if(near){ if(rl.length){ near.innerHTML=rl.concat(L.progress?[L.progress]:[]).map(x=>'<span class="kl-near">'+x+'</span>').join(''); near.hidden=false; } else { near.textContent=L.progress||''; near.hidden=!L.progress; } }
+  if(near){ if(rl.length||L.delivery){ near.innerHTML=rl.concat(L.progress?[L.progress]:[], L.delivery?[L.delivery]:[]).map(x=>'<span class="kl-near">'+x+'</span>').join(''); near.hidden=false; } else { near.textContent=L.progress||''; near.hidden=!L.progress; } }
   const cb=document.getElementById('checkoutBtn'); cb.disabled=!cart.length||rl.length>0;
   if(rl.length) cb.setAttribute('aria-describedby','cartM1Near'); else cb.removeAttribute('aria-describedby');
 }
