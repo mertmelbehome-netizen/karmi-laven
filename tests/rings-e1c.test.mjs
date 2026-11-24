@@ -106,10 +106,10 @@ function record(view) {
 }
 const flat = (o) => (typeof o === 'string' ? [o] : Array.isArray(o) ? o.flatMap(flat) : o && typeof o === 'object' ? Object.values(o).flatMap(flat) : [])
 const sha = (o) => createHash('sha256').update(JSON.stringify(o)).digest('hex')
-
+// re-pinned 24 Nov 2026 twice (no-shade-count copy: herop text changed on purpose; K&D #92 removed the colour range)
 // sha256 of record(OFF) / record(null) taken on origin/master 9ed2989 (#77 meta, before this change): rings OFF = not one byte different
-const PIN_OFF = '7be61fbcc382024e9a75e083ea71570bd9638662db3a3994ba7a031d7a659c02'
-const PIN_FALLBACK = '7be61fbcc382024e9a75e083ea71570bd9638662db3a3994ba7a031d7a659c02'   // M1_FALLBACK = publicLadders(ladders.json)
+const PIN_OFF = '79358810a58757594c4703517f1358599d91eaa79987c1b6398c3f9e24de1d2e'
+const PIN_FALLBACK = '79358810a58757594c4703517f1358599d91eaa79987c1b6398c3f9e24de1d2e'   // M1_FALLBACK = publicLadders(ladders.json)
 
 test('rings OFF (ladders.json today + first paint): every page text byte-for-byte = master (sha pin)', () => {
   assert.equal(RAW.flat_groups.R.enabled, false)
