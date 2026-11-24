@@ -13,7 +13,11 @@ const read = (p) => readFileSync(new URL(p, ROOT), 'utf8')
 const RULES = [
   [/\(\?<[=!]/, 'regex lookbehind (?<= / (?<! - Safari 16.4'],
   [/\?\?=|\|\|=|&&=/, 'logical assignment ??= ||= &&= - Safari 14'],
-  [/\.at\(\s*-?\d/, 'Array/String .at() - Safari 15.4'],
+  [/\.at\s*\(/, 'Array/String .at() (any argument) - Safari 15.4'],
+  [/\.(toSorted|toReversed|toSpliced)\s*\(/, 'toSorted / toReversed / toSpliced - Safari 16'],
+  [/\.with\s*\(/, 'Array .with() - Safari 16'],
+  // a regex literal whose flags include v (unicodeSets): closing slash, flags, then a delimiter
+  [/\/[dgimsuy]*v[dgimsuy]*(?=[\s,;)\].}]|$)/m, 'regex v flag - Safari 17'],
   [/\bstructuredClone\s*\(/, 'structuredClone() - Safari 15.4'],
   [/\.findLast(Index)?\s*\(/, 'findLast / findLastIndex - Safari 15.4'],
   [/\bObject\.hasOwn\s*\(/, 'Object.hasOwn() - Safari 15.4'],
@@ -46,4 +50,9 @@ test('the guard itself catches a lookbehind (the 24 Nov #89 case)', () => {
   const sample = "s.replace(/(?<!free with any )\b(\d+\+|\d+ or more) items/g, 'x')"
   assert.ok(RULES.some(([re]) => re.test(sample)))
   assert.ok(!RULES.some(([re]) => re.test("s.replace(/(free with any )?\b(\d+\+) items/g, f)")), 'the K&D replacement passes')
+  // K&D #90 notes: a variable index, the copying array methods and the v flag are caught too
+  for (const bad of ['a.at(i)', 'list.at( n - 1 )', 'xs.toSorted()', 'xs.toReversed()', 'xs.with(0, 1)', 'const r = /[\p{L}--[a-z]]/v;', 'x.match(/a/gv)'])
+    assert.ok(RULES.some(([re]) => re.test(bad)), bad)
+  for (const ok of ["fetch('/api/stock?bc=1')", "'img/vase.jpg'", 'xs.sort()', 'xs.slice().reverse()', 'x.replace(/a/g, b)'])
+    assert.ok(!RULES.some(([re]) => re.test(ok)), ok)
 })
