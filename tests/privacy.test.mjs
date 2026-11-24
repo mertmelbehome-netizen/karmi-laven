@@ -65,6 +65,8 @@ test('privacy Art.13: retention table, rights, consent withdrawal and ICO compla
   assert.match(r, /Record that you unsubscribed<\/th><td>Indefinitely/)
   assert.match(r, /Reviews and review photos<\/th><td>While the review is shown on our site/)
   assert.match(r, /Where your visit came from[^<]*<\/th><td>Kept with your order record \(6 years\)<\/td>/)
+  assert.match(r, /Site visit data \(only if you accept cookies\)[^<]*<\/th><td>13 months, then deleted<\/td>/) // ops-v2 fn_funnel_events_purge (#944)
+  assert.match(r, /Data held by Meta and Google[^<]*<\/th><td>Kept by Meta and Google under their own retention settings/)
   assert.match(html, /withdraw it at any time/)
   assert.match(html, /complaint with the Information Commissioner's Office \(ICO\) at <a href="https:\/\/ico\.org\.uk"/)
   // every <th scope> table cell is explicit (accessibility); no new scripts on the page
