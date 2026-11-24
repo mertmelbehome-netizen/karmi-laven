@@ -16,7 +16,7 @@ const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8')
 const HTML = read('../index.html')
 const SF = read('../js/storefront.js')
 const CORE = SF.match(/\/\*KL-SF-CORE-START\*\/([\s\S]*?)\/\*KL-SF-CORE-END\*\//)[1]
-const core = new Function(`${CORE}; return { sfPriceLine, sfFamCard, sfAddText, sfSticky, sfState };`)()
+const core = new Function(`${CORE}; return { sfPriceLine, sfFamCard, sfAddText, sfSticky, sfState, sfDeal };`)()
 const RAW = JSON.parse(read('../ladders-preview/M1_mert_list.json'))
 const load = (raw) => { const r = loadLadders(raw); assert.ok(r.ok, r.error); return r.table }
 const [G1] = Object.keys(GRADIENT)
@@ -40,7 +40,9 @@ test('family card M1 price line = m1PriceText of the same group; add button = gr
   for (const [bc, single] of [['SA', '£5.00'], ['SB', '£8.00'], ['SC', '£13.00']]) {
     const h = card(bc, w)
     assert.equal(prText(h), w.m1PriceText(bc), bc)
-    assert.match(prText(h), /70% off when you buy any 10\+ items/, bc)
+    // deal-first (owner 24 Nov 2026, re-pinned on purpose): the 10+ price leads with its condition, the single price follows
+    assert.match(prText(h), /^£\d+\.\d\d each when you buy any 10\+ items \(70% off\) · £\d+ each for 1–9 items$/, bc)
+    assert.match(h, /<b class="m1big">£\d+\.\d\d<\/b> each <span class="m1c">when you buy any 10\+ items/, bc)
     assert.equal(addText(h), 'Add to bag — ' + single, bc)
     assert.equal(core.sfPriceLine(bc, w).p, Math.round(w.unitPrice(bc) * 100), 'price = what the M1 bag charges, not the till price')
   }
@@ -54,9 +56,9 @@ test('family card M1 price line = m1PriceText of the same group; add button = gr
 test('70% only when the table is exact: B tier £2.50 -> no % on a B family card, A/C keep it', () => {
   const raw = structuredClone(RAW); raw.groups.B.tier_each = 250
   const w = W(load(raw))
-  assert.equal(prText(card('SB', w)), '£8 each · £2.50 each when you buy any 10 or more items')
+  assert.equal(prText(card('SB', w)), '£2.50 each when you buy any 10+ items · £8 each for 1–9 items')   // deal-first re-pin (24 Nov)
   assert.doesNotMatch(card('SB', w), /%/)
-  assert.equal(prText(card('SA', w)), '£5 each · 70% off when you buy any 10+ items (£1.50 each)')
+  assert.equal(prText(card('SA', w)), '£1.50 each when you buy any 10+ items (70% off) · £5 each for 1–9 items')   // deal-first re-pin (24 Nov)
   // no percent_claim in the table: no % anywhere
   const w0 = W(load({ ...RAW, ui: { ...RAW.ui, percent_claim: null } }))
   for (const bc of ['SA', 'SB', 'SC']) assert.doesNotMatch(card(bc, w0), /%/, bc)
@@ -78,8 +80,17 @@ test('mobile sticky bar per tab (empty bag)', () => {
   assert.equal(core.sfSticky('hair', 800, 0).info, 'From <b>£8.00</b> each<span class="dl" data-kl="fee1">Free UK delivery</span>')
   assert.equal(core.sfSticky('hair', null, 149).info, '<span class="dl" data-kl="fee1">+ £1.49 UK delivery</span>', 'no sellable card: no price claim')
   for (const t of ['bracelets', 'necklaces', 'hair']) assert.doesNotMatch(core.sfSticky(t, 500, 149).btn, /bundle/i)
-  // the page's own Gradient bar text is unchanged
-  assert.match(HTML, /<div class="sp" id="stickyInfo" aria-live="polite">Each <b>£8\.00<\/b>/)
+  // deal-first (owner 24 Nov 2026, re-pinned on purpose): the Gradient bar leads with the 10+ price + condition, single price kept
+  assert.match(HTML, /<div class="sp" id="stickyInfo" aria-live="polite"><b>£2\.40<\/b> each when you buy any 10\+ items<span class="dl one">£8 each for 1–9 items<\/span>/)
+  const w = W(LADDERS)
+  // family tabs: with deal parts the lowest 10+ price of the tab leads, its condition next to it, the single price stays on the bar
+  const dA = core.sfDeal(['SA', 'SB'], w)
+  assert.deepEqual(dA, { from: true, big: '£1.50', cond: 'when you buy any 10+ items (70% off)', cond0: 'when you buy any 10+ items', short: 'for any 10+ items', one: 'Single pieces from £5.00' })
+  assert.deepEqual(core.sfDeal(['SB'], w), { from: false, big: '£2.40', cond: 'when you buy any 10+ items (70% off)', cond0: 'when you buy any 10+ items', short: 'for any 10+ items', one: '£8 each for 1–9 items' })
+  assert.equal(core.sfDeal(['NG'], w), null, 'no online group: no deal claim')
+  assert.equal(core.sfSticky('bracelets', 500, 149, null, dA).info, 'From <b>£1.50</b> each for any 10+ items<span class="dl" data-kl="fee1">+ £1.49 UK delivery</span>')
+  assert.equal(core.sfSticky('bracelets', null, 149, null, dA).info, '<span class="dl" data-kl="fee1">+ £1.49 UK delivery</span>', 'no sellable card: no price claim')
+  assert.equal(core.sfDeal(['SA'], { m1On: () => false }), null, 'pools table: no deal parts')
   assert.match(HTML, /<button class="sbtn" id="stickyBtn" onclick="openBundle\(\)">Build your bundle<\/button>/)
 })
 

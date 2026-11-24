@@ -107,9 +107,12 @@ function record(view) {
 const flat = (o) => (typeof o === 'string' ? [o] : Array.isArray(o) ? o.flatMap(flat) : o && typeof o === 'object' ? Object.values(o).flatMap(flat) : [])
 const sha = (o) => createHash('sha256').update(JSON.stringify(o)).digest('hex')
 // re-pinned 24 Nov 2026 twice (no-shade-count copy: herop text changed on purpose; K&D #92 removed the colour range)
+// re-pinned 24 Nov 2026 a third time ON PURPOSE (feat/deal-price-first, owner via Komuta: the 10+ price leads, the single
+// price second): only the price texts changed (texts.hero/meta/cta/each/count, hint 0-9, price[], meta/og/twitter/JSON-LD);
+// bag lines, progress, foot and hero block byte-identical to origin/master 2bc5018 (diffed record(OFF) before re-pinning)
 // sha256 of record(OFF) / record(null) taken on origin/master 9ed2989 (#77 meta, before this change): rings OFF = not one byte different
-const PIN_OFF = '79358810a58757594c4703517f1358599d91eaa79987c1b6398c3f9e24de1d2e'
-const PIN_FALLBACK = '79358810a58757594c4703517f1358599d91eaa79987c1b6398c3f9e24de1d2e'   // M1_FALLBACK = publicLadders(ladders.json)
+const PIN_OFF = 'b3f7d8ad553ca4da567d971e9a1bef9f42c3105a8f7e94aef643b0d1761d6a8b'
+const PIN_FALLBACK = 'b3f7d8ad553ca4da567d971e9a1bef9f42c3105a8f7e94aef643b0d1761d6a8b'   // M1_FALLBACK = publicLadders(ladders.json)
 
 test('rings OFF (ladders.json today + first paint): every page text byte-for-byte = master (sha pin)', () => {
   assert.equal(RAW.flat_groups.R.enabled, false)
@@ -138,12 +141,13 @@ test('rings ON: every 10+ / 10 or more / any mix claim says "non-ring items" (pr
   assert.ok(n >= 20, 'scanned claims: ' + n)
   // the places the reviewer listed, explicitly
   const T = r.texts
-  assert.equal(T.cta.replace(/<[^>]*>/g, ''), 'Mix any shades · £8 each · 70% off when you buy any 10+ non-ring items (£2.40 each) · £1.49 UK delivery · free with any 10+ items (rings included)')
+  // deal-first re-pin (owner 24 Nov 2026): the 10+ price leads; the single price says '1–9 non-ring items' (same count as the 10+ claim)
+  assert.equal(T.cta.replace(/<[^>]*>/g, ''), 'Mix any shades · £2.40 each when you buy any 10+ non-ring items (70% off) · £8 each for 1–9 non-ring items · £1.49 UK delivery · free with any 10+ items (rings included)')
   assert.equal(T.faqq, 'How does 70% off when you buy any 10+ non-ring items work?')
   assert.match(T.faqa, /Put <b>any 10 or more non-ring items<\/b> in your bag \(any mix\)/)
   assert.match(T.faqa, /Under 10 items \(rings included\), UK delivery is £1\.49\./)
-  assert.equal(T.count[1], '8 shades · £8 each · 70% off when you buy any 10+ non-ring items (£2.40 each)')
-  assert.equal(r.price[0][0], '£5 each · 70% off when you buy any 10+ non-ring items (£1.50 each)')
+  assert.equal(T.count[1], '8 shades · £2.40 each when you buy any 10+ non-ring items (70% off) · £8 each for 1–9 non-ring items')
+  assert.equal(r.price[0][0], '£1.50 each when you buy any 10+ non-ring items (70% off) · £5 each for 1–9 non-ring items')
   assert.equal(r.ship[0], '£1.49 UK delivery · free with any 10+ items (rings included)')   // announce bar, hero, FAQ, footer (data-kl="ship")
   assert.equal(r.ship[1], '+ £1.49 UK delivery · free with any 10+ items (rings included)')
   assert.match(r.hero[1], /<span class="kl-hp-cond">for any 10\+ non-ring items<\/span>/)
@@ -152,7 +156,7 @@ test('rings ON: every 10+ / 10 or more / any mix claim says "non-ring items" (pr
   assert.equal(nine[4][0], 'Now £8 each · 70% off every non-ring item when your bag has 10+ non-ring items (£2.40 each)')
   assert.match(r.bags[10].lines.progress, /^Add 1 more non-ring item for 70% off every non-ring item/)
   assert.match(r.bags[11].lines.progress, /^Add 4 more non-ring items /)
-  assert.match(r.meta[0], /70% off every item when you buy any 10\+ non-ring items .* free with any 10\+ items \(rings included\)\.$/)
+  assert.match(r.meta[0], /£3\.90 each when you buy any 10\+ non-ring items \(70% off every item, any mix\); £5, £8 or £13 each for 1–9 non-ring items\. .* free with any 10\+ items \(rings included\)\.$/)
   // 5 rings + 3 items: counted rings, delivery line of its own; 9 B + 3 rings = 12 items: delivery free
   assert.equal(r.bags[10].foot[1][1], '<span class="free">FREE ✓</span>')
 })
