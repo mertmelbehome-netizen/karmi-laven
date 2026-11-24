@@ -106,7 +106,7 @@ function record(view) {
 }
 const flat = (o) => (typeof o === 'string' ? [o] : Array.isArray(o) ? o.flatMap(flat) : o && typeof o === 'object' ? Object.values(o).flatMap(flat) : [])
 const sha = (o) => createHash('sha256').update(JSON.stringify(o)).digest('hex')
- -- re-pinned 24 Nov 2026 (no-shade-count copy: herop text changed on purpose)
+// re-pinned 24 Nov 2026 (no-shade-count copy: herop text changed on purpose)
 // sha256 of record(OFF) / record(null) taken on origin/master 9ed2989 (#77 meta, before this change): rings OFF = not one byte different
 const PIN_OFF = 'bc98085978fc20f34a4c220be5e8e403c2cd147aa7cbf171608ae748d2c47122'
 const PIN_FALLBACK = 'bc98085978fc20f34a4c220be5e8e403c2cd147aa7cbf171608ae748d2c47122'   // M1_FALLBACK = publicLadders(ladders.json)
