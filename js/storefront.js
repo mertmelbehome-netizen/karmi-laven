@@ -165,13 +165,37 @@
   /** Family card markup. o = {line: sfPriceLine(), badge, ship, full, dis, why, shipKey?, note?}. shipKey = the delivery
    *  line's data-kl hook (rings: 'ringship', never refreshed with the generic 10+ free line); note = an extra line (rings:
    *  'Designs vary ...'). Without them the markup is byte-for-byte what it was. */
+  /** Product gallery (24 Nov, shipped dormant): the QC-passed entries of the optional c.photos [{src, type, alt, qc, ai}].
+   *  photos[0] must be the card's own QC photo (c.photo + photo_qc), else no gallery. Fewer than 2 entries = no gallery:
+   *  the card is byte-for-byte the one-photo card (tests/product-gallery.test.mjs pins it against the pre-gallery render). */
+  function sfPhotos(c) {
+    var ps = c && c.photo && c.photo_qc && Array.isArray(c.photos) ? c.photos.filter(function (x) { return x && typeof x.src === 'string' && x.src && x.qc === true; }) : [];
+    return ps.length > 1 && ps[0].src === c.photo ? ps : [];
+  }
+  /** Card carousel: native scroll-snap track + dot buttons (index.html klCar* binds dots / arrow keys / scroll). Fixed 4/5
+   *  box (.imgwrap), every img with width/height, photo 1 eager, 2+ lazy; one "AI-styled image" label per AI photo
+   *  (ai missing: photo 1 follows c.ai_image, later photos are labelled). Pure. */
+  function sfGallery(c, ps) {
+    var n = ps.length, base = c.name + ', ' + c.line, slides = '', dots = '';
+    ps.forEach(function (x, i) {
+      // photo 1 is the card's main photo: an AI main photo stays labelled whatever its entry says (K&D #93 B1)
+      var ai = i === 0 ? (x.ai === true || !!c.ai_image) : (x.ai == null ? true : x.ai === true);
+      slides += '<div class="kl-slide" role="group" aria-roledescription="slide" aria-label="' + (i + 1) + ' of ' + n + '">'
+        + '<img src="' + sfEsc(x.src) + '" width="400" height="500" ' + (i ? 'loading="lazy" decoding="async"' : 'loading="eager"')
+        + ' alt="' + sfEsc(x.alt || (i ? base + ', photo ' + (i + 1) : base)) + '">'
+        + (ai ? '<small class="kl-ai kl-ai-s">AI-styled image</small>' : '') + '</div>';
+      dots += '<button type="button" class="kl-dot" data-kl-dot="' + i + '" aria-label="Photo ' + (i + 1) + ' of ' + n + '"' + (i ? '' : ' aria-current="true"') + '></button>';
+    });
+    return '<div class="imgwrap kl-car" role="region" aria-roledescription="carousel" aria-label="' + sfEsc(c.name) + ' photos" tabindex="0" data-kl-car>'
+      + '<div class="kl-track">' + slides + '</div><div class="kl-dots">' + dots + '</div></div>';
+  }
   function sfFamCard(c, st, o) {
-    var p = o.line && o.line.p, b = o.badge, media, body = '';
+    var p = o.line && o.line.p, b = o.badge, media, body = '', gal = st === 'photo' ? [] : sfPhotos(c);
     if (st === 'photo') {
       media = '<div class="kl-tone" style="background-color:' + sfEsc(c.swatch) + '" role="img" aria-label="Colour tile, not a photo"></div>';
       body = '<p class="kl-stt">Photo coming</p><p class="kl-why">Colour tile is a guide only. Coming soon.</p>';
     } else {
-      media = c.photo
+      media = gal.length ? sfGallery(c, gal) : c.photo
         ? '<div class="imgwrap"><img src="' + sfEsc(c.photo) + '" width="400" height="500" loading="lazy" alt="' + sfEsc(c.name + ', ' + c.line) + '"></div>'
         : '<div class="kl-tone" style="background-color:' + sfEsc(c.swatch) + '" role="img" aria-label="' + sfEsc(c.name) + ' colour tile, not a photo"></div>';
       if (!c.photo) body = '<p class="kl-stt">Photo coming</p><p class="kl-why">Colour tile is a guide only.</p>';
@@ -185,7 +209,7 @@
       }
     }
     return '<article class="card in kl-card' + (st === 'soldout' ? ' kl-soldout' : '') + '" data-kl-card data-kl-state="' + st + '"' + (st === 'photo' ? ' data-kl-photo="pending"' : '') + ' data-bc="' + sfEsc(c.barcode) + '">'
-      + media + '<div class="cbody">' + (c.ai_image && st !== 'photo' ? '<small class="kl-ai">AI-styled image</small>' : '') + '<h3 class="nm">' + sfEsc(c.name) + '</h3><div class="sub"><span class="d" style="background:' + sfEsc(c.swatch) + '" aria-hidden="true"></span>' + sfEsc(c.line) + '</div>'
+      + media + '<div class="cbody">' + (c.ai_image && st !== 'photo' && !gal.length ? '<small class="kl-ai">AI-styled image</small>' : '') + '<h3 class="nm">' + sfEsc(c.name) + '</h3><div class="sub"><span class="d" style="background:' + sfEsc(c.swatch) + '" aria-hidden="true"></span>' + sfEsc(c.line) + '</div>'
       + (p ? '<div class="pr">' + o.line.html + '</div><div class="fee" data-kl="' + (o.shipKey || 'cardship') + '">' + sfEsc(o.ship || '') + '</div>' + (o.note ? '<p class="kl-note">' + sfEsc(o.note) + '</p>' : '') : '') + body + '</div></article>';
   }
   /** Mobile sticky bar with an empty bag, per tab. Gradient Edit: null = keep the page's own bar ("Each £8.00" +

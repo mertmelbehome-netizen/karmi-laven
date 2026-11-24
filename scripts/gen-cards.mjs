@@ -1,4 +1,4 @@
-// scripts/gen-cards.mjs — builds data/cards.json (family card IDENTITY only: tab, family, name, tone, photo) from the
+// scripts/gen-cards.mjs — builds data/cards.json (family card IDENTITY only: tab, family, name, tone, photo, photos[]) from the
 // wave-1 config JSON (online-marketing, 2026-11-22_karmi_wave1_config.json v2.1).
 //   node scripts/gen-cards.mjs <wave1_config.json> [--photos <dir with <barcode>.jpg that PASSED photo QC>]
 //
@@ -19,6 +19,30 @@ const TONE = { blue: '#a9c3e3', pink: '#e9b9c6', purple: '#c9b6de', green_teal: 
   grey_black: '#8e8a86', white_clear: '#e8ecee', gold_tone: '#d9c08a', multi: '#d2c4d8' };
 export const FORBIDDEN = /(diamond|lux stone|genuine|real (gold|silver)|sterling|14ct|hypoallergenic|nickel[- ]free|waterproof|hand-strung|crystal)/i;
 
+// Gallery (PR #93): extra QC-passed photos sit next to the main one as <barcode>_2.jpg, <barcode>_3.jpg ... in the
+// same --photos dir (copied by hand to img/fam/). photos[0] is always the main photo, so the storefront's rule
+// (photos[0].src === photo, >= 2 entries with qc) holds. No extra file = no photos[] key = the card JSON is unchanged.
+// ai: photo 1 (the main photo) never carries ai: the storefront labels it from the card's ai_image (K&D #93 B1).
+// The extra photos take the wave-1 item's gallery_ai (true/false), which is REQUIRED once extra files exist (N1).
+// Rule for the pilot (N2): a file in --photos counts as QC-passed; only put photos there that passed photo QC.
+export const MAX_GALLERY = 6;
+export function galleryPhotos(bc, name, photoDir, galleryAi) {
+  if (!photoDir) return null;
+  const extra = [];
+  for (let n = 2; n <= MAX_GALLERY; n++) {
+    if (!existsSync(join(photoDir, `${bc}_${n}.jpg`))) break;
+    extra.push(n);
+  }
+  if (!extra.length) return null;
+  if (typeof galleryAi !== 'boolean') throw new Error(`gallery_ai (true/false) is required for ${bc}: it has extra photos`);
+  const mk = (src, n) => {
+    const e = { src, type: n === 1 ? 'main' : 'gallery', alt: `${name}, photo ${n}`, qc: true };
+    if (n > 1) e.ai = galleryAi;
+    return e;
+  };
+  return [mk(`/img/fam/${bc}.jpg`, 1), ...extra.map((n) => mk(`/img/fam/${bc}_${n}.jpg`, n))];
+}
+
 export function buildCards(items, photoDir = null) {
   const out = [];
   for (const it of items) {
@@ -32,8 +56,11 @@ export function buildCards(items, photoDir = null) {
     if (nm.includes(' · ')) throw new Error(`name contains " · ": ${nm}`);
     if (FORBIDDEN.test(nm)) throw new Error(`forbidden word in name: ${nm}`);
     const qc = !!(photoDir && existsSync(join(photoDir, `${bc}.jpg`)));
-    out.push({ barcode: bc, tab, family: it.family, line, name: short || line, swatch: TONE[it.tone_group] || '#d8d2c8',
-      photo: qc ? `/img/fam/${bc}.jpg` : null, photo_qc: qc });
+    const card = { barcode: bc, tab, family: it.family, line, name: short || line, swatch: TONE[it.tone_group] || '#d8d2c8',
+      photo: qc ? `/img/fam/${bc}.jpg` : null, photo_qc: qc };
+    const photos = qc ? galleryPhotos(bc, short || line, photoDir, it.gallery_ai) : null;
+    if (photos) card.photos = photos;
+    out.push(card);
   }
   return out;
 }
