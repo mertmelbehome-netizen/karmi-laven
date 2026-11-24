@@ -14,14 +14,26 @@ p,li{font-size:15px;color:#4a453d;margin-bottom:12px}
 ul{padding-left:20px} a{color:#b08d4e}
 footer{border-top:1px solid rgba(52,48,42,.13);text-align:center;padding:34px 0 50px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#928979}
 footer a{color:#b08d4e;text-decoration:none;margin:0 8px}
+table{width:100%;border-collapse:collapse;margin:6px 0 18px;font-size:14px}
+caption{text-align:left;font-size:13px;color:#6f675b;padding-bottom:6px}
+th,td{text-align:left;vertical-align:top;padding:9px 10px;border-bottom:1px solid rgba(52,48,42,.13);color:#4a453d}
+thead th{font-weight:500;color:#34302a;border-bottom:1px solid rgba(52,48,42,.3)}
+tbody th{font-weight:400}
+.tc{font-size:12px;letter-spacing:.04em;color:#8a6a33}
+@media(max-width:560px){table,thead,tbody,tr,th,td{display:block}thead{position:absolute;left:-9999px}tbody tr{border-bottom:1px solid rgba(52,48,42,.2);padding:6px 0}th,td{border:0;padding:3px 0}}
 </style></head><body>
 <header><a href="/">Karmi Laven</a></header>
-<main class="wrap"><h1>Privacy Policy</h1><div class="upd">Updated June 2026</div>
+<main class="wrap"><h1>Privacy Policy</h1><div class="upd">Updated November 2026</div>
 
 <p>Karmi Laven ("we", "us") respects your privacy. This policy explains what we collect and how we use it.</p>
+<h2 id="who">Who is responsible for your data</h2>
+<p>Karmi Laven is operated by <b>Melbe Home UK Ltd</b>, registered in England and Wales, company number <b>15549022</b>. Registered office: 8 Turner Court, High Street, Berkhamsted, HP4 3ZE. Melbe Home UK Ltd is the controller of the personal data described in this policy. For any privacy question or request, email <a href="mailto:hello@karmilaven.com">hello@karmilaven.com</a>.</p>
 <h2>What we collect</h2>
 <ul>
-<li>Order details: name, email, delivery address, and items purchased.</li>
+<li>Order details: name, email, phone number, delivery address, and items purchased.</li>
+<li>Where your visit came from (for example a campaign link), recorded with your order.</li>
+<li>If you write a review: your rating and review, and if you add them, your name, email, order number and a photo.</li>
+<li>If you join our email list: your email address.</li>
 <li>Payment is processed securely by <b>Stripe</b>; we do not store your card details.</li>
 <li>Basic site analytics (pages visited) to improve our store.</li>
 </ul>
@@ -30,20 +42,55 @@ footer a{color:#b08d4e;text-decoration:none;margin:0 8px}
 <li>To process and dispatch your order and provide customer support.</li>
 <li>To send order confirmations and, if you opt in, occasional updates.</li>
 </ul>
+<h2 id="lawful-basis">Why we use it, and our legal basis</h2>
+<table>
+<caption>Each purpose and the UK GDPR lawful basis we rely on</caption>
+<thead><tr><th scope="col">Purpose</th><th scope="col">Lawful basis</th></tr></thead>
+<tbody>
+<tr><th scope="row">Processing your order: taking payment (Stripe), dispatching it (Royal Mail), order confirmation and dispatch emails, returns, refunds and customer support</th><td>Contract (we need it to fulfil your order)</td></tr>
+<tr><th scope="row">We record the source of your visit (for example a campaign link) with your order: the campaign link details (utm_source, utm_medium, utm_campaign), the page you landed on and the name of the site that sent you (the site name only), so we can see which marketing works</th><td>Legitimate interests (understanding which marketing works). Nothing is stored on your device for this unless you accepted cookies.</td></tr>
+<tr><th scope="row">Marketing emails about new drops and offers, if you join our email list</th><td>Consent (you can withdraw it at any time)</td></tr>
+<tr><th scope="row">Keeping a record that you unsubscribed (a coded fingerprint of your email address, not the address itself), so we never send you marketing emails again</th><td>Legitimate interests (respecting your choice)</td></tr>
+<tr><th scope="row">Analytics and advertising measurement: Meta Pixel, Google Analytics (if activated), linking your visit to your purchase, and sending your purchase to Meta and Google from our server</th><td>Consent (cookie banner; nothing loads until you click Accept)</td></tr>
+<tr><th scope="row">Collecting your review and, after we check it, showing it on our site</th><td>Consent (you choose to send it; ask us and we will remove it)</td></tr>
+<tr><th scope="row">Fraud prevention and keeping the site secure (Stripe fraud checks; limiting repeated requests from one connection)</th><td>Legitimate interests (protecting you and our store)</td></tr>
+<tr><th scope="row">Keeping order, payment and tax records</th><td>Legal obligation (UK tax and accounting law)</td></tr>
+</tbody>
+</table>
+<p>You need to give your name, email, phone number and delivery address to place an order; without them we cannot take or deliver it. Joining our email list, accepting cookies and writing a review are always optional.</p>
 <h2>Sharing</h2>
 <p>We only share data with the providers needed to run the store (e.g. Stripe for payments, Royal Mail for delivery, Resend for emails). We never sell your data.</p>
 <h2>Cookies &amp; Tracking Technologies</h2>
 <p>We use the following technologies to measure and improve our store:</p>
 <ul>
-<li><b>Meta Pixel (Facebook/Instagram):</b> We use the Meta Pixel (ID 1791961201982687) to measure ad performance and understand how visitors interact with our site. This sends anonymised event data (page views, add-to-cart, purchases) to Meta Platforms Ireland Ltd. The Pixel is only loaded after you give consent. For more information, see <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener">Meta's Privacy Policy</a>.</li>
+<li><b>Meta Pixel (Facebook/Instagram):</b> We use the Meta Pixel (ID 1791961201982687) to measure ad performance and understand how visitors interact with our site. This sends anonymised event data (page views, add-to-cart, purchases) to Meta Platforms Ireland Ltd. When you complete a purchase we also send the purchase to Meta from our server, with your email address and phone number in coded (hashed) form, only if you accepted cookies. The Pixel is only loaded after you give consent. For more information, see <a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener">Meta's Privacy Policy</a>.</li>
 <li><b>Google Analytics (GA4):</b> If activated, we use GA4 to measure site traffic and conversions. Data is processed by Google LLC under their <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Privacy Policy</a>. GA4 is only loaded with your consent.</li>
 <li><b>Email (Resend):</b> If you sign up for email updates, we keep your email address in our own customer database (hosted by Supabase) and send our emails through Resend (Resend, Inc.), which uses your address only to deliver them. Order emails (confirmation and dispatch) are sent the same way. We do not share your browsing activity with our email provider. You can unsubscribe from marketing emails at any time with the link in any of them, or by emailing <a href="mailto:hello@karmilaven.com">hello@karmilaven.com</a>.</li>
 <li><b>Stripe:</b> Payment processing by Stripe Payments Europe Ltd. Stripe may set cookies for fraud prevention. See <a href="https://stripe.com/gb/privacy" target="_blank" rel="noopener">Stripe's Privacy Policy</a>.</li>
 </ul>
 <p>You can manage your cookie preference at any time by clicking "Reject" in the cookie banner that appears when you first visit our site. Your choice is stored in your browser and can be cleared by clearing browser storage.</p>
 
+<h2 id="hosting">Where your data is held</h2>
+<p>Our website and its order, sign-up and review functions run on <b>Vercel</b> (hosting). Our customer database (orders, email list, reviews and review photos) is hosted by <b>Supabase</b>. Our own team uses it to run the store.</p>
+<h2 id="transfers">International transfers</h2>
+<p>Some of the providers we use (Stripe, Resend, Vercel, Supabase, Meta and Google) are based in, or may process data in, countries outside the UK, including the United States. When your data is transferred to the US, we rely on the UK Extension to the EU-US Data Privacy Framework (the "UK-US data bridge") where the provider is certified under it, or otherwise on the ICO's International Data Transfer Agreement (IDTA) or the UK Addendum to the EU Standard Contractual Clauses. For other countries we rely on UK adequacy regulations or these same contract terms. Email us for more detail.</p>
+<h2 id="retention">How long we keep it</h2>
+<table>
+<caption>How long we keep each kind of data</caption>
+<thead><tr><th scope="col">Data</th><th scope="col">How long we keep it</th></tr></thead>
+<tbody>
+<tr><th scope="row">Orders, payments and tax records</th><td>6 years, as UK tax law (HMRC) requires</td></tr>
+<tr><th scope="row">Email list (marketing)</th><td>Until you unsubscribe</td></tr>
+<tr><th scope="row">Record that you unsubscribed</th><td>Indefinitely, so we keep honouring your choice (we keep only a coded fingerprint of your email address)</td></tr>
+<tr><th scope="row">Reviews and review photos</th><td>While the review is shown on our site, or until you ask us to remove it</td></tr>
+<tr><th scope="row">Where your visit came from (campaign link, landing page, referring site)</th><td>Kept with your order record (6 years)</td></tr>
+<tr><th scope="row">Site visit data (only if you accept cookies), including the link between your visits and your purchase</th><td>13 months, then deleted</td></tr>
+<tr><th scope="row">Data held by Meta and Google (if you accept cookies)</th><td>Kept by Meta and Google under their own retention settings and policies (linked above)</td></tr>
+<tr><th scope="row">Your cookie choice and basket</th><td>In your own browser until you clear browser storage</td></tr>
+</tbody>
+</table>
 <h2>Your rights</h2>
-<p>Under UK GDPR, you have the right to access, correct, or delete your personal data, to object to or restrict processing, and to data portability. You may request any of these by emailing <a href="mailto:hello@karmilaven.com">hello@karmilaven.com</a>. You also have the right to lodge a complaint with the Information Commissioner's Office (ICO) at <a href="https://ico.org.uk" target="_blank" rel="noopener">ico.org.uk</a>.</p>
+<p>Under UK GDPR, you have the right to access, correct, or delete your personal data, to object to or restrict processing, and to data portability. Where we rely on your consent (marketing emails, cookies, reviews) you can withdraw it at any time; this does not affect what we did before. You can object to direct marketing at any time and we will stop. You may request any of these by emailing <a href="mailto:hello@karmilaven.com">hello@karmilaven.com</a>. We aim to reply within one month. Please tell us first so we can put it right. You also have the right to lodge a complaint with the Information Commissioner's Office (ICO) at <a href="https://ico.org.uk" target="_blank" rel="noopener">ico.org.uk</a>.</p>
 </main>
 <footer class="wrap"><a href="/">Home</a> · <a href="/shipping-returns.html">Shipping &amp; Returns</a> · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a> · <a href="/contact.html">Contact</a><br><br>© 2026 Karmi Laven<br>Karmi Laven is operated by Melbe Home UK Ltd, registered in England and Wales, company number 15549022. Registered office: 8 Turner Court, High Street, Berkhamsted, HP4 3ZE.</footer>
 </body></html>
