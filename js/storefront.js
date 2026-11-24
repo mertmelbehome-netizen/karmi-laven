@@ -273,7 +273,7 @@
     document.documentElement.classList.add('kl-v2');
     // hero copy for a multi-category page (no "hand-strung"/"crystal" claim for hair and necklaces: 03 §2)
     // hero eyebrow / sub-line: sfLayout (H1 + one short line; M1 would put the Gradient-only line back, so its key is dropped)
-    // Gradient-only copy (15 shades / 4mm crystal / bracelet sizes, made-in, the Gradient 10+ answer): shown on the
+    // Gradient-only copy (shade count / 4mm crystal / bracelet sizes, made-in, the Gradient 10+ answer): shown on the
     // Gradient Edit tab only (renderTabs); copy shown on every tab is made family-neutral here.
     $$('.story, section.faq').forEach(function (e) { e.setAttribute('data-kl-gonly', ''); });
     $$('.gtknow .faq').forEach(function (e) {
