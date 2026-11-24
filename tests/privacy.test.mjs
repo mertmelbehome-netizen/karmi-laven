@@ -60,7 +60,11 @@ test('privacy Art.13: retention table, rights, consent withdrawal and ICO compla
   const html = read('privacy.html')
   const r = sect(html, 'retention')
   assert.match(r, /<table>[\s\S]*<th scope="col">Data<\/th>/)
-  assert.match(r, /Orders, payments and tax records<\/th><td>For as long as UK tax law requires \(currently 6 years\) <span class="tc">\[Mert to confirm\]<\/span>/)
+  assert.match(r, /Orders, payments and tax records<\/th><td>6 years, as UK tax law \(HMRC\) requires<\/td>/)
+  assert.match(r, /Email list \(marketing\)<\/th><td>Until you unsubscribe<\/td>/)
+  assert.match(r, /Record that you unsubscribed<\/th><td>Indefinitely/)
+  assert.match(r, /Reviews and review photos<\/th><td>While the review is shown on our site/)
+  assert.match(r, /Where your visit came from[^<]*<\/th><td>Kept with your order record \(6 years\)<\/td>/)
   assert.match(html, /withdraw it at any time/)
   assert.match(html, /complaint with the Information Commissioner's Office \(ICO\) at <a href="https:\/\/ico\.org\.uk"/)
   // every <th scope> table cell is explicit (accessibility); no new scripts on the page
@@ -68,11 +72,12 @@ test('privacy Art.13: retention table, rights, consent withdrawal and ICO compla
   assert.doesNotMatch(html, /<script/i)
 })
 
-test('privacy Art.13: each unknown is left as [Mert to confirm]', () => {
+test('privacy Art.13: no placeholder text on the public page (Komuta 24 Nov, K&D #86)', () => {
   const html = read('privacy.html')
-  const n = (html.match(/\[Mert to confirm\]/g) || []).length
-  assert.equal(n, 6, 'tax 6y, email list, suppression, reviews, analytics, Stripe reminder basis')
-  assert.match(html, /Reminder email from Stripe[\s\S]*?Legitimate interests <span class="tc">\[Mert to confirm\]/)
+  assert.doesNotMatch(html, /Mert to confirm|\[TBC\]|TODO/i)
+  // decisions 24 Nov: the Stripe checkout reminder stays OFF -> no row; no unverified analytics retention period
+  assert.doesNotMatch(html, /Reminder email from Stripe/)
+  assert.doesNotMatch(html, /Analytics and visit-source data/)
 })
 
 test('privacy: every processor named is really used by the code (no invented vendors)', () => {
