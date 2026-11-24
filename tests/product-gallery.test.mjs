@@ -34,7 +34,10 @@ function photoErrors(c) {
   c.photos.forEach((p, i) => {
     if (!p || typeof p.src !== 'string' || !p.src.startsWith('/img/')) { e.push(`photos[${i}] src`); return }
     if (typeof p.alt !== 'string' || !p.alt.trim()) e.push(`photos[${i}] alt`)
-    if (typeof p.ai !== 'boolean') e.push(`photos[${i}] ai label flag`)
+    // photo 1 is labelled from the card's ai_image (gen-cards never stamps it, K&D #93 B1): it may omit ai, but if it
+    // carries one it must agree with the card. Extra photos MUST carry a boolean ai (the AI-label safety net).
+    if (i === 0) { if (p.ai !== undefined && p.ai !== !!c.ai_image) e.push(`photos[0] ai disagrees with ai_image`) }
+    else if (typeof p.ai !== 'boolean') e.push(`photos[${i}] ai label flag`)
     if (typeof p.qc !== 'boolean') e.push(`photos[${i}] qc flag`)
     if (p.qc === true) {
       const u = new URL('..' + p.src, import.meta.url)
@@ -132,6 +135,17 @@ test('cards.json photos[]: photos[0].src == photo, alt + ai + qc per entry, ever
   assert.ok(photoErrors(gal({ photos: [...gal().photos, { src: '/img/fam/9999_2.jpg', alt: 'x', qc: true, ai: true }] })).some((e) => /missing file/.test(e)))
   assert.ok(photoErrors(gal({ photos: [gal().photos[0], { src: '/img/fam/2023.jpg', alt: '', qc: true }] })).some((e) => /alt|ai label/.test(e)))
   assert.ok(photoErrors(gal({ photos: [{ ...gal().photos[0] }], photo_qc: false })).includes('photos without a QC hero photo'))
+})
+
+test('data rule: photos[0] may omit ai (follows ai_image); an extra photo without a boolean ai fails (K&D #93 note)', () => {
+  const [p0, p1] = gal().photos
+  const { ai, ...p0NoAi } = p0
+  assert.deepEqual(photoErrors(gal({ photos: [p0NoAi, p1] })), [], 'photos[0] without ai passes')
+  assert.deepEqual(photoErrors(gal({ ai_image: false, photos: [p0NoAi, p1] })), [], 'also on a real-photo card')
+  assert.ok(photoErrors(gal({ photos: [{ ...p0, ai: false }, p1] })).includes('photos[0] ai disagrees with ai_image'), 'photos[0] ai must match ai_image when present')
+  const { ai: a1, ...p1NoAi } = p1
+  assert.ok(photoErrors(gal({ photos: [p0NoAi, p1NoAi] })).includes('photos[1] ai label flag'), 'extra photo without ai fails')
+  assert.ok(photoErrors(gal({ photos: [p0NoAi, { ...p1, ai: 'yes' }] })).includes('photos[1] ai label flag'), 'extra photo with a non-boolean ai fails')
 })
 
 test('hair and rings: no photos, so no gallery in any state (no gallery image before 2-referee QC)', () => {

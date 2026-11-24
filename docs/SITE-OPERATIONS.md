@@ -94,3 +94,17 @@ per-order barcode breakdown, customer email/phone/address (on paid orders).
 8. **Post-purchase upsell / reviews** request email.
 
 See `SETUP-VERCEL.md` for the original Vercel/Stripe setup steps.
+
+## 7. Product gallery (photos[], PR #93)
+
+- A family card shows a swipe gallery only when `data/cards.json` gives it `photos[]` with 2+ entries,
+  `photos[0].src === photo` and `photo_qc: true` (one photo or none = the plain card, byte-identical).
+- Extra photos are `img/fam/<barcode>_2.jpg`, `_3.jpg` ... (web size, same 4/5 box as the main photo, each file
+  under 150 KB; `tests/product-gallery.test.mjs` checks this). `node scripts/gen-cards.mjs <wave1_config.json>
+  --photos <dir>` reads `<barcode>_N.jpg` from the same `--photos` dir and needs the item's `gallery_ai`
+  (true/false); it throws without it.
+- **Only photos that passed photo QC may be placed in the `--photos` folder.** gen-cards treats every file there
+  as QC-passed (`qc: true`), so an unchecked file in that folder goes live as soon as the data is merged.
+- `photos[0]` (the main photo) may omit `ai`: it is labelled from the card's `ai_image`. Every extra photo must
+  carry `ai: true/false`; an AI-styled extra photo shows the "AI-styled image" label on its slide.
+- Gradient cards use the same rule in the inline `DATA` (`DATA[].photos`, `photos[0].src === img`).
