@@ -178,7 +178,8 @@
   function sfGallery(c, ps) {
     var n = ps.length, base = c.name + ', ' + c.line, slides = '', dots = '';
     ps.forEach(function (x, i) {
-      var ai = x.ai == null ? (i === 0 ? !!c.ai_image : true) : x.ai === true;
+      // photo 1 is the card's main photo: an AI main photo stays labelled whatever its entry says (K&D #93 B1)
+      var ai = i === 0 ? (x.ai === true || !!c.ai_image) : (x.ai == null ? true : x.ai === true);
       slides += '<div class="kl-slide" role="group" aria-roledescription="slide" aria-label="' + (i + 1) + ' of ' + n + '">'
         + '<img src="' + sfEsc(x.src) + '" width="400" height="500" ' + (i ? 'loading="lazy" decoding="async"' : 'loading="eager"')
         + ' alt="' + sfEsc(x.alt || (i ? base + ', photo ' + (i + 1) : base)) + '">'

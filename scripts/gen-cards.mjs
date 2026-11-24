@@ -22,8 +22,9 @@ export const FORBIDDEN = /(diamond|lux stone|genuine|real (gold|silver)|sterling
 // Gallery (PR #93): extra QC-passed photos sit next to the main one as <barcode>_2.jpg, <barcode>_3.jpg ... in the
 // same --photos dir (copied by hand to img/fam/). photos[0] is always the main photo, so the storefront's rule
 // (photos[0].src === photo, >= 2 entries with qc) holds. No extra file = no photos[] key = the card JSON is unchanged.
-// ai: only when the wave-1 item says so (gallery_ai true/false); left out otherwise, so the storefront labels it
-// conservatively (photo 1 follows the card's ai_image, later photos are labelled "AI-styled image").
+// ai: photo 1 (the main photo) never carries ai: the storefront labels it from the card's ai_image (K&D #93 B1).
+// The extra photos take the wave-1 item's gallery_ai (true/false), which is REQUIRED once extra files exist (N1).
+// Rule for the pilot (N2): a file in --photos counts as QC-passed; only put photos there that passed photo QC.
 export const MAX_GALLERY = 6;
 export function galleryPhotos(bc, name, photoDir, galleryAi) {
   if (!photoDir) return null;
@@ -33,9 +34,10 @@ export function galleryPhotos(bc, name, photoDir, galleryAi) {
     extra.push(n);
   }
   if (!extra.length) return null;
+  if (typeof galleryAi !== 'boolean') throw new Error(`gallery_ai (true/false) is required for ${bc}: it has extra photos`);
   const mk = (src, n) => {
     const e = { src, type: n === 1 ? 'main' : 'gallery', alt: `${name}, photo ${n}`, qc: true };
-    if (typeof galleryAi === 'boolean') e.ai = galleryAi;
+    if (n > 1) e.ai = galleryAi;
     return e;
   };
   return [mk(`/img/fam/${bc}.jpg`, 1), ...extra.map((n) => mk(`/img/fam/${bc}_${n}.jpg`, n))];
