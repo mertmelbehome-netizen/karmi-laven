@@ -75,7 +75,7 @@ test('Gradient Edit unchanged: 5 = £12, 6 = £14.99; promo codes on; client nam
     assert.equal(p.allow_promotion_codes, true)
     assert.ok(p.line_items.every((l) => !/Diamond/.test(l.price_data.product_data.name)))
     assert.equal(p.line_items[0].price_data.product_data.name, `${G1} · ${GRADIENT[G1]}`)
-    assert.deepEqual(p.after_expiration, { recovery: { enabled: true, allow_promotion_codes: true } }, 'Gradient-only: recovery ON')
+    assert.deepEqual(p.after_expiration, { recovery: { enabled: false } }, 'Gradient-only: recovery OFF too (24 Nov 2026)')
     assert.equal(p.expires_at, undefined)
   }
 })
@@ -100,11 +100,11 @@ test('a new family is charged the WAT single price from the DB; mixed cart 3 Gra
   assert.equal(db.rpc('fn_karmi_checkout_attach')[0].body.p_session_id, 'cs_test_1')
 })
 
-test('Gradient-only recovery follows recovery_off_from: session on 12 Dec has it, on 13 Dec has none', async () => {
+test('recovery is always off (24 Nov 2026): recovery_ok true or false, 12 Dec or 13 Dec', async () => {
   // DB answer for a session created 12 Dec (before recovery_off_from) vs 13 Dec (from it)
   let m = make({ reserveReply: { ...OK_GRADIENT, short_session: true, recovery_ok: true }, now: new Date('2026-12-12T15:00:00Z') })
   await call(m.h, { items: [{ bc: G1, qty: 1 }] })
-  assert.deepEqual(m.stripe.created[0].after_expiration, { recovery: { enabled: true, allow_promotion_codes: true } })
+  assert.deepEqual(m.stripe.created[0].after_expiration, { recovery: { enabled: false } })
   m = make({ reserveReply: { ...OK_GRADIENT, short_session: true, recovery_ok: false }, now: new Date('2026-12-13T15:00:00Z') })
   await call(m.h, { items: [{ bc: G1, qty: 1 }] })
   assert.deepEqual(m.stripe.created[0].after_expiration, { recovery: { enabled: false } })
@@ -154,7 +154,7 @@ test('Gradient-only cart with the DB down: fail open before 13 Dec, refused from
   let r = await call(m.h, { items: [{ bc: G1, qty: 2 }] })
   assert.equal(r.status, 200)
   assert.equal(total(m.stripe.created[0]), 550)
-  assert.equal(m.stripe.created[0].after_expiration.recovery.enabled, true)
+  assert.equal(m.stripe.created[0].after_expiration.recovery.enabled, false)
   m = make({ reserveReply: 'error', now: new Date('2026-12-13T00:00:00Z') })
   r = await call(m.h, { items: [{ bc: G1, qty: 2 }] })
   assert.equal(r.status, 503)
