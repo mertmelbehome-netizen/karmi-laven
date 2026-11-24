@@ -237,10 +237,11 @@ export function createHandler({
         success_url: `${origin}/?checkout=success`,
         cancel_url: `${origin}/?checkout=cancel`,
       };
-      // Abandoned-checkout recovery: owner toggles "recovery emails" in the Stripe Dashboard.
-      params.after_expiration = gradientOnly && recoveryOk
-        ? { recovery: { enabled: true, allow_promotion_codes: true } }
-        : { recovery: { enabled: false } };
+      // Abandoned-checkout recovery: ALWAYS OFF (command centre, 24 Nov 2026: no Stripe reminder email, so the privacy
+      // page lists none). recoveryOk / karmi_online_window.recovery_off_from / the DB's recovery_ok are now UNUSED here;
+      // kept (not deleted) so recovery can be switched back on in one line if the owner decides so.
+      params.after_expiration = { recovery: { enabled: false } };
+      void recoveryOk;
       // A held checkout must not outlive its reservation (holds expire after 40 min; Stripe minimum is 30 min).
       if (shortSession) params.expires_at = Math.floor(now().getTime() / 1000) + 31 * 60;
 

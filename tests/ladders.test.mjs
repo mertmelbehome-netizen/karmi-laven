@@ -300,11 +300,11 @@ test('checkout with fixture A: Stripe lines sum to the pooled total; promo/recov
   r = await run([{ bc: 'N1', qty: 2 }, { bc: G1, qty: 6 }, { bc: 'D1', qty: 4 }])
   assert.equal(r.total, poolTotalP('999', 6, FIX.A) + 1499)
   assert.equal(r.total, 2994 + 1499)
-  // Gradient-only: promo codes + recovery exactly as before
+  // Gradient-only: promo codes as before; recovery always off (24 Nov 2026)
   r = await run([{ bc: G1, qty: 3 }, { bc: G2, qty: 2 }])
   assert.equal(r.total, 1200)
   assert.equal(r.s.allow_promotion_codes, true)
-  assert.deepEqual(r.s.after_expiration, { recovery: { enabled: true, allow_promotion_codes: true } })
+  assert.deepEqual(r.s.after_expiration, { recovery: { enabled: false } })
 })
 
 // ---------- 3. fail closed ----------
