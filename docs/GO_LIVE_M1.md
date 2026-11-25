@@ -8,7 +8,7 @@ it does not wait for the family cards (PR-2 flag `families` stays OFF).
 - 10 or more units in the bag (any mix, all groups counted together): EVERY unit pays its group's 10+ price:
   A £1.50 · **B £2.40** · C £3.90. 1–9 units pay the single price. No intermediate steps, **no cap** (Mert 23 Nov:
   a 3–9 unit bag is not capped at the 10-unit price; the 'capped' option was dropped and is not built).
-- Delivery £1.49, free with 10+ units. No spend threshold.
+- Delivery £1.49, free with 10+ units. No spend threshold. **Superseded 25 Nov 2026 (owner): £3.99 UK delivery, free when the basket paid (after the 10+ price) is >= £30.00; no item-count free delivery** (ladders.json shipping; tests/delivery-399-30.test.mjs). Delivery texts below are historical.
 - Promotion codes and Stripe recovery links are off once the 10+ price applies (api/checkout.js).
 - Page texts (S1, no %, no strike-through, no "save"): card `£8 each · £2.40 each when you buy 10 or more`,
   delivery `£1.49 UK delivery · free with 10+ items` (fee in the same text as every free claim, CMA209 §5.21).

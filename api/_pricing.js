@@ -658,13 +658,15 @@ function groupProgress(units, t) {
   // "with free delivery" on the unlock line only when delivery turns free exactly AT the unlock; counted rings (K-070) can
   // make it free sooner (5 rings + 3 items: 2 more for free delivery, 7 more for the 10+ price) -> its own delivery line below
   const freeAtTier = s.unlock_shipping_pence === 0 && s.shipping_pence > 0 && !(gap && gap.units !== null && gap.units < s.to_unlock);
+  // owner 25 Nov 2026 (free over £30 on the basket paid): a 10+ total below the threshold names its delivery charge
+  const fd = freeAtTier ? ' with free delivery' : (s.unlock_shipping_pence > 0 ? ` + ${gbp(s.unlock_shipping_pence)} delivery` : '');
   // K-046 (23 Nov): "for x% off every item" only when every group in the cart is exactly the table's claimed percentage.
   const pctFor = s.pct_off !== null ? ` for ${s.pct_off}% off every item` : '';
   if (next && pctFor) {
     if (s.unlock_lowers_total) {
       lines.push(next.add === 1
-        ? `Add 1 more${pctFor}: total drops to ${gbp(next.total_pence)}${freeAtTier ? ' with free delivery' : ''}`
-        : `Add ${next.add} more${pctFor}: your total becomes ${gbp(next.total_pence)}${freeAtTier ? ' with free delivery' : ''}`);
+        ? `Add 1 more${pctFor}: total drops to ${gbp(next.total_pence)}${fd}`
+        : `Add ${next.add} more${pctFor}: your total becomes ${gbp(next.total_pence)}${fd}`);
     } else {
       lines.push(`Add ${next.add} more${pctFor} (from ${gbp(s.unlock_tier_each_pence)} each)${freeAtTier ? ' and free UK delivery' : ''}`);
     }
@@ -673,8 +675,8 @@ function groupProgress(units, t) {
     // "becomes" only when that total (delivery included) is lower than the bag now; otherwise only name the unlock.
     if (s.unlock_lowers_total) {
       lines.push(next.add === 1
-        ? `Add 1 more: total drops to ${gbp(next.total_pence)}${freeAtTier ? ' with free delivery' : ''}`
-        : `Add ${next.add} more: your total becomes ${gbp(next.total_pence)}${freeAtTier ? ' with free delivery' : ''}`);
+        ? `Add 1 more: total drops to ${gbp(next.total_pence)}${fd}`
+        : `Add ${next.add} more: your total becomes ${gbp(next.total_pence)}${fd}`);
     } else {
       lines.push(`Add ${next.add} more to unlock ${t.tierFrom}+ prices (from ${gbp(s.unlock_tier_each_pence)} each)${freeAtTier ? ' and free UK delivery' : ''}`);
     }

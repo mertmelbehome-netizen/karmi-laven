@@ -1,5 +1,5 @@
 {
-  "_doc": "Karmi Laven online prices + shipping: the ONE table the server charges from (api/_pricing.js) and /api/stock serves as `ladders`. Mode cart_qty_groups (M1, Mert's list 23 Nov 2026, K-046): every product belongs to a group with an ONLINE single price and a 10+ price; with 10+ units in the cart (all groups counted together) every unit pays its group's 10+ price; 1-9 units pay the single price (no intermediate steps, no cap). Gradient Edit = group B (8.00, 10+ 2.40). Delivery 1.49, free with 10+ units (no spend threshold). Non-Gradient products need DB karmi_online_products.online_group (else family_groups). Previous table: tests/fixtures/ladders.live-2026-11-23.json. See docs/LADDERS.md, docs/GO_LIVE_M1.md.",
+  "_doc": "Karmi Laven online prices + shipping: the ONE table the server charges from (api/_pricing.js) and /api/stock serves as `ladders`. Mode cart_qty_groups (M1, Mert's list 23 Nov 2026, K-046): every product belongs to a group with an ONLINE single price and a 10+ price; with 10+ units in the cart (all groups counted together) every unit pays its group's 10+ price; 1-9 units pay the single price (no intermediate steps, no cap). Gradient Edit = group B (8.00, 10+ 2.40). Delivery 3.99, free when the basket the customer pays (after the 10+ price) is >= 30.00 (owner 25 Nov 2026); no item-count free delivery. Non-Gradient products need DB karmi_online_products.online_group (else family_groups). Previous table: tests/fixtures/ladders.live-2026-11-23.json. See docs/LADDERS.md, docs/GO_LIVE_M1.md.",
   "version": "M1-2026-11-25",
   "mode": "cart_qty_groups",
   "rule": {
@@ -13,10 +13,10 @@
     "counts": "all_units"
   },
   "shipping": {
-    "free_threshold_pence": null,
-    "below_threshold_fee_pence": 149,
+    "free_threshold_pence": 3000,
+    "below_threshold_fee_pence": 399,
     "free_at_qty": {
-      "enabled": true,
+      "enabled": false,
       "qty": 10
     },
     "derive_threshold": null
@@ -50,7 +50,7 @@
     "necklace_lux_stone": "C",
     "diamond": "C"
   },
-  "_doc_flat_groups": "K-069 (23 Nov 2026): rings = their own category, £4 each, min 5 per order, NOT on the 10+ ladder; rings never count toward the 10+ price; K-070 (Mert 24 Nov 2026): rings DO count toward the free-delivery item count (10+ items incl. rings = free delivery). SHIPS DARK: enabled false = left out of the loaded table, /api/stock and every page text. Turn on = enabled true + DB karmi_online_products.online_group 'R' on ring products. See api/_pricing.js loadFlatGroups.",
+  "_doc_flat_groups": "K-069 (23 Nov 2026): rings = their own category, £4 each, min 5 per order, NOT on the 10+ ladder; rings never count toward the 10+ price; K-070 (Mert 24 Nov 2026): rings DO count toward free delivery (since 25 Nov 2026: their price counts toward the 30.00 spend threshold). SHIPS DARK: enabled false = left out of the loaded table, /api/stock and every page text. Turn on = enabled true + DB karmi_online_products.online_group 'R' on ring products. See api/_pricing.js loadFlatGroups.",
   "flat_groups": {
     "R": {
       "label": "Rings",

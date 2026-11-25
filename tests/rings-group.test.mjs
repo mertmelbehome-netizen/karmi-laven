@@ -25,8 +25,14 @@ const [G1] = Object.keys(GRADIENT)
 
 const withoutFlat = (raw) => { const r = structuredClone(raw); delete r.flat_groups; delete r._doc_flat_groups; return r }
 const enabledRaw = () => { const r = structuredClone(RAW); r.flat_groups.R.enabled = true; return r }
-const ON = loadLadders(enabledRaw()).table
+// K-070 item-count mechanics (rings count toward 'free with any 10+ items') are kept under the 24 Nov 2026 delivery block
+// (£1.49, free with 10+ items): the engine still supports free_at_qty. The LIVE delivery (owner 25 Nov 2026: £3.99, free
+// from £30.00 paid, no item count) with rings ON is pinned in section 5 below (ring prices count toward the £30).
+const QTY24 = (r) => { r.shipping = { free_threshold_pence: null, below_threshold_fee_pence: 149, free_at_qty: { enabled: true, qty: 10 }, derive_threshold: null }; return r }
+const ON = loadLadders(QTY24(enabledRaw())).table
 const OFF_REF = loadLadders(withoutFlat(RAW)).table
+const OFF24 = loadLadders(QTY24(withoutFlat(RAW))).table
+const ON_LIVE = loadLadders(enabledRaw()).table
 
 // ---------- 1. disabled (live ladders.json) = no change ----------
 test('ladders.json carries R exactly as K-069 + K-070 say (rings count toward free delivery), and DISABLED', () => {
@@ -52,6 +58,7 @@ test('disabled: public /api/stock ladders view is byte-identical to the table wi
 
 const pageTexts = (view, extraGroups = {}) => {
   const p = pageFns(HTML, { ladders: view, groups: extraGroups })
+  if (view) assert.equal(p.applyLadderShipping(view), true)   // as the live page does when /api/stock answers
   const T = p.m1Texts()
   return JSON.stringify({ T, count: T.count(15), ship: p.shipSentence(), card: p.cardShipText(), hint: [1, 9, 10, 14].map(p.m1TierHint) })
 }
@@ -63,14 +70,34 @@ test('disabled: hero / meta / FAQ / CTA / tier-hint texts unchanged (same as the
 
 test('even ENABLED, R never enters the ladder groups; texts change only by the "non-ring" price note and the "(rings included)" delivery note', () => {
   const v = publicLadders(ON)
-  assert.deepEqual(Object.keys(v.groups), Object.keys(publicLadders(OFF_REF).groups))
+  assert.deepEqual(Object.keys(v.groups), Object.keys(publicLadders(OFF24).groups))
   assert.deepEqual(v.flat_groups, { R: { label: 'Rings', unit_name: 'ring', each: 400, min_qty: 5, counts_to_tier: false, counts_to_free_shipping: true, enabled: true } })
   // K&D E1b/E1c + K-070: rings ON = 'non-ring' on every 10+ PRICE claim, '(rings included)' on every free-delivery claim
-  assert.equal(pageTexts(v).replace(/(Buy \d+\+) non-ring items,/g, '$1,').replace(/ non-ring(?= items?\b)/g, '').replace(/ items \(rings included\)/g, ' items'), pageTexts(publicLadders(OFF_REF)))
+  assert.equal(pageTexts(v).replace(/(Buy \d+\+) non-ring items,/g, '$1,').replace(/ non-ring(?= items?\b)/g, '').replace(/ items \(rings included\)/g, ' items'), pageTexts(publicLadders(OFF24)))
   assert.match(pageTexts(v), /free with any 10\+ items \(rings included\)/)
   assert.doesNotMatch(pageTexts(v), /free with any 10\+ non-ring/)
   assert.match(pageTexts(v), /70% off when you buy any 10\+ non-ring items/)
-  assert.doesNotMatch(pageTexts(publicLadders(OFF_REF)), /non-ring/)
+  assert.doesNotMatch(pageTexts(publicLadders(OFF24)), /non-ring/)
+})
+
+test('LIVE delivery (owner 25 Nov 2026) + rings ON: texts carry "£3.99 UK delivery, free over £30", no item-count claim', () => {
+  const t = pageTexts(publicLadders(ON_LIVE))
+  assert.match(t, /£3\.99 UK delivery, free over £30/)
+  assert.doesNotMatch(t, /free with any|rings included|£1\.49/)
+  assert.equal(t.replace(/(Buy \d+\+) non-ring items,/g, '$1,').replace(/ non-ring(?= items?\b)/g, ''), pageTexts(publicLadders(OFF_REF)))
+})
+
+test('LIVE delivery + rings ON (engine + checkout basis): ring prices count toward the £30.00; 10+ alone is not free', () => {
+  const R = (n) => Array.from({ length: n }, () => ({ ladder: false, unitP: 400, group: 'R' }))
+  const B = (n) => Array.from({ length: n }, () => ({ ladder: false, unitP: 800, group: 'B' }))
+  const fee = (u) => { const amt = priceUnits(u, ON_LIVE), sb = shipBasis(u, amt, ON_LIVE); return [amt, shippingFeeP(sb.amountP, sb.units, ON_LIVE)] }
+  assert.deepEqual(fee(R(5)), [2000, 399])            // 5 rings £20.00 -> £3.99
+  assert.deepEqual(fee(R(7)), [2800, 399])            // £28.00 -> £3.99
+  assert.deepEqual(fee(R(8)), [3200, 0])              // £32.00 -> free
+  assert.deepEqual(fee([...R(5), ...B(2)]), [3600, 0]) // £20 rings + 2 x £8 = £36.00 -> free
+  assert.deepEqual(fee([...B(6), ...R(5)]), [6800, 0])
+  assert.deepEqual(fee([...B(10), ...R(5)]), [4400, 0]) // 10 B at £2.40 (rings never count toward 10+) + £20 rings = £44
+  assert.deepEqual(fee(B(10)), [2400, 399])           // 10+ under £30 pays
 })
 
 test('disabled: engine results for non-ring bags identical to the table without R', () => {
@@ -113,7 +140,7 @@ const ring = () => ({ ladder: false, unitP: 299, group: 'R' })
 const bItem = () => ({ ladder: false, unitP: 800, group: 'B' })
 const bag = (rings, bs) => [...Array.from({ length: rings }, ring), ...Array.from({ length: bs }, bItem)]
 // the same engine with counts_to_free_shipping false (the K-069 reading before K-070): rings out of the delivery basis
-const NOSHIP = (() => { const r = enabledRaw(); r.flat_groups.R.counts_to_free_shipping = false; return loadLadders(r).table })()
+const NOSHIP = (() => { const r = QTY24(enabledRaw()); r.flat_groups.R.counts_to_free_shipping = false; return loadLadders(r).table })()
 
 test('enabled engine: £4 flat per ring, min 5, not on the ladder; K-070: rings count toward free delivery', () => {
   let u = bag(5, 0); let t = priceUnits(u, ON)
@@ -221,6 +248,15 @@ async function checkout(items, ladders = ON) {
   }
 }
 
+test('checkout enabled, LIVE delivery (owner 25 Nov 2026): 5 rings £20.00 + £3.99; 8 rings £32.00 free; 5 rings + 2 B £36.00 free', async () => {
+  let r = await checkout([{ bc: 'RING1', qty: 5 }], ON_LIVE)
+  assert.equal(r.status, 200); assert.equal(r.ship, 399)
+  r = await checkout([{ bc: 'RING1', qty: 8 }], ON_LIVE)
+  assert.equal(r.status, 200); assert.equal(r.ship, 0)
+  r = await checkout([{ bc: 'RING1', qty: 5 }, { bc: 'CLIP1', qty: 2 }], ON_LIVE)
+  assert.equal(r.status, 200); assert.equal(r.ship, 0)
+})
+
 test('checkout enabled: 5 rings = £20.00 + £1.49 delivery', async () => {
   const r = await checkout([{ bc: 'RING1', qty: 5 }])
   assert.equal(r.status, 200)
@@ -271,7 +307,7 @@ test('checkout enabled (K-070): 10 rings only = £40.00, free delivery; 5 rings 
 
 test('checkout: 0 rings unchanged (enabled vs live table); a ring line with R disabled is refused 503, never guessed', async () => {
   for (const q of [1, 9, 10, 12]) {
-    const a = await checkout([{ bc: 'CLIP1', qty: q }, { bc: G1, qty: 1 }], ON)
+    const a = await checkout([{ bc: 'CLIP1', qty: q }, { bc: G1, qty: 1 }], ON_LIVE)
     const b = await checkout([{ bc: 'CLIP1', qty: q }, { bc: G1, qty: 1 }], LADDERS)
     assert.equal(a.status, 200); assert.deepEqual(a.lines, b.lines); assert.equal(a.ship, b.ship)
     assert.deepEqual(a.p.line_items, b.p.line_items)

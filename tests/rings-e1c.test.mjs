@@ -18,8 +18,14 @@ const HTML = read('../index.html')
 const SF = read('../js/storefront.js')
 const RAW = JSON.parse(read('../ladders.json'))
 const RINGS = JSON.parse(read('../data/cards.json')).cards.filter((c) => c.tab === 'rings')
-const ON = (() => { const r = structuredClone(RAW); r.flat_groups.R.enabled = true; return publicLadders(loadLadders(r).table) })()
+// K-070 item-count wording ('free with any 10+ items (rings included)') is kept under the 24 Nov 2026 delivery block (£1.49,
+// free with 10+ items; still supported). The LIVE delivery (owner 25 Nov 2026: £3.99, free from £30.00 paid, no item count)
+// with rings ON is checked by the ON_LIVE test below.
+const QTY24 = (r) => { r.shipping = { free_threshold_pence: null, below_threshold_fee_pence: 149, free_at_qty: { enabled: true, qty: 10 }, derive_threshold: null }; return r }
+const ON = (() => { const r = QTY24(structuredClone(RAW)); r.flat_groups.R.enabled = true; return publicLadders(loadLadders(r).table) })()
 const OFF = publicLadders(LADDERS)
+const OFF24 = publicLadders(loadLadders(QTY24(structuredClone(RAW))).table)
+const ON_LIVE = (() => { const r = structuredClone(RAW); r.flat_groups.R.enabled = true; return publicLadders(loadLadders(r).table) })()
 const [G1] = Object.keys(GRADIENT)
 const RING = RINGS[0].barcode
 
@@ -111,14 +117,27 @@ const sha = (o) => createHash('sha256').update(JSON.stringify(o)).digest('hex')
 // price second): only the price texts changed (texts.hero/meta/cta/each/count, hint 0-9, price[], meta/og/twitter/JSON-LD);
 // bag lines, progress, foot and hero block byte-identical to origin/master 2bc5018 (diffed record(OFF) before re-pinning)
 // sha256 of record(OFF) / record(null) taken on origin/master 9ed2989 (#77 meta, before this change): rings OFF = not one byte different
-const PIN_OFF = '892e719b61ea3cb87b96fd5cf2ae6cb444df2929372301010c2dcca6b5fbfee0'
-const PIN_FALLBACK = '892e719b61ea3cb87b96fd5cf2ae6cb444df2929372301010c2dcca6b5fbfee0'   // M1_FALLBACK = publicLadders(ladders.json)
+// re-pinned 25 Nov 2026 ON PURPOSE (owner: £3.99 UK delivery, free over £30 on the basket paid, no item-count free delivery):
+// diffed record(OFF) against origin/master e46d673 with the same ladders.json: only delivery texts moved (ship sentence,
+// tier hints 10-12, ad, cta/each/faqa delivery part, meta/JSON-LD sentence, bag spend nudge "Add £x for free delivery",
+// unlock totals "+ £3.99 delivery", cartShipVal note); prices, carts, hero block unchanged
+const PIN_OFF = '24cc2317f85fa247f87c252604aa4b96165c2ed7bbd47c4531f59c2b5ef56c84'
+const PIN_FALLBACK = '24cc2317f85fa247f87c252604aa4b96165c2ed7bbd47c4531f59c2b5ef56c84'   // M1_FALLBACK = publicLadders(ladders.json)
 
 test('rings OFF (ladders.json today + first paint): every page text byte-for-byte = master (sha pin)', () => {
   assert.equal(RAW.flat_groups.R.enabled, false)
   assert.equal(sha(record(OFF)), PIN_OFF)
   assert.equal(sha(record(null)), PIN_FALLBACK)
   assert.doesNotMatch(flat(record(OFF)).join('\n'), /non-ring|rings not included|not counting rings/)
+})
+
+test('rings ON with the LIVE delivery (owner 25 Nov 2026): no item-count delivery claim; every 10+ price claim says "non-ring"', () => {
+  const r = record(ON_LIVE), all = flat(r).map((s) => s.replace(/<[^>]*>/g, ''))
+  assert.deepEqual(r.ship, ['£3.99 UK delivery, free over £30', '+ £3.99 UK delivery, free over £30'])
+  for (const s of all) {
+    assert.doesNotMatch(s, /free with any|rings included|£1\.49/, s)
+    for (const m of s.matchAll(/\b10(\+| or more)(?! prices?\b)(.{0,24})/g)) assert.match(m[2], /^ non-ring items?\b/, m[0] + ' in ' + s)
+  }
 })
 
 // a count claim: "10+" (not the price's name "10+ price"), "10 or more", "any mix"
@@ -156,7 +175,7 @@ test('rings ON: every 10+ / 10 or more / any mix claim says "non-ring items" (pr
   assert.equal(nine[4][0], 'Now £8 each · 70% off every non-ring item when your bag has 10+ non-ring items (£2.40 each)')
   assert.match(r.bags[10].lines.progress, /^Add 1 more non-ring item for 70% off every non-ring item/)
   assert.match(r.bags[11].lines.progress, /^Add 4 more non-ring items /)
-  assert.match(r.meta[0], /£3\.90 each when you buy any 10\+ non-ring items \(70% off every item, any mix\); £5, £8 or £13 each for 1–9 non-ring items\. .* free with any 10\+ items \(rings included\)\.$/)
+  assert.match(r.meta[0], /£3\.90 each when you buy any 10\+ non-ring items \(70% off every item, any mix\); £5, £8 or £13 each for 1–9 non-ring items\. .* £3\.99 UK delivery, free over £30\.$/)   // static meta sentence (owner 25 Nov 2026)
   // 5 rings + 3 items: counted rings, delivery line of its own; 9 B + 3 rings = 12 items: delivery free
   assert.equal(r.bags[10].foot[1][1], '<span class="free">FREE ✓</span>')
 })
@@ -164,7 +183,7 @@ test('rings ON: every 10+ / 10 or more / any mix claim says "non-ring items" (pr
 test('ON vs OFF: the only differences are the "non-ring" / "(rings included)" notes (no other wording moved), the % rule kept, no save/strike', () => {
   // by path: ring lines ('Add 2 more rings to check out', L.rings) exist only ON and are compared nowhere else
   const paths = (o, p = '', out = {}) => { if (typeof o === 'string') out[p] = o; else if (o && typeof o === 'object') for (const k of Object.keys(o)) paths(o[k], p + '/' + k, out); return out }
-  const pOn = paths(record(ON)), pOff = paths(record(OFF))
+  const pOn = paths(record(ON)), pOff = paths(record(OFF24))
   // hero ON: 'for any 10+ non-ring items' (one line at 375px); progress: 'Add N more non-ring item(s)' (OFF 'Add N more');
   // every other claim: ' non-ring' before ' item(s)'
   const strip = (s) => s.replace(/for any (\d+\+) non-ring items/g, 'when you buy any $1 items').replace(/(Add \d+ more) non-ring items?/g, '$1').replace(/(Buy \d+\+) non-ring items,/g, '$1,').replace(/ non-ring(?= items?\b)/g, '').replace(/ items \(rings included\)/g, ' items')

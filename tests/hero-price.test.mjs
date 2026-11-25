@@ -57,7 +57,7 @@ test('static first-paint block = sfHeroPrice(ladders.json, [gradient group]) + t
   assert.ok(BLOCK.includes(`<div class="kl-hp-l1">${l1}</div>`), BLOCK)
   assert.ok(BLOCK.includes(`<div class="kl-hp-single">${h.singles}</div>`), BLOCK)
   const s = RAW.shipping
-  const dl = money(s.below_threshold_fee_pence) + ' UK delivery' + (s.free_at_qty && s.free_at_qty.enabled ? ` · free with any ${s.free_at_qty.qty}+ items` : '')
+  const dl = money(s.below_threshold_fee_pence) + ' UK delivery' + (s.free_at_qty && s.free_at_qty.enabled ? ` · free with any ${s.free_at_qty.qty}+ items` : s.free_threshold_pence ? `, free over £${s.free_threshold_pence % 100 ? (s.free_threshold_pence / 100).toFixed(2) : s.free_threshold_pence / 100}` : '')
   assert.ok(BLOCK.includes(`<div class="kl-hp-dlv" data-kl="ship">${dl}</div>`), 'delivery line in the block, kept live by applyShipTexts')
   // the block sits in the hero, right after the hero line
   assert.match(HTML, /data-kl-m1="herop">[^\n]*<\/p>\r?\n(?:\s*<!--[\s\S]*?-->\r?\n)?\s*<div class="kl-hp" id="klHeroPrice">/)

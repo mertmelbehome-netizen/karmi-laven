@@ -25,7 +25,12 @@ const CARDS = JSON.parse(read('../data/cards.json')).cards
 const RINGS = CARDS.filter((c) => c.tab === 'rings')
 const CORE = SF.match(/\/\*KL-SF-CORE-START\*\/([\s\S]*?)\/\*KL-SF-CORE-END\*\//)[1]
 const core = new Function(`${CORE}; return { SF_TABS, SF_SUBS, sfSubOf, sfParseHash, sfHash, sfVisibleTabs, sfFamCard, sfSticky, sfState };`)()
-const ON = (() => { const r = structuredClone(RAW); r.flat_groups.R.enabled = true; return loadLadders(r).table })()
+// K-070 item-count mechanics are kept under the 24 Nov 2026 delivery block (£1.49, free with 10+ items; the engine still
+// supports free_at_qty). The LIVE delivery (owner 25 Nov 2026: £3.99, free from £30.00 paid) with rings ON: ON_LIVE tests.
+const QTY24 = (r) => { r.shipping = { free_threshold_pence: null, below_threshold_fee_pence: 149, free_at_qty: { enabled: true, qty: 10 }, derive_threshold: null }; return r }
+const ON = (() => { const r = QTY24(structuredClone(RAW)); r.flat_groups.R.enabled = true; return loadLadders(r).table })()
+const OFF24 = loadLadders(QTY24(structuredClone(RAW))).table
+const ON_LIVE = (() => { const r = structuredClone(RAW); r.flat_groups.R.enabled = true; return loadLadders(r).table })()
 const [G1] = Object.keys(GRADIENT)
 
 // the page's pricing + delivery + M1 blocks, as-is; klGroup: 'RA' -> A, 'RB' -> B, 'RC' -> C, ring barcodes -> R
@@ -134,7 +139,7 @@ test('R enabled: page m1Summary = engine cartSummary for mixed bags, every field
 })
 
 test('R enabled, bag without rings: page = engine and = the table without R (only the E1c "non-ring" note on progress lines)', () => {
-  const p = page(publicLadders(ON)), off = page(publicLadders(LADDERS))
+  const p = page(publicLadders(ON)), off = page(publicLadders(OFF24))
   for (let a = 1; a <= 12; a++) for (const bc of ['RA', 'RB', G1]) {
     const lines = [{ bc, qty: a }], { tier_units, ship_units, flat_short, ...s } = p.m1Summary(lines)
     assert.equal(ship_units, tier_units)
@@ -171,6 +176,26 @@ test('K-070 bags (page = engine): 10 rings / 5+5 / 6 non-ring + 4 rings / 4 ring
   assert.doesNotMatch(r.L.progress, /free/)
   // no ring in the bag: no delivery line (= before)
   assert.equal(p.m1Lines([{ bc: 'RB', qty: 3 }]).delivery, undefined)
+})
+
+test('LIVE delivery (owner 25 Nov 2026) + rings ON: page = engine (rings count toward £30.00, 10+ alone not free); ring delivery line', () => {
+  const p = page(publicLadders(ON_LIVE))
+  for (let a = 0; a <= 12; a++) for (let r = 0; r <= 9; r++) {
+    const lines = [a && { bc: 'RB', qty: a }, r && { bc: RING, qty: r }].filter(Boolean); if (!lines.length) continue
+    const s = p.m1Summary(lines), d = p.m1BagDelivery(s, a + r)
+    assert.deepEqual(s, { ...cartSummary(units(lines), ON_LIVE), ungrouped: 0 }, `${a}/${r}`)
+    if (r >= 5 || r === 0) {
+      const e = engineDelivery(lines, ON_LIVE)
+      assert.equal(s.charged_pence, e.total, `${a}/${r} total`); assert.equal(d.feeP, e.fee, `${a}/${r} delivery`)
+    }
+  }
+  const fee = (lines) => p.m1Summary(lines).shipping_pence
+  assert.equal(fee([{ bc: RING, qty: 5 }]), 399)                         // £20.00
+  assert.equal(fee([{ bc: RING, qty: 8 }]), 0)                           // £32.00
+  assert.equal(fee([{ bc: RING, qty: 5 }, { bc: 'RB', qty: 2 }]), 0)    // £36.00
+  assert.equal(fee([{ bc: 'RB', qty: 10 }]), 399)                        // 10+ = £24.00 -> pays
+  assert.equal(p.m1Lines([{ bc: RING, qty: 5 }]).delivery, 'Add £10.00 for free delivery')
+  assert.equal(p.m1RingTexts().ship, '+ £3.99 UK delivery, free over £30')
 })
 
 // ---------- 3. texts ----------
@@ -243,7 +268,7 @@ test('N2: on the Rings tab the 10+ hero price / delivery block steps aside for t
   assert.match(fn, /if \(gd\) gd\.hidden = !!R;/, 'the generic 10+ delivery line under the Rings title is hidden')
   assert.match(CSS, /\.kl-dlv\[hidden\], \.kl-roff, \.kl-ringinfo\[hidden\]\{display:none !important\}/)
   // even with R enabled the page-wide texts (hero, meta, FAQ, JSON-LD, CTA) are the ladder-group texts (no ring auto pick-up)
-  const on = page(publicLadders(ON)).m1Texts(), off = page(publicLadders(LADDERS)).m1Texts()
+  const on = page(publicLadders(ON)).m1Texts(), off = page(publicLadders(OFF24)).m1Texts()
   // except the E1b/E1c note on every 10+ price claim ('any 10+ non-ring items') and the K-070 delivery note
   // ('free with any 10+ items (rings included)'); full scan: tests/rings-e1c.test.mjs
   assert.equal(JSON.stringify({ ...on, count: on.count(15) }).replace(/(Buy \d+\+) non-ring items,/g, '$1,').replace(/ non-ring(?= items?\b)/g, '').replace(/ items \(rings included\)/g, ' items'), JSON.stringify({ ...off, count: off.count(15) }))
@@ -264,7 +289,7 @@ test('sub-chips: spec hashes and labels (no unverified material words), hash rou
 test('E1b/E1c + K-070: "any 10+ non-ring items" on 10+ price claims, "free with any 10+ items (rings included)" on delivery, ONLY while rings are on', () => {
   assert.match(HTML, /function klRingsNote\(\)\{ try\{ return \(typeof m1FlatKeys==='function' && m1FlatKeys\(\)\.length\) \? ' non-ring' : ''; \}catch\(e\)\{ return ''; \} \}/)
   assert.match(HTML, /function klRingsShipNote\(\)\{ try\{ return \(typeof m1FlatKeys==='function' && m1FlatKeys\(\)\.length\) \? ' \(rings included\)' : ''; \}catch\(e\)\{ return ''; \} \}/)
-  const on = page(publicLadders(ON)), off = page(publicLadders(LADDERS))
+  const on = page(publicLadders(ON)), off = page(publicLadders(OFF24))
   assert.match(on.shipSentence(), /free with any 10\+ items \(rings included\)$/)
   assert.equal(on.cardShipText(), '+ £1.49 UK delivery · free with any 10+ items (rings included)')
   assert.equal(off.klRingsShipNote(), '')

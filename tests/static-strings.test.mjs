@@ -47,7 +47,7 @@ test('no shipped static file contains a pools-era string ("£2.99", "free from",
 const HTML = read('index.html')
 const LADDERS = JSON.parse(read('ladders.json'))
 
-test('fallback SHIP in index.html = ladders.json shipping (£1.49, no spend threshold, free with 10+ items)', () => {
+test('fallback SHIP in index.html = ladders.json shipping (£3.99, free over £30 spend, no item-count free delivery; owner 25 Nov 2026)', () => {
   const m = HTML.match(/const SHIP=\{freeP:(\d+|null), feeP:(\d+), freeQty:(\d+|null)\};/)
   assert.ok(m, 'SHIP fallback present')
   const s = LADDERS.shipping
@@ -55,7 +55,7 @@ test('fallback SHIP in index.html = ladders.json shipping (£1.49, no spend thre
   assert.equal(Number(m[2]), s.below_threshold_fee_pence)
   assert.equal(m[3] === 'null' ? null : Number(m[3]), s.free_at_qty.enabled ? s.free_at_qty.qty : null)
   // today's numbers, spelled out
-  assert.deepEqual([s.free_threshold_pence, s.below_threshold_fee_pence, s.free_at_qty.qty], [null, 149, 10])
+  assert.deepEqual([s.free_threshold_pence, s.below_threshold_fee_pence, s.free_at_qty.enabled], [3000, 399, false])
 })
 
 test('fallback M1_FALLBACK in index.html = ladders.json (prices per group, 10+ tier, shipping, gradient group)', () => {
@@ -66,5 +66,8 @@ test('fallback M1_FALLBACK in index.html = ladders.json (prices per group, 10+ t
     assert.deepEqual(fb[k], LADDERS[k], k)
   }
   // shipping: the charged fields (the fallback carries the public view's `derived_from`, the file `derive_threshold`)
-  for (const k of ['free_threshold_pence', 'below_threshold_fee_pence', 'free_at_qty']) assert.deepEqual(fb.shipping[k], LADDERS.shipping[k], `shipping.${k}`)
+  for (const k of ['free_threshold_pence', 'below_threshold_fee_pence']) assert.deepEqual(fb.shipping[k], LADDERS.shipping[k], `shipping.${k}`)
+  // free_at_qty: the public view drops `qty` when it is off
+  const fq = LADDERS.shipping.free_at_qty
+  assert.deepEqual(fb.shipping.free_at_qty, fq.enabled ? fq : { enabled: false }, 'shipping.free_at_qty')
 })
