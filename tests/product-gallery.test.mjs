@@ -5,7 +5,7 @@
 //   Gradient modal with 2+ photos (DATA[].photos) = track + thumbs (desktop) / dots (<=620px) + tap to zoom.
 //   One photo (or none) = byte-identical markup: pinned against the pre-gallery render (tests/fixtures/famcard-golden.json,
 //   generated from origin/master f7a702f sfFamCard BEFORE this change: 75 cards x 5 states x 4 option sets, sha256).
-// In this PR no card has a 2nd photo, so the live site does not change.
+// PR #93 shipped with no 2nd photo. KEEP20 (24 Nov, K&D fidelity verdict): 18 family cards get an AI-styled close-up as photo 2.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, existsSync, statSync } from 'node:fs'
@@ -71,9 +71,26 @@ test('single photo / no photos: sfFamCard output is byte-identical to the pre-ga
   assert.equal(n, 1500)
 })
 
-test('live data: every card renders as a one-photo card (dormant: photos[] empty or missing everywhere)', () => {
+// KEEP20 close-ups (morning_review/45_closeups/KEEP20.md). 1271 (Gradient, colour tile /img/tone) and 1470 (photo null,
+// colour tile) have no main photo, so they get no gallery. Only these cards may carry photos[].
+const KEEP = ['1468', '1472', '1477', '2000', '2023', '2040', '6002', '6011', '6058', '6095', '6170', '6180', '7058', '80043', '81004', '81006', '81013', '81014']
+test('live data: only the KEEP20 cards have a 2-photo gallery (photo 1 = main photo, photo 2 = AI close-up, labelled); all others one-photo', () => {
+  assert.deepEqual(CARDS.filter((c) => c.photos && c.photos.length).map((c) => c.barcode).sort(), [...KEEP].sort())
   for (const c of CARDS) {
-    assert.ok(c.photos == null || (Array.isArray(c.photos) && c.photos.length === 0), 'no gallery data yet ' + c.barcode)
+    if (KEEP.includes(c.barcode)) {
+      assert.deepEqual(c.photos.map((p) => p.src), [c.photo, c.photo.replace(/\.jpg$/, '_2.jpg')], c.barcode)
+      assert.equal(c.photos[1].ai, true, c.barcode)
+      assert.equal(c.photos[1].alt, c.name + ', close-up detail', c.barcode)
+      const h = core.sfFamCard(c, 'single', O)
+      assert.match(h, NOCAR, c.barcode)
+      const slides = h.split('<div class="kl-slide"').slice(1)
+      assert.equal(slides.length, 2, c.barcode)
+      assert.match(slides[1], /loading="lazy"/, c.barcode)
+      assert.match(slides[1], /AI-styled image/, c.barcode)
+      assert.doesNotMatch(core.sfFamCard(c, 'photo', O), NOCAR, c.barcode + ' photo')
+      continue
+    }
+    assert.ok(c.photos == null || (Array.isArray(c.photos) && c.photos.length === 0), 'no gallery data ' + c.barcode)
     for (const st of ['sellable', 'single', 'cap', 'soldout', 'photo']) assert.doesNotMatch(core.sfFamCard(c, st, O), NOCAR, c.barcode + ' ' + st)
   }
   // Gradient DATA (inline in index.html) has no photos[] either
@@ -129,7 +146,7 @@ test('AI label per photo: one "AI-styled image" per AI photo, none on a real pho
 
 test('cards.json photos[]: photos[0].src == photo, alt + ai + qc per entry, every qc file exists and is web-sized', () => {
   for (const c of CARDS) assert.deepEqual(photoErrors(c), [], c.barcode)
-  // the rules catch bad data (the live file has none yet)
+  // the rules catch bad data
   assert.deepEqual(photoErrors(gal()), [])
   assert.ok(photoErrors(gal({ photo: '/img/fam/2023.jpg' })).includes('photos[0].src !== photo'))
   assert.ok(photoErrors(gal({ photos: [...gal().photos, { src: '/img/fam/9999_2.jpg', alt: 'x', qc: true, ai: true }] })).some((e) => /missing file/.test(e)))
