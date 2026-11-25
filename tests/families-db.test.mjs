@@ -202,7 +202,7 @@ test('families CLOSED: nothing changes — status JSON identical, family line re
   assert.deepEqual([g(1), g(3), g(10)], [800, 2400, 2400])
 })
 
-test('after the manual OPEN (B+C+A): priced and unpriced B products both 800 + sellable; mixed 10+ cart = £24.90, free delivery', async () => {
+test('after the manual OPEN (B+C+A): priced and unpriced B products both 800 + sellable; mixed 10+ cart = £24.90 + £3.99 delivery (under £30, owner 25 Nov 2026)', async () => {
   const db = await prepared()
   // an unpriced B product (no WAT till price) in an open family, grouped B
   const id = await product(db, { category: 'Stretch Charm Bracelet', bc: '1999', pricePence: null })
@@ -226,7 +226,7 @@ test('after the manual OPEN (B+C+A): priced and unpriced B products both 800 + s
   assert.deepEqual(Object.fromEntries(r.lines.map((l) => [l.bc, [l.online_group, l.price_pence]])), {
     '03010013': ['C', 1300], 1472: ['B', 800], 1849: ['B', 800], 1999: ['B', 800], 6008: ['A', 500], 6011: ['A', 500],
     80012: ['C', 1300], 81004: ['C', 1300] })
-  assert.deepEqual(charge(r, cart), { amount: 4 * 150 + 3 * 240 + 3 * 390, ship: 0 })
+  assert.deepEqual(charge(r, cart), { amount: 4 * 150 + 3 * 240 + 3 * 390, ship: 399 })   // £24.90 < £30.00: a 10+ basket under £30 pays
   assert.equal(charge(r, cart).amount, 2490)
   // the checkout line names are the card display_names (Stripe line "{bc} · {name}"): no %, no "was"
   const names = Object.fromEntries(r.lines.map((l) => [l.bc, l.name]))
@@ -238,11 +238,11 @@ test('after the manual OPEN (B+C+A): priced and unpriced B products both 800 + s
   const nc = await status(db, ['F1', '2003', '1369'])
   for (const bc of ['F1', '2003', '1369']) assert.deepEqual(nc.items[bc], { sellable: 0, stock: nc.items[bc].stock, price_pence: null }, bc)
   assert.equal((await reserve(db, [{ bc: '2003', qty: 1 }])).ok, false)
-  // 1-item carts per group: single price + £1.49 delivery
+  // 1-item carts per group: single price + £3.99 delivery
   for (const [bc, single] of [['6002', 500], ['2000', 800], ['6159', 1300]]) {
     const one = await reserve(db, [{ bc, qty: 1 }])
     assert.equal(one.ok, true, bc)
-    assert.deepEqual(charge(one, [{ bc, qty: 1 }]), { amount: single, ship: 149 }, bc)
+    assert.deepEqual(charge(one, [{ bc, qty: 1 }]), { amount: single, ship: 399 }, bc)
   }
 })
 
@@ -259,7 +259,7 @@ test('open B only: A + bangle-only C families stay closed; hair (B clips + C cla
   const cart = [{ bc: '1472', qty: 2 }, { bc: '2023', qty: 2 }, { bc: '1849', qty: 3 }, { bc: '7058', qty: 3 }]
   const r = await reserve(db, cart)
   assert.equal(r.ok, true)
-  assert.deepEqual(charge(r, cart), { amount: 2400, ship: 0 })
+  assert.deepEqual(charge(r, cart), { amount: 2400, ship: 399 })   // 10+ at £24.00 < £30.00 pays delivery
   assert.equal((await reserve(db, [{ bc: '6008', qty: 1 }])).ok, false)
   // unknown group / no listed product → refused, nothing changes
   await assert.rejects(db.exec(withGroups(OPEN, ['Z'])), /unknown or inactive/)

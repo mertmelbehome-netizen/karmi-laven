@@ -11,7 +11,7 @@ import { pageFns } from './fixtures/page-snapshot.mjs'
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8')
 const HTML = read('../index.html')
-const RAW = JSON.parse(read('../ladders-preview/M1_mert_list.json'))
+const RAW = JSON.parse(read('../ladders.json'))   // the served table (owner 25 Nov 2026 delivery: £3.99, free from £30.00 paid)
 const load = (raw) => { const r = loadLadders(raw); assert.ok(r.ok, r.error); return r.table }
 const M1P = load(RAW)
 const NOPCT = load({ ...RAW, ui: { ...RAW.ui, percent_claim: null } })
@@ -74,24 +74,29 @@ test('#2 card (deal-first): "£2.40 each when you buy any 10+ items (70% off) ·
   assert.equal(T.meta, '£2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items')
   assert.equal(T.hero, p.m1PriceHtml(G1))
   assert.ok(HTML.includes('data-kl-m1="hero">' + T.hero + '</span>'), 'static hero first paint = m1Texts().hero')
-  assert.match(T.each, /<b>£2\.40<\/b> each when you buy any 10\+ items \(70% off\) · £8 each for 1–9 items <span class="dl" data-kl="fee1">\+ £1\.49 UK delivery · free with any 10\+ items<\/span>/)
+  assert.match(T.each, /<b>£2\.40<\/b> each when you buy any 10\+ items \(70% off\) · £8 each for 1–9 items <span class="dl" data-kl="fee1">\+ £3\.99 UK delivery, free over £30<\/span>/)
   assert.ok(HTML.includes('data-kl-m1="each">' + T.each + '</div>'), 'static story line first paint = m1Texts().each')
   assert.equal(T.faqq, 'How does 70% off when you buy any 10+ items work?')
   // group-wide since families went live (23 Nov): never 'every bracelet £8' next to £5 / £13 pieces
-  assert.match(T.faqa, /^Prices are <b>£5, £8 or £13<\/b> per piece depending on the line \(shown on each item\)\. Put <b>any 10 or more items<\/b> in your bag \(any mix\) and you get <b>70% off every item<\/b>: <b>£1\.50, £2\.40 or £3\.90 each<\/b>, with free UK delivery\. Under 10 items, UK delivery is £1\.49/)
+  assert.match(T.faqa, /^Prices are <b>£5, £8 or £13<\/b> per piece depending on the line \(shown on each item\)\. Put <b>any 10 or more items<\/b> in your bag \(any mix\) and you get <b>70% off every item<\/b>: <b>£1\.50, £2\.40 or £3\.90 each<\/b>\. £3\.99 UK delivery, free over £30\./)
   assert.doesNotMatch(T.faqa, /Every bracelet/)
   assert.ok(HTML.includes('data-kl-m1="faqa">' + T.faqa + '</p>'), 'static FAQ first paint = m1Texts().faqa')
   // crawlers / link previews: no Gradient-only "£8 each" price claim in meta or JSON-LD (families live)
   const head = [...HTML.matchAll(/<meta (?:name|property)="[^"]+" content="([^"]*)"/g)].map((m) => m[1]).join(' | ')
     + [...HTML.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => m[1]).join(' ')
   assert.doesNotMatch(head, /£8 each|per bracelet|Every bracelet|"lowPrice": "8\.00"/)
-  assert.equal(p.m1TierHint(3), '£2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items · + £1.49 UK delivery · free with any 10+ items')
-  assert.equal(p.m1TierHint(10), '£2.40 each (70% off) · free UK delivery included')
+  assert.equal(p.m1TierHint(3), '£2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items · + £3.99 UK delivery, free over £30')
+  // owner 25 Nov 2026: 10 x £2.40 = £24.00 is under £30, so it pays delivery; 13 x £2.40 = £31.20 is free
+  assert.equal(p.m1TierHint(10), '£2.40 each (70% off) · + £3.99 UK delivery, free over £30')
+  assert.equal(p.m1TierHint(13), '£2.40 each (70% off) · free UK delivery included')
 })
 
 test('#3 bag at 10+: "Instant 70% off applied: £2.40 each instead of £8", one figure pair per group, current single price', () => {
   const p = page(M1P)
-  assert.deepEqual(p.m1Lines([{ bc: G1, qty: 10 }]), { progress: null, applied: 'Instant 70% off applied: £2.40 each instead of £8', promo: 'Promo codes can’t be used with the 10+ price.' })
+  // 10 x £2.40 = £24.00: the 10+ price applies, delivery is not free (owner 25 Nov 2026) -> the spend nudge (= engine progress())
+  assert.deepEqual(p.m1Lines([{ bc: G1, qty: 10 }]), { progress: null, applied: 'Instant 70% off applied: £2.40 each instead of £8', promo: 'Promo codes can’t be used with the 10+ price.', delivery: 'Add £6.00 for free delivery' })
+  assert.deepEqual(progress(units([{ bc: G1, qty: 10 }]), M1P).lines, ['Best multi-buy price unlocked', 'Add £6.00 for free delivery'])
+  assert.deepEqual(p.m1Lines([{ bc: G1, qty: 13 }]).delivery, undefined, '£31.20: free, no nudge')
   assert.equal(p.m1Lines([{ bc: G1, qty: 6 }, { bc: G2, qty: 8 }]).applied, 'Instant 70% off applied: £2.40 each instead of £8')
   assert.equal(p.m1Lines([{ bc: G1, qty: 4 }, { bc: 'SA', qty: 3 }, { bc: 'SC', qty: 3 }]).applied,
     'Instant 70% off applied: £1.50 each instead of £5 · £2.40 each instead of £8 · £3.90 each instead of £13')
@@ -103,10 +108,12 @@ test('#3 bag at 10+: "Instant 70% off applied: £2.40 each instead of £8", one 
 test('#4 bag 1–9: "Add N more for 70% off every item", N = 10 − all units; page line = engine line', () => {
   const p = page(M1P)
   const M = (lines) => p.m1Lines(lines).progress
-  assert.equal(M([{ bc: G1, qty: 1 }]), 'Add 9 more for 70% off every item (from £2.40 each) and free UK delivery')
-  assert.equal(M([{ bc: G1, qty: 3 }]), 'Add 7 more (e.g. Bead bracelets) for 70% off every item: your total becomes £24.00 with free delivery')
-  assert.equal(M([{ bc: G1, qty: 9 }]), 'Add 1 more for 70% off every item: total drops to £24.00 with free delivery')
-  assert.equal(M([{ bc: 'SA', qty: 2 }, { bc: G1, qty: 1 }, { bc: 'SC', qty: 1 }]), 'Add 6 more (e.g. Stretch Bracelets) for 70% off every item: your total becomes £18.30 with free delivery')
+  // owner 25 Nov 2026: a 10+ bag under £30 pays £3.99, so the unlock line never promises free delivery and names the fee
+  assert.equal(M([{ bc: G1, qty: 1 }]), 'Add 9 more for 70% off every item (from £2.40 each)')
+  assert.equal(M([{ bc: G1, qty: 3 }]), 'Add 7 more for 70% off every item (from £2.40 each)')
+  assert.equal(M([{ bc: G1, qty: 9 }]), 'Add 1 more for 70% off every item: total drops to £24.00 + £3.99 delivery')
+  assert.equal(M([{ bc: 'SA', qty: 2 }, { bc: G1, qty: 1 }, { bc: 'SC', qty: 1 }]), 'Add 6 more (e.g. Stretch Bracelets) for 70% off every item: your total becomes £18.30 + £3.99 delivery')
+  assert.equal(p.m1Lines([{ bc: G1, qty: 1 }]).delivery, 'Add £22.00 for free delivery')
   for (let g = 0; g <= 9; g++) for (let a = 0; a <= 4; a++) for (let c = 0; c <= 3; c++) {
     const n = g + a + c
     if (!n || n >= 10) continue
@@ -137,13 +144,13 @@ test('#5 no was / RRP / strike-through / "save" in any M1 text, with or without 
   assert.doesNotMatch(visible, /free from £12|over £12/)
 })
 
-test('#6/#7 delivery and money unchanged by the claim: £1.49 at 1–9, free at 10+; Stripe totals to the penny', () => {
+test('#6/#7 delivery and money unchanged by the claim: £3.99 below £30.00 paid (10+ included), free from £30.00; Stripe totals to the penny', () => {
   const all = (lines) => [...units(lines)]
   const cases = [
-    [[{ bc: G1, qty: 1 }], 800, 149],                                                   // ×1 £9.49
-    [[{ bc: G1, qty: 9 }], 7200, 149],                                                  // ×9B £73.49
-    [[{ bc: G1, qty: 10 }], 2400, 0],                                                   // ×10B £24.00
-    [[{ bc: 'SA', qty: 4 }, { bc: G1, qty: 3 }, { bc: 'SC', qty: 3 }], 2490, 0],        // 4A+3B+3C £24.90
+    [[{ bc: G1, qty: 1 }], 800, 399],                                                   // ×1 £11.99
+    [[{ bc: G1, qty: 9 }], 7200, 0],                                                    // ×9B £72.00 (over £30)
+    [[{ bc: G1, qty: 10 }], 2400, 399],                                                 // ×10B £27.99 (10+ under £30 pays)
+    [[{ bc: 'SA', qty: 4 }, { bc: G1, qty: 3 }, { bc: 'SC', qty: 3 }], 2490, 399],      // 4A+3B+3C £28.89
   ]
   for (const [lines, total, fee] of cases) {
     for (const T of [M1P, NOPCT, LADDERS]) {
@@ -164,13 +171,13 @@ test('#9 K-08 words: no "Diamond" / "Lux Stone" in the served group labels', () 
 
 test('page CTA: card form + the delivery sentence once (the ad line stays out of the page copy)', () => {
   const T = page(M1P).m1Texts()
-  assert.equal(T.cta, 'Mix any shades · £2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items · <span data-kl="ship">£1.49 UK delivery · free with any 10+ items</span>')   // deal-first re-pin (owner 24 Nov 2026)
+  assert.equal(T.cta, 'Mix any shades · £2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items · <span data-kl="ship">£3.99 UK delivery, free over £30</span>')   // deal-first re-pin (owner 24 Nov 2026)
   assert.ok(HTML.includes('data-kl-m1="cta">' + T.cta + '</div>'), 'static CTA first paint = m1Texts().cta')
   assert.equal((T.cta.match(/delivery/g) || []).length, 1)
   // ad line (marketing, K&D #8): condition + from-price + delivery in one frame
-  assert.equal(T.ad, 'Buy 10+, get 70% off · from £2.40 each · free UK delivery')
+  assert.equal(T.ad, 'Buy 10+, get 70% off · from £2.40 each · £3.99 UK delivery, free over £30')   // owner 25 Nov 2026: 10+ alone is not free delivery
   const S = page(NOPCT).m1Texts()
-  assert.equal(S.cta, 'Mix any shades · £2.40 each when you buy any 10+ items · £8 each for 1–9 items · <span data-kl="ship">£1.49 UK delivery · free with any 10+ items</span>')   // deal-first re-pin (owner 24 Nov 2026)
+  assert.equal(S.cta, 'Mix any shades · £2.40 each when you buy any 10+ items · £8 each for 1–9 items · <span data-kl="ship">£3.99 UK delivery, free over £30</span>')   // deal-first re-pin (owner 24 Nov 2026)
   assert.equal(S.ad, null)
 })
 

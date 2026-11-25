@@ -152,7 +152,7 @@ test('runtime: /api/stock ladders change the fee, threshold, free-at-qty and lad
   const t30 = fx('shipping_30')
   const p = page({ ladders: t30 })
   assert.equal(p.applyLadderShipping(t30), true)
-  assert.equal(p.shipSentence(), '£6.49 UK delivery, free on orders of £30+')
+  assert.equal(p.shipSentence(), '£6.49 UK delivery, free over £30')
   assert.equal(p.rollingText(1200, 5), 'Bag £18.49 inc. £6.49 delivery')
   assert.equal(p.rollingText(3000, 1), 'Bag £30.00 · free UK delivery')
   assert.equal(p.gradTotalP(6), t30.pools.gradient.totals[6])
@@ -160,7 +160,7 @@ test('runtime: /api/stock ladders change the fee, threshold, free-at-qty and lad
   const q = page()
   assert.equal(q.applyLadderShipping({ shipping: { free_threshold_pence: 'x' } }), false)
   assert.equal(q.applyLadderShipping(null), false)
-  assert.equal(q.shipSentence(), '£1.49 UK delivery · free with any 10+ items', 'fallback = M1 ladders.json shipping (K-047 wording)')
+  assert.equal(q.shipSentence(), '£3.99 UK delivery, free over £30', 'fallback = M1 ladders.json shipping (owner 25 Nov 2026 wording)')
 })
 
 
@@ -169,7 +169,7 @@ test('structured data (JSON-LD offer) carries the delivery fee from ladders.json
   const offers = blocks.map((b) => b.offers).filter(Boolean)
   assert.ok(offers.length >= 1, 'an offer exists')
   for (const o of offers) {
-    assert.equal(o.shippingDetails?.shippingRate?.value, (FEE / 100).toFixed(2), 'shippingRate = ladders.json fee')
+    assert.equal(o.shippingDetails?.shippingRate?.value, ((M1MODE ? RAW_TABLE.shipping.below_threshold_fee_pence : FEE) / 100).toFixed(2), 'shippingRate = ladders.json fee')
     assert.equal(o.shippingDetails?.shippingRate?.currency, 'GBP')
     assert.equal(o.shippingDetails?.shippingDestination?.addressCountry, 'GB')
   }
@@ -179,30 +179,44 @@ test('the story strip "£2.99 each" carries the delivery fee next to it', { skip
   assert.match(TEXT, /<b>£2\.99<\/b> each <span class="dl" data-kl="fee1">\+ £1\.49 UK delivery<\/span>/)
 })
 
-// ---------- M1 (ladders.json in mode cart_qty_groups): static texts follow the quantity threshold ----------
-// K&D / Komuta 23 Nov: with M1 there is no spend threshold, so NO "free from/over £x" or "(or 5 items)" text may remain
-// in the shipped HTML (body text, meta / OG / Twitter, JSON-LD) or on shipping-returns.html / terms.html; every free
-// claim is "£1.49 UK delivery · free with any 10+ items" (fee in the same text, CMA209 §5.21; K-047 "any 10 items").
-const M1_SHIP = M1MODE ? `${gbp(RAW_TABLE.shipping.below_threshold_fee_pence)} UK delivery · free with any ${RAW_TABLE.shipping.free_at_qty.qty}+ items` : null
+// ---------- M1 (ladders.json in mode cart_qty_groups): static texts follow the shipping block ----------
+// Owner decision 25 Nov 2026: £3.99 UK delivery, FREE when the basket the customer pays (after the 10+ price) is >= £30.00;
+// no item-count free delivery any more. Every static claim is "£3.99 UK delivery, free over £30" (fee in the same text,
+// CMA209 §5.21); no "free with any 10+ items" (quantity) claim and no "From £5" delivery text may remain in the shipped
+// HTML (body text, meta / OG / Twitter, JSON-LD) or on shipping-returns.html / terms.html.
+const M1_SH = RAW_TABLE.shipping
+const M1_SHIP = M1MODE
+  ? (M1_SH.free_threshold_pence === null
+    ? `${gbp(M1_SH.below_threshold_fee_pence)} UK delivery · free with any ${M1_SH.free_at_qty.qty}+ items`
+    : `${gbp(M1_SH.below_threshold_fee_pence)} UK delivery, free over ${gbpShort(M1_SH.free_threshold_pence)}`)
+  : null
 const visibleHtml = (h) => h.replace(/<script(?![^>]*application\/ld\+json)[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '')
-test('M1: no spend-threshold delivery text left (index.html incl. meta + JSON-LD, shipping-returns.html, terms.html)', { skip: !M1MODE && 'ladders.json is the pools table' }, () => {
-  const bad = /free (?:uk )?(?:delivery |shipping )?(?:from|over|on orders of) £\d|\(or \d+ items\)|or \d+ items|or of \d+ or more items|£12/i
+test('owner 25 Nov 2026: ladders.json shipping = £3.99, free from £30.00 spend, no item-count free delivery', () => {
+  assert.equal(M1_SH.below_threshold_fee_pence, 399)
+  assert.equal(M1_SH.free_threshold_pence, 3000)
+  assert.equal(M1_SH.free_at_qty.enabled, false)
+})
+test('M1: no item-count free-delivery text and no "From £5" delivery text left (index.html incl. meta + JSON-LD, shipping-returns.html, terms.html)', { skip: !M1MODE && 'ladders.json is the pools table' }, () => {
+  const bad = /free with (?:any )?\d+\+ items|free with \d+ or more|\(or \d+\+? items\)|or \d+\+? items|£1\.49|(?:deliver|shipping)[^.<>]{0,40}from £5|from £5[^.<>]{0,40}(?:deliver|shipping)|From £5/i
   for (const [name, src] of [['index.html', visibleHtml(TEXT)], ['shipping-returns.html', SHIP_PAGE], ['terms.html', read('../terms.html')]]) {
     const m = src.match(bad)
     assert.equal(m, null, `${name}: "${m && src.slice(Math.max(0, m.index - 60), m.index + 60)}"`)
   }
 })
-test('M1: every static free-delivery claim is the quantity sentence with the fee; meta descriptions too', { skip: !M1MODE && 'ladders.json is the pools table' }, () => {
+test('M1: every static free-delivery claim is the spend sentence with the fee; meta descriptions too', { skip: !M1MODE && 'ladders.json is the pools table' }, () => {
   const html = visibleHtml(TEXT)
-  const claims = [...html.matchAll(/[^<>]*free with any \d+\+ items[^<>]*/g)].map((m) => m[0])
-  assert.doesNotMatch(html, /free with \d+\+ items|when you buy \d+\+? /, 'K-047: every claim says "any 10+ items"')
+  const claims = [...html.matchAll(/[^<>]*free over £\d+[^<>]*/g)].map((m) => m[0])
   assert.ok(claims.length >= 8, `claims found: ${claims.length}`)
-  for (const c of claims) assert.ok(c.includes(gbp(RAW_TABLE.shipping.below_threshold_fee_pence)), `fee missing: ${c}`)
+  for (const c of claims) assert.ok(c.includes(M1_SHIP), `not the owner sentence: ${c}`)
+  assert.doesNotMatch(html, /free UK delivery\. Under|with free UK delivery\./, 'the FAQ no longer promises free delivery for 10+ items')
   const metas = [...TEXT.matchAll(/<meta (?:name|property)="(description|og:description|twitter:description)" content="([^"]*)"/g)]
   assert.equal(metas.length, 3)
   for (const [, kind, content] of metas) assert.ok(content.includes(M1_SHIP), `${kind}: ${content}`)
-  assert.ok(SHIP_PAGE.includes(`UK standard delivery — ${gbp(RAW_TABLE.shipping.below_threshold_fee_pence)}.`))
-  assert.ok(SHIP_PAGE.includes(`Free with any ${RAW_TABLE.shipping.free_at_qty.qty}+ items in your order`))
+  assert.ok(SHIP_PAGE.includes(`UK standard delivery — ${gbp(M1_SH.below_threshold_fee_pence)}.`))
+  assert.ok(SHIP_PAGE.includes(`Free on orders over ${gbpShort(M1_SH.free_threshold_pence)}`))
+  assert.ok(SHIP_PAGE.includes(`${gbp(M1_SH.free_threshold_pence)} or more`), 'policy page states the exact boundary (£30.00 = free)')
+  const terms = read('../terms.html')
+  assert.ok(terms.includes(M1_SHIP), 'terms.html carries the owner sentence')
 })
 test('M1: JSON-LD offer price range = the table groups (lowest..highest single price); delivery fee = the table', { skip: !M1MODE && 'ladders.json is the pools table' }, () => {
   const singles = Object.values(RAW_TABLE.groups).map((g) => g.single)

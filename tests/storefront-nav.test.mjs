@@ -19,7 +19,7 @@ const LAYOUT = HTML.match(/\/\*KL-SF-LAYOUT-START\*\/([\s\S]*?)\/\*KL-SF-LAYOUT-
 const sfLayout = new Function(`${LAYOUT}; return sfLayout;`)()
 const CORE = SF.match(/\/\*KL-SF-CORE-START\*\/([\s\S]*?)\/\*KL-SF-CORE-END\*\//)[1]
 const core = new Function(`${CORE}; return { SF_TITLE, SF_CHIP, sfFamCard };`)()
-const DELIVERY = /£1\.49 UK delivery · free with any 10\+ items/
+const DELIVERY = /£3\.99 UK delivery, free over £30/   // owner 25 Nov 2026 (was £1.49, free with any 10+ items)
 
 // ---------- a tiny DOM (enough for querySelector with tag/.class/#id compounds and descendant combinators) ----------
 class El {
@@ -157,33 +157,33 @@ test('F4/F6: short chip labels, panel titles and tab roles unchanged', () => {
   assert.match(SF, /\['ArrowRight', 'ArrowLeft', 'Home', 'End'\]/)
 })
 
-test('CMA209: every priced card (Gradient + family) and the bag keep the delivery fee with the 10+ free condition', () => {
+test('CMA209: every priced card (Gradient + family) and the bag keep the delivery fee with the free-over-£30 condition', () => {
   // Gradient card template: the delivery line sits right under the price
   assert.match(HTML, /<div class="pr">\$\{m1On\(\)\?m1PriceHtml\(d\.barcode\):pt\}<\/div>\s*<div class="fee" data-kl="cardship">\$\{cardShipText\(\)\}<\/div>/)
-  assert.match(HTML, /function cardShipText\(\)\{[^\n]*'\+ '\+gbpP\(SHIP\.feeP\)\+' UK delivery'\+\(SHIP\.freeQty\?' · free with any '\+SHIP\.freeQty\+'\+ items'\+klRingsShipNote\(\):''\)/)
+  assert.match(HTML, /function cardShipText\(\)\{[^\n]*'\+ '\+gbpP\(SHIP\.feeP\)\+' UK delivery'\+\(SHIP\.freeQty\?' · free on orders of '\+gbpShort\(SHIP\.freeP\)\+'\+ or '\+SHIP\.freeQty\+'\+ items':', free over '\+gbpShort\(SHIP\.freeP\)\)/)
   // family card: price + delivery line together, for sellable and single states
   const c = { barcode: '1', name: 'Rose', line: 'Bead Necklace', swatch: '#fff', photo: '/x.jpg' }
-  const ship = '+ £1.49 UK delivery · free with any 10+ items'
+  const ship = '+ £3.99 UK delivery, free over £30'
   for (const st of ['sellable', 'single']) {
     const h = core.sfFamCard(c, st, { line: { p: 500, html: '£5.00' }, badge: null, ship })
-    assert.match(h, /<div class="pr">£5\.00<\/div><div class="fee" data-kl="cardship">\+ £1\.49 UK delivery · free with any 10\+ items<\/div>/, st)
+    assert.match(h, /<div class="pr">£5\.00<\/div><div class="fee" data-kl="cardship">\+ £3\.99 UK delivery, free over £30<\/div>/, st)
   }
   // bag drawer default line
-  assert.match(HTML, /id="cartShip"[^>]*>£1\.49 UK delivery · free with any 10\+ items</)
+  assert.match(HTML, /id="cartShip"[^>]*>£3\.99 UK delivery, free over £30</)
   // the layout move never takes the delivery line off the page, and "free" never shows without the fee
   const doc = pageDoc(); sfLayout(doc, tabbar())
   const lines = [...doc.body.walk()].filter((e) => ['ship', 'cardship'].includes(e.attrs['data-kl']))
   assert.ok(lines.length >= 3, 'announce bar, moved hero line, Gradient strip')
   for (const e of lines) assert.match(e.textContent, DELIVERY)
-  for (const e of [...doc.body.walk()].filter((x) => x.tagName === '#TEXT' && /\bfree\b/i.test(x.text))) assert.match(e.parentNode.textContent, /£1\.49/, e.text)
+  for (const e of [...doc.body.walk()].filter((x) => x.tagName === '#TEXT' && /\bfree\b/i.test(x.text))) assert.match(e.parentNode.textContent, /£3\.99/, e.text)
 })
 
-test('CMA209: every fee1 delivery span (card each-line, sticky bar, family sticky) names the 10+ free condition', async () => {
+test('CMA209: every fee1 delivery span (card each-line, sticky bar, family sticky) names the free-over-£30 condition', async () => {
   const { readFileSync } = await import('node:fs')
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
   const spans = [...html.matchAll(/data-kl="fee1">([^<]*)</g)].map((m) => m[1])
   assert.ok(spans.length >= 2)
-  for (const s of spans.filter((x) => !x.startsWith("'+"))) assert.match(s, /£1\.49 UK delivery · free with any 10\+ items/, s)   // static spans; JS-built ones use cardShipText() (asserted below)
+  for (const s of spans.filter((x) => !x.startsWith("'+"))) assert.match(s, /£3\.99 UK delivery, free over £30/, s)   // static spans; JS-built ones use cardShipText() (asserted below)
   assert.match(html, /const fee=cardShipText\(\);/)
   assert.match(html, /\[data-kl="fee1"\]'\)\.forEach\(e=>\{e\.textContent=cardShipText\(\);/)
   const sf = readFileSync(new URL('../js/storefront.js', import.meta.url), 'utf8')

@@ -51,7 +51,7 @@ const run = async (items, ladders = LADDERS) => {
 test('M1: a grouped product WITHOUT a till price is charged its group price (C £13 single, £3.90 at 10+)', async () => {
   assert.equal(LADDERS.mode, 'cart_qty_groups')
   let r = await run([{ bc: 'SC', qty: 1 }])
-  assert.deepEqual([r.status, r.items, r.total], [200, 1300, 1449])
+  assert.deepEqual([r.status, r.items, r.total], [200, 1300, 1699])   // £13 + £3.99 (owner 25 Nov 2026)
   assert.equal(r.s.line_items[0].price_data.product_data.name, 'SC · Sparkle Line — Gold-tone Swan')
   r = await run([{ bc: 'SC', qty: 10 }])
   assert.deepEqual([r.status, r.items, r.total], [200, 3900, 3900])
@@ -74,11 +74,28 @@ test('pools mode unchanged: a line without a till price is still refused (503 st
   assert.deepEqual([r.status, r.items], [200, 599])
 })
 
-test('M1 Stripe totals unchanged: 1 B £9.49, 9 B £73.49, 10 B £24.00, 4A+3B+3C £24.90', async () => {
-  assert.equal((await run([{ bc: G1, qty: 1 }])).total, 949)
-  assert.equal((await run([{ bc: G1, qty: 5 }, { bc: G2, qty: 4 }])).total, 7349)
-  assert.equal((await run([{ bc: G1, qty: 6 }, { bc: G2, qty: 4 }])).total, 2400)
-  assert.equal((await run([{ bc: 'SA', qty: 4 }, { bc: G1, qty: 3 }, { bc: 'SC', qty: 3 }])).total, 2490)
+// Owner decision 25 Nov 2026: £3.99 UK delivery, free when the basket paid (after the 10+ price) is >= £30.00; a 10+ bag
+// under £30 pays delivery. Stripe shipping is inline shipping_rate_data computed from the SERVER-priced lines.
+test('M1 Stripe totals (delivery £3.99, free from £30.00 paid): 1 B £11.99, 9 B £72.00, 10 B £27.99, 4A+3B+3C £28.89', async () => {
+  assert.equal((await run([{ bc: G1, qty: 1 }])).total, 1199)
+  assert.equal((await run([{ bc: G1, qty: 5 }, { bc: G2, qty: 4 }])).total, 7200)
+  assert.equal((await run([{ bc: G1, qty: 6 }, { bc: G2, qty: 4 }])).total, 2799)   // 10+ basket under £30 PAYS delivery
+  assert.equal((await run([{ bc: 'SA', qty: 4 }, { bc: G1, qty: 3 }, { bc: 'SC', qty: 3 }])).total, 2889)
+})
+
+test('M1 checkout delivery boundary: £29.00 pays £3.99, exactly £30.00 is free, 10+ at £39.00 free; shipping label follows', async () => {
+  let r = await run([{ bc: 'SC', qty: 1 }, { bc: G1, qty: 2 }])   // 13 + 2 x 8 = £29.00
+  assert.deepEqual([r.status, r.items, r.total - r.items], [200, 2900, 399])
+  assert.equal(r.s.shipping_options[0].shipping_rate_data.display_name, 'UK standard shipping')
+  r = await run([{ bc: 'SA', qty: 6 }])   // 6 x £5 = £30.00 exactly
+  assert.deepEqual([r.status, r.items, r.total - r.items], [200, 3000, 0])
+  assert.equal(r.s.shipping_options[0].shipping_rate_data.display_name, 'Free UK shipping')
+  r = await run([{ bc: 'SC', qty: 10 }])   // 10+ price: 10 x £3.90 = £39.00
+  assert.deepEqual([r.status, r.items, r.total - r.items], [200, 3900, 0])
+  r = await run([{ bc: 'SA', qty: 10 }])   // 10+ price: 10 x £1.50 = £15.00 -> pays
+  assert.deepEqual([r.status, r.items, r.total - r.items], [200, 1500, 399])
+  assert.equal(r.s.shipping_options.length, 1, 'one inline rate, no pre-created Stripe shipping_rate id')
+  assert.ok(!('shipping_rate' in r.s.shipping_options[0]))
 })
 
 test('/api/stock M1: grouped item without a till price is sellable with price_pence = group single; no group = 0', async () => {
