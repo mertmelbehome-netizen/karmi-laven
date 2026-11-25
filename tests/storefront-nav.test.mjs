@@ -250,7 +250,7 @@ test('N1: phone cookie banner is compact (does not cover the first card price + 
 test('375x812 + 390x844: first card ends above the sticky bar (compact announce + logo row on phones)', () => {
   const css = readFileSync(new URL('../css/storefront.css', import.meta.url), 'utf8')
   assert.match(css, /html\.kl-v2 body > nav:not\(\.kl-tabbar\)\{padding:10px 0 8px\}/)
-  assert.match(css, /html\.kl-v2 \.announce\{padding:7px 10px; font-size:10\.5px; letter-spacing:\.1em; line-height:1\.4\}/)
+  assert.match(css, /html\.kl-v2 \.announce\{padding:5px 10px; font-size:12px; letter-spacing:\.06em; line-height:1\.4\}/)
 })
 
 test('no false scarcity: "Only N left" comes from LIVE stock only (API down -> none; live q>6 -> cleared)', () => {

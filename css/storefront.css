@@ -21,7 +21,7 @@ html.kl-v2, html.kl-v2 body{overflow-x:clip}
 .kl-tabs [role=tab]:hover{border-color:var(--ink)}
 /* active = filled ink chip with cream text (F6) */
 .kl-tabs [role=tab][aria-selected=true]{background:var(--ink); border-color:var(--ink); color:#faf7f1}
-.kl-tabs [role=tab] .n{font-size:11.5px; font-weight:400; letter-spacing:.02em; opacity:.75}
+.kl-tabs [role=tab] .n{font-size:12px; font-weight:400; letter-spacing:.02em; opacity:.75}
 .kl-tabs [role=tab]:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
 /* the colour bar sticks UNDER the chip bar (top = measured chip-bar height, storefront.js tabScroll), never beneath it */
 html.kl-v2 .swatchbar{top:var(--kl-tb-h,54px)}
@@ -75,7 +75,7 @@ html.kl-v2 .swatchbar{top:var(--kl-tb-h,54px)}
   /* logo row a little tighter so the chips sit on the first screen (F1) */
   html.kl-v2 body > nav:not(.kl-tabbar){padding:10px 0 8px}
   /* 375x812: announce bar 60 -> 44 px so the first full card ends above the sticky bar (Komuta 23 Nov: overlap 0 at 812 + 844) */
-  html.kl-v2 .announce{padding:7px 10px; font-size:10.5px; letter-spacing:.1em; line-height:1.4}
+  html.kl-v2 .announce{padding:5px 10px; font-size:12px; letter-spacing:.06em; line-height:1.4}
 }
 /* ---- hero price block (25_hero_price/BENCHMARK.md rules HP-1..HP-6): big lowest 10+ price, its condition on the same
    line (>= 1/2.5 of the big size, never small print), singles smaller under it, delivery last. Families view only; the
@@ -131,7 +131,7 @@ html.kl-v2 .hero .cta, html.kl-v2 .hero-copy .k, html.kl-v2 body > .kl-trust{dis
 .kl-info .launch{font-size:12.5px; letter-spacing:.06em; color:var(--soft)}
 .kl-info .launch .p{font-family:'Cormorant Garamond'; font-size:21px; color:var(--ink); font-weight:500; margin-left:4px}
 .kl-info .launch .p .m1t{font-family:'Jost'; font-size:13px}
-.kl-info .launch .lbl{display:inline-block; font-size:9.5px; letter-spacing:.22em; text-transform:uppercase;
+.kl-info .launch .lbl{display:inline-block; font-size:12px; letter-spacing:.22em; text-transform:uppercase;
   color:var(--accent); border:1px solid var(--hair); border-radius:100px; padding:3px 9px; margin-left:9px; vertical-align:middle}
 .kl-info .launchfee{margin-top:6px; font-size:12.5px; letter-spacing:.03em; color:var(--ink)}
 .kl-info .kl-xmas-hero{margin:8px auto 0}
@@ -185,7 +185,7 @@ html.kl-v2 .ci-q .ci-x{min-width:0; min-height:44px; padding:0 4px}
 .kl-og{background:none; border:0; border-bottom:1px solid currentColor; font:inherit; color:var(--ink); cursor:pointer; margin-left:6px; min-height:24px}
 .kl-ogl{margin:6px 0 0 16px; font-size:12px; color:var(--ink)}
 .kl-ladtab{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; font-size:12px}
-.kl-ladtab .kl-cap{flex-basis:100%; color:var(--soft); font-size:11.5px}
+.kl-ladtab .kl-cap{flex-basis:100%; color:var(--soft); font-size:12px}
 .kl-ladtab div{border:1px solid var(--hair); padding:4px 8px; min-width:52px; text-align:center}
 .kl-ladtab div b{display:block; font-family:'Cormorant Garamond'; font-size:16px; font-weight:500}
 .kl-ladtab div.on{border-color:var(--ink)}
@@ -206,7 +206,7 @@ html.kl-v2 .imgwrap .stk:not(:empty){font-size:14px; letter-spacing:.06em; text-
   background:rgba(255,254,251,.95); padding:3px 8px}
 @media(max-width:560px){
   /* one line, small, never more than the photo width (Komuta 23 Nov) */
-  html.kl-v2 .imgwrap .stk:not(:empty){font-size:10.5px; letter-spacing:.02em; padding:2px 6px; left:8px; bottom:8px;
+  html.kl-v2 .imgwrap .stk:not(:empty){font-size:12px; letter-spacing:.02em; padding:2px 6px; left:8px; bottom:8px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:calc(100% - 16px)}
 }
 html.kl-v2 .sold-out-badge{font-size:14px; letter-spacing:.06em; text-transform:none; background:#34302a; color:#faf7f1; backdrop-filter:none}
@@ -257,7 +257,7 @@ html.kl-v2 .cb-btn{min-height:44px}
   /* phone card price: same sizes, calmer tracking so the M1 line sets in 2-3 even lines */
   html.kl-v2 .kl-card .pr, html.kl-v2 #grid .card .pr{letter-spacing:.01em; line-height:1.45}
   html.kl-v2 .kl-card .pr .m1t, html.kl-v2 #grid .card .pr .m1t{font-size:14px}
-  html.kl-v2 .cbody .sub{letter-spacing:.14em; font-size:10.5px}
+  html.kl-v2 .cbody .sub{letter-spacing:.14em; font-size:12px}
 }
 
 /* ---- sub-categories (owner 23 Nov): a second-level chip row. Bracelets: at the top of the panel, scrolls with the
@@ -273,7 +273,7 @@ html.kl-v2 #klBSubs::-webkit-scrollbar, html.kl-v2 #klRSubs::-webkit-scrollbar{d
   color:var(--ink); cursor:pointer; white-space:nowrap; transition:border-color .2s, box-shadow .2s}
 .kl-sub:hover{border-color:#9a8f7e}
 .kl-sub[aria-selected=true]{border-color:var(--ink); box-shadow:inset 0 -2px 0 var(--ink); font-weight:500}
-.kl-sub .n{font-size:11.5px; opacity:.75}
+.kl-sub .n{font-size:12px; opacity:.75}
 .kl-sub:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
 @media(max-width:560px){
   html.kl-v2 #klBSubs, html.kl-v2 #klRSubs{margin:0 -16px 8px; padding:0 16px}

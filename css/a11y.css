@@ -1,0 +1,67 @@
+/* Karmi Laven storefront: WCAG 2.2 AA overlay (25 Nov 2026, K&D a11y debt before the 30 Nov relaunch).
+   Display, CSS and ARIA only. Linked LAST in <head> (after the inline <style> and css/storefront.css), so it wins on equal
+   specificity. It applies with the families flag OFF and ON. Pinned by tests/a11y.test.mjs; measured by
+   scripts/dev/a11y_measure.py (numbers in docs/A11Y_25NOV.md).
+   1 text size: >= 12 px everywhere (the sub-12 font-size declarations were raised in place in index.html and
+     css/storefront.css); the card price line is >= 14 px (below).
+   2 contrast: text >= 4.5:1 (large >= 3:1); borders of controls >= 3:1.
+   3 tap targets >= 44 x 44 CSS px.
+   5 prefers-reduced-motion: no transition, animation or smooth scroll.
+   6 help bubble: the bag keeps its bottom-right corner free. */
+
+/* ---- 2 contrast: the darker small-text tokens that html.kl-v2 already used, now for the whole page ---- */
+:root{ --soft:#6b6457; --accent:#8a5f58; --gold-text:#7d5f2a }
+.cart-storeproof b, .nudge-save, .cart-shipline .free, .cart-ship b, .gtknow-trust b, .kl-info .launch .lbl, .logo .amp, .hero h1 em, .stars b, .proof b,
+.tb-ico, .bundletrust b, .bundlecta .t em, .col-head h2 em, .faq h3 em, .faqitem summary::after, .reviews h2 em, .rcard .rc-stars, .rcard.brand .bc-mono,
+.rinvite a, .secure b, .fbot a, .gtknow-title em, .story .lg{ color:var(--gold-text) }
+#cookie-banner a{ color:#e3c88e }
+.cart-ship, .cart-m1 .m1on, .cart-m1 .m1promo{ color:#7d4f48 }
+.hero .launchfee, .cbody .fee, .modal .mprice .fee, .bundle-foot .bbag, .cart-shipline .note, .m1t, .flinks a{ opacity:1 }
+
+/* ---- 1 card price >= 14 px (K&D V-11; was 13 px on the old page). Every other price / delivery / small-print line is >= 12 px
+   (K&D K-04 and the 70 % checklist floor), raised in place. The sticky bar and the first-screen budget stay as measured. ---- */
+.cbody .pr, .cbody .pr s{ font-size:14px }
+
+/* 12 px text + 44 px targets must not push the first card under the sticky bar (V-01, measured 375x812 and 390x844) */
+.cbody .add{ letter-spacing:.1em }
+.cbody .sub{ margin:4px 0 6px; letter-spacing:.14em }
+.stickybar .sbtn{ padding:9px 6px; letter-spacing:.08em; line-height:1.25 }
+
+/* ---- 2 non-text contrast: the visible boundary of an outlined control >= 3:1 (the 13 % hairline was 1.3:1) ---- */
+.btn.ghost, .bagbtn, .cbody .add, .ci-q button, .ci-q input, .mbundle, .modal .mbundle, .kl-sub, .klpop-input, .cb-btn:not(.accept){ border-color:#857b6b }
+.kl-tabs [role=tab]{ border-color:#857b6b }
+
+/* white caption on the hero photo: a dark plate behind it (text-shadow alone was 3:1 on the pale shades) */
+.hero-img .cap{ padding:8px 14px; background:rgba(28,25,22,.66); left:14px; bottom:14px }
+.hero-img .cap .s{ opacity:1 }
+
+/* white text on the "+ Add" pill: the gold end of its gradient was 3.1:1 against white; both ends are now >= 5:1 */
+.nudge-add{ background:linear-gradient(90deg, #7d4f48, var(--gold-text)) }
+
+/* ---- 3 tap targets >= 44 x 44 ---- */
+.sw, .btn, .cbody .add, .madd, .mbundle, .bagbtn, .cb-btn, .cart-checkout, .sbtn, .b-add, .klpop-submit, .klpop-skip, .kl-sub, .kl-bundlechip{ min-height:44px }
+.sw, .bagbtn, .cb-btn, .sbtn{ min-width:44px }
+.bagbtn{ display:inline-flex; align-items:center; justify-content:center }
+.mclose, .bundle .x, .cart-head button, .klpop-close{ display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; padding:0 }
+.cart-head button{ margin:-10px -10px -10px 0 }
+.ci-q{ gap:6px }
+.ci-q button{ width:44px; height:44px; font-size:18px }
+.ci-q input{ width:56px; height:44px }
+.ci-q .ci-x{ width:auto; height:44px; min-width:44px; padding:0 8px; font-size:12px }
+.nudge-add{ display:flex; align-items:center; justify-content:center; width:fit-content; min-height:44px; min-width:44px; padding:0 18px; margin:8px 0 2px }
+.flinks a{ display:inline-flex; align-items:center; min-height:44px; padding:0 6px }
+.kl-dots{ height:44px; bottom:0 }
+.kl-dot{ width:44px; height:44px }
+.kl-thumbs button{ min-width:44px; min-height:44px }
+
+/* ---- 6 the help bubble sits ~16 px from the bottom-right corner and is ~56 px big: the bag keeps that corner empty,
+   so it never covers the end of "Add 1 more ..." (K&D 24 Nov) ---- */
+.cart-foot{ padding-bottom:calc(76px + env(safe-area-inset-bottom, 0px)); max-height:calc(100vh - 150px); max-height:calc(100dvh - 150px); overflow-y:auto }
+/* the cookie banner (z-index 9999, over the bag) keeps its two buttons clear of the same corner */
+#cookie-banner{ padding-right:84px }
+
+/* ---- 5 reduced motion: every transition, animation and smooth scroll off (one rule, not a list that can go stale) ---- */
+@media (prefers-reduced-motion: reduce){
+  html, html *, html *::before, html *::after{ animation-duration:.01ms !important; animation-delay:0s !important; animation-iteration-count:1 !important;
+    transition-duration:.01ms !important; transition-delay:0s !important; scroll-behavior:auto !important }
+}
