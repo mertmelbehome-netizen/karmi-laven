@@ -457,15 +457,15 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 /* basket-1 (K&D 4): adding never opens the bag. A small bar sits just above the sticky bag bar (bottom = the measured --bar-h),
    the wrapper lets taps through (pointer-events:none), only 'View' takes taps, so the next card's Add button and the sticky bar's
    main action stay reachable. aria-live polite; fades out after ~2.5 s; no movement with prefers-reduced-motion. */
-.addbar{position:fixed; z-index:56; left:12px; right:12px; bottom:calc(var(--bar-h,84px) + 8px); display:flex; justify-content:center;
+.addbar{position:fixed; z-index:56; left:auto; right:12px; max-width:200px; bottom:calc(var(--bar-h,84px) + 8px); display:flex; justify-content:flex-end;
   pointer-events:none; opacity:0; transform:translateY(8px); transition:opacity .2s, transform .2s}
 .addbar.show{opacity:1; transform:none}
-.addbar .ab{display:inline-flex; align-items:center; gap:10px; max-width:100%; background:var(--ink); color:var(--bg); font-family:'Jost'; font-size:13px;
-  letter-spacing:.04em; line-height:1.2; padding:0 6px 0 14px; min-height:44px; border-radius:22px; box-shadow:0 6px 18px -8px rgba(28,25,22,.55)}
-.addbar .ab-view{pointer-events:auto; min-width:44px; min-height:44px; padding:0 14px; border:none; background:none; color:var(--bg); font:inherit;
+.addbar .ab{display:inline-flex; align-items:center; gap:10px; max-width:100%; background:var(--ink); color:var(--bg); font-family:'Jost'; font-size:12px;
+  letter-spacing:.02em; line-height:1.2; padding:0 2px 0 12px; min-height:44px; border-radius:22px; box-shadow:0 6px 18px -8px rgba(28,25,22,.55)}
+.addbar .ab-view{pointer-events:auto; min-width:44px; min-height:44px; padding:0 10px; border:none; background:none; color:var(--bg); font:inherit;
   font-weight:600; text-decoration:underline; text-underline-offset:3px; cursor:pointer}
 .addbar .ab-view:focus-visible{outline:2px solid var(--bg); outline-offset:-4px; border-radius:22px}
-@media(min-width:841px){.addbar{bottom:24px; left:auto; right:24px}}
+@media(min-width:841px){.addbar{bottom:24px; right:24px}}
 @media (prefers-reduced-motion: reduce){.addbar{transition:none; transform:none}}
 /* U3: the tapped card's button says 'Added ✓' for ~1.5 s (no scroll, no re-render) */
 .cbody .add.is-added, .cbody .add.is-added:hover{background:var(--ink); color:var(--bg); border-color:var(--ink)}
@@ -977,7 +977,7 @@ try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vi
   <button class="sbtn" id="stickyCart" onclick="openCart()" style="display:none;background:var(--accent);color:#fff;max-width:160px">View bag &middot; <span id="stickyN">0</span></button>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="addbar" id="addBar" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script>
@@ -1637,7 +1637,8 @@ function m1Foot(){
   // CTSI §20 (K&D): the same 'Add N more' line again right above Secure Checkout, the last screen before payment.
   // K-069: 1-4 rings = 'Add N more rings to check out (minimum 5)' above Secure Checkout, and checkout is disabled (the server refuses it too)
   const near=document.getElementById('cartM1Near'), rl=L.rings||[];
-  if(near){ if(rl.length||L.delivery){ near.innerHTML=rl.concat(L.progress?[L.progress]:[], L.delivery?[L.delivery]:[]).map(x=>'<span class="kl-near">'+x+'</span>').join(''); near.hidden=false; } else { near.textContent=L.progress||''; near.hidden=!L.progress; } }
+  const bandShowsProgress=!!L.progress;   // the band above already says it (with its Add button): one 'Add N more' line, not two
+  if(near){ if(rl.length||L.delivery){ near.innerHTML=rl.concat(L.progress&&!bandShowsProgress?[L.progress]:[], L.delivery?[L.delivery]:[]).map(x=>'<span class="kl-near">'+x+'</span>').join(''); near.hidden=false; } else { near.textContent=''; near.hidden=true; } }
   const cb=document.getElementById('checkoutBtn'); cb.disabled=!cart.length||rl.length>0;
   if(rl.length) cb.setAttribute('aria-describedby','cartM1Near'); else cb.removeAttribute('aria-describedby');
 }
@@ -1681,7 +1682,7 @@ function updateBag(){
       const us=m1On()?m1Summary(cart):null, near=us&&!us.tier_unlocked&&us.unlock_total_pence!==null&&us.to_unlock>=1&&us.to_unlock<=3;
       // the unlocked bag's delivery is the ENGINE's unlock_shipping_pence (same source as m1Lines); the CURRENT bag's delivery status is never shown as if it applied to it.
       // Second line = the bag's own running total (§5.18), incl. its delivery only when that is charged.
-      const nearTxt=near?'Add '+us.to_unlock+' more → '+gbpP(us.unlock_total_pence)+(us.unlock_shipping_pence>0?' + '+gbpP(us.unlock_shipping_pence)+' delivery':' with free delivery'):'';
+      const nearTxt=near?'Add '+us.to_unlock+' more → '+gbpP(us.unlock_total_pence)+(us.unlock_shipping_pence>0?' + '+gbpP(us.unlock_shipping_pence)+' delivery':(us.unlock_shipping_pence===0?' with free delivery':'')):'';
       inf.innerHTML=near ? '<b>'+nearTxt+'</b><span class="dl">Bag '+gbpP(d.totalP)+(d.feeP>0?' inc. '+gbpP(d.feeP)+' delivery':'')+'</span>' : 'Bag <b>'+gbpP(d.totalP)+'</b>'+dl;
       // measurement hooks for the CMA209 check (total = items + delivery), no visual change
       inf.setAttribute('data-kl-total',''); inf.dataset.klItemsP=subP; inf.dataset.klShipP=d.feeP; inf.dataset.klTotalP=d.totalP; }
@@ -1761,8 +1762,11 @@ function showAboveBand(m){
 }
 function capQty(bc,q){ const a=limitOf(bc); return (a>0 && a!==Infinity) ? Math.min(q,a) : q; }
 function setQty(i,v){const c=cart[i]; if(!c)return; c.qty=capQty(c.bc,Math.max(1,Math.min(99,parseInt(v)||1))); save();updateBag();renderCart();}
-function changeQty(i,delta){const c=cart[i]; if(!c)return; if(delta>0 && atLimit(c.bc)) return; /* K&D A2: no re-render, focus stays on +; the line message + describedby are already there */ c.qty+=delta; if(c.qty<=0)cart.splice(i,1); save();updateBag();renderCart();}
-function removeItem(i){cart.splice(i,1);save();updateBag();renderCart();}
+function changeQty(i,delta){const c=cart[i]; if(!c)return; if(delta>0 && atLimit(c.bc)) return; /* K&D A2: no re-render, focus stays on +; the line message + describedby are already there */ const was=tierOn(); c.qty+=delta; if(c.qty<=0)cart.splice(i,1); save();updateBag();renderCart(); belowTenNote(was);}
+function removeItem(i){const was=tierOn(); cart.splice(i,1);save();updateBag();renderCart(); belowTenNote(was);}
+/* basket-nits: leaving the 10+ price by remove / qty - says so (toast, aria-live polite); never when the bag is empty or stays at 10+ */
+function tierOn(){ try{ return m1On()&&!!m1Summary(cart).tier_unlocked; }catch(e){ return false; } }
+function belowTenNote(was){ if(!was||!cart.length||tierOn()) return; const n=totalQty(); toast('Bag now has '+n+' item'+(n===1?'':'s')+': the '+m1Summary(cart).tier_from+'+ price no longer applies',4500); }
 function subtotal(){return cartTotal(cart);}
 function hasFreeShip(){return deliveryFor(Math.round(subtotal()*100), totalQty()).free;}
 function renderCart(){
