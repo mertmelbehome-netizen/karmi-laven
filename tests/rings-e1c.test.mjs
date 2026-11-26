@@ -129,8 +129,10 @@ const sha = (o) => createHash('sha256').update(JSON.stringify(o)).digest('hex')
 // applied line moved ('Instant 70% off applied: £2.40 each instead of £8' -> '10+ price applied: £2.40 each (70% off)')
 // re-pinned 26 Nov 2026 ON PURPOSE (U5 bag hint uses the line's own group price, K&D/O&W wording): diffed record(OFF) against origin/master 3890629:
 // only the cartM1 hint moved ('Now £8 each · 70% off ... (£2.40 each)' -> '£{own single} each for 1–9 items · 70% off ... (£{own 10+} each)', per group in the bag); everything else byte-identical
-const PIN_OFF = '7f90b2531248f491c18ef56dbcd726b1ce43ce6b8987778b3850b95bdddfc86b'
-const PIN_FALLBACK = '7f90b2531248f491c18ef56dbcd726b1ce43ce6b8987778b3850b95bdddfc86b'   // M1_FALLBACK = publicLadders(ladders.json)
+// re-pinned 26 Nov 2026 ON PURPOSE (basket-1 U4: one add label): diffed record(OFF) with the old label put back: the ONLY change is the bag nudge button
+// text '＋ Add' -> 'Add to bag' (cart band); every price, bag line, total and hint byte-identical
+const PIN_OFF = 'f0bacc5987b014e6142d85ee9035db8cdbe30e32ee98e32d635aae5849d25582'
+const PIN_FALLBACK = 'f0bacc5987b014e6142d85ee9035db8cdbe30e32ee98e32d635aae5849d25582'   // M1_FALLBACK = publicLadders(ladders.json)
 
 test('rings OFF (ladders.json today + first paint): every page text byte-for-byte = master (sha pin)', () => {
   assert.equal(RAW.flat_groups.R.enabled, false)
