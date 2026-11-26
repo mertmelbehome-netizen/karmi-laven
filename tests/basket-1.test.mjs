@@ -144,7 +144,9 @@ test('U4: card, modal and nudge add buttons are >= 44 px tall', () => {
 // ---------- K&D 5: the bag's list keeps room ----------
 test('K&D 5: the bag item list has a min-height and the footer gives room back (>= 3 text lines of items at 375x812)', () => {
   const list = HTML.match(/\.cart \.cart-items\{([^}]*)\}/)[1], foot = HTML.match(/\.cart \.cart-foot\{([^}]*)\}/)[1]
-  assert.match(list, /min-height:min\(260px,36dvh\)/)
+  assert.match(list, /min-height:min\(260px,36dvh\) !important/)
+  assert.match(list, /flex:1 0 min\(260px,36vh\)/, 'flex-shrink 0: the list is never squeezed by the footer')
+  assert.match(foot, /flex:0 1 auto/)
   assert.match(foot, /max-height:calc\(100dvh - 90px - min\(260px,36dvh\)\)/)
   const h = 812, listMin = Math.min(260, 0.36 * h)
   assert.ok(listMin >= 3 * 24, 'room for three text lines of an item row (name, price line, quantity row)')
@@ -249,4 +251,12 @@ test('pop-up: never opens with items in the bag, just after an add, or with the 
     assert.ok(!pp.opened(), JSON.stringify(o)); assert.equal(pp.store.klpop_shown, '0')
   }
   assert.match(HTML, /function show\(\)\{ if\(shopping\(\)\) return; if\(busy\(\)\)/, 'a timer that fires mid-shop is dropped, not re-queued')
+})
+
+// ---------- sold-out cards: no placeholder / gap; heading hides when every card is gone ----------
+test('sold-out cards are display:none (no 0x0 placeholder holding a grid cell); the heading hides when all are sold out', () => {
+  assert.match(HTML, /\.card\.sold-out\{display:none !important\}/)
+  assert.doesNotMatch(HTML, /\.card\.sold-out\{[^}]*(visibility:hidden|width:0|height:0|opacity:0)/)
+  assert.match(HTML, /ch\.hidden=Array\.prototype\.every\.call\(gc,function\(c\)\{ return c\.classList\.contains\('sold-out'\); \}\)/)
+  assert.match(HTML, /\.col-head\[hidden\]\{display:none\}/)
 })

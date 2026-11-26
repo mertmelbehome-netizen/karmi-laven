@@ -470,8 +470,8 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 /* U3: the tapped card's button says 'Added ✓' for ~1.5 s (no scroll, no re-render) */
 .cbody .add.is-added, .cbody .add.is-added:hover{background:var(--ink); color:var(--bg); border-color:var(--ink)}
 /* K&D 5: the bag's item list keeps room for 2 rows (>= 3 lines each) at 375x812; the footer (which scrolls on its own) gives the room back */
-.cart .cart-items{flex:1 1 auto; min-height:min(260px,36vh); min-height:min(260px,36dvh)}
-.cart .cart-foot{max-height:calc(100vh - 90px - min(260px,36vh)); max-height:calc(100dvh - 90px - min(260px,36dvh))}
+.cart .cart-items{flex:1 0 min(260px,36vh); flex-basis:min(260px,36dvh); min-height:min(260px,36vh) !important; min-height:min(260px,36dvh) !important}   /* flex-shrink 0 + basis + !important: nothing (footer height, dvh fallback) can squeeze the list */
+.cart .cart-foot{flex:0 1 auto; min-height:0; max-height:calc(100vh - 90px - min(260px,36vh)); max-height:calc(100dvh - 90px - min(260px,36dvh))}
 
 @keyframes rise{to{opacity:1; transform:none}}
 .fadein{opacity:0; animation:rise 1s forwards}
@@ -540,6 +540,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 }
 /* LIVE STOCK — sold-out state */
 .card.sold-out{display:none !important}
+.col-head[hidden]{display:none}
 .card.sold-out .add{display:none}
 .card.sold-out .ship24{color:var(--soft)}
 .sold-out-badge{position:absolute;top:13px;left:13px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;
@@ -2158,6 +2159,9 @@ window.klSfUndo=function(){
         if(stk){ stk.textContent = (typeof q==='number' && q>0 && q<=LOWMAX) ? ('Only '+q+' left') : ''; }
       }
     });
+    // basket-1: sold-out cards are display:none (no placeholder, no grid gap); with every card sold out the heading goes too
+    var ch=document.querySelector('main > .col-head'), gc=document.querySelectorAll('#grid .card');
+    if(ch && gc.length) ch.hidden=Array.prototype.every.call(gc,function(c){ return c.classList.contains('sold-out'); });
     // swatch bar: strike sold-out colours ONLY if every barcode of that colour is sold
     document.querySelectorAll('#swatchbar .sw').forEach(function(btn){
       var last=btn.childNodes[btn.childNodes.length-1];
