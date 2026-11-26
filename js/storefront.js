@@ -595,6 +595,7 @@
     var avail = list.filter(function (x) { return x.s === 'sellable' || x.s === 'single'; }).length, gi = tab === 'bracelets' && sk === 'all' ? gradItems().filter(function (x) { return x.ok || CFG.sold_out !== 'hide'; }) : [];   // + the Gradient cards after the grid
     $('#klFamCount').textContent = (list.length + gi.length) + ' pieces · ' + (avail + gi.filter(function (x) { return x.ok; }).length) + ' available now';
     g.innerHTML = list.map(function (x) { return famCardHTML(x.c, x.s); }).join('');
+    var fi = g.querySelector('img[loading="lazy"]'); if (fi) { fi.setAttribute('loading', 'eager'); fi.setAttribute('fetchpriority', 'high'); }   // 26 Nov: first card photo is not lazy (cold load LCP)
   }
   function renderGifts(has) {
     $('#klFamTitle').textContent = SF_TITLE.gifts;
@@ -774,11 +775,28 @@
       });
   }
 
+  /** First screen before /api/stock answers (cold-load speed, Komuta 26 Nov): the first photo cards from cards.json alone.
+   *  No price, no stock claim: the price slot is reserved (no jump) and the button is disabled ("Loading prices"), so nothing
+   *  can enter the bag until the real render (renderFam) replaces this grid. Only Bracelets cards that have a photo. */
+  function sfPreviewHTML(cards) {
+    return cards.map(function (c, i) {
+      var src = sfLeadSrc(c);
+      return '<article class="card in kl-card" data-kl-card data-kl-state="loading" data-kl-preview data-bc="' + sfEsc(c.barcode) + '"><div class="imgwrap"><img src="' + sfEsc(src) + '" width="400" height="500" '
+        + (i ? 'loading="lazy"' : 'loading="eager" fetchpriority="high"') + ' decoding="async" alt="' + sfEsc(c.name + ', ' + c.line) + '">' + (c.ai_image ? '<small class="kl-ai kl-ai-s">AI-styled image</small>' : '') + '</div>'
+        + '<div class="cbody"><h3 class="nm">' + sfEsc(c.name) + '</h3><div class="pr" style="min-height:3.2em" aria-hidden="true"></div>'
+        + '<button type="button" class="add" data-kl-add data-bc="' + sfEsc(c.barcode) + '" disabled aria-disabled="true">Loading prices…</button></div></article>';
+    }).join('');
+  }
+  function renderPreview() {
+    var g = $('#klFamGrid'); if (!g || g.children.length) return;
+    var cs = FAM.filter(function (c) { return c.tab === 'bracelets' && !c.grad && sfLeadSrc(c); }).slice(0, 4);
+    if (cs.length) g.innerHTML = sfPreviewHTML(cs);
+  }
   function start() {
     hook(); bindEvents();
     if (!CFG.families) { renderCart(); return; }
     buildShell();
-    loadCards().then(refresh, function () { stockErr = true; }).then(function () {
+    loadCards().then(function () { try { renderPreview(); } catch (e) {} return refresh(); }, function () { stockErr = true; }).catch(function () { stockErr = true; }).then(function () {   // a refresh() that rejects still reaches the render (the preview must never stay at 'Loading prices')
       try { render(DATA); } catch (e) {}
       var ph = sfParseHash(location.hash);   // '#bracelets-bangle' opens Bracelets with Bangle selected
       setTab(ph ? ph.tab : landingTab(), false, ph ? ph.sub : 'all');
