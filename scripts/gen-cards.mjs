@@ -43,6 +43,15 @@ export function galleryPhotos(bc, name, photoDir, galleryAi) {
   return [mk(`/img/fam/${bc}.jpg`, 1), ...extra.map((n) => mk(`/img/fam/${bc}_${n}.jpg`, n))];
 }
 
+// PHOTO-MIX RULE v1 trial (D-004, 26 Nov): the wave-1 item's optional gallery_lead (index into photos[], >= 1) becomes the
+// card's `lead`: the storefront shows that photo first (photos[0] stays the main photo). Which cards lead with a close-up
+// is chosen by scripts/photo-mix.mjs --solve and checked by tests/photo-mix-lead.test.mjs. No gallery_lead = no lead key.
+export function leadOf(bc, photos, galleryLead) {
+  if (galleryLead == null || galleryLead === 0) return null;
+  if (!Number.isInteger(galleryLead) || galleryLead < 1 || !photos || galleryLead >= photos.length) throw new Error(`gallery_lead ${galleryLead} for ${bc}: must point at one of its extra photos (1..${photos ? photos.length - 1 : 0})`);
+  return galleryLead;
+}
+
 export function buildCards(items, photoDir = null) {
   const out = [];
   for (const it of items) {
@@ -60,6 +69,8 @@ export function buildCards(items, photoDir = null) {
       photo: qc ? `/img/fam/${bc}.jpg` : null, photo_qc: qc };
     const photos = qc ? galleryPhotos(bc, short || line, photoDir, it.gallery_ai) : null;
     if (photos) card.photos = photos;
+    const lead = leadOf(bc, photos, it.gallery_lead);
+    if (lead) card.lead = lead;
     out.push(card);
   }
   return out;

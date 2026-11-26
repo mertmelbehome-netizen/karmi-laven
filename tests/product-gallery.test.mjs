@@ -45,6 +45,17 @@ function photoErrors(c) {
       else if (statSync(u).size > PHOTO_CAP) e.push(`photos[${i}] over ${PHOTO_CAP} bytes ${p.src}`)
     }
   })
+  // PHOTO-MIX v1 trial (D-004): optional lead = index of the photo shown first; never 0 in the data (absent = main photo),
+  // a QC'd extra photo with its own boolean ai flag (the label follows the lead image), no size claim in its alt
+  if (c.lead !== undefined) {
+    const L = c.photos && c.photos[c.lead]
+    if (!Number.isInteger(c.lead) || c.lead < 1 || !L) e.push('lead index')
+    else {
+      if (L.qc !== true) e.push('lead photo not qc')
+      if (typeof L.ai !== 'boolean') e.push('lead ai flag')
+      if (/\b(\d+(\.\d+)?\s?(mm|cm|in|inch|inches)\b|actual size|life[- ]size|true to size)/i.test(L.alt || '')) e.push('lead alt size claim')
+    }
+  }
   return e
 }
 const gal = (over = {}) => ({ barcode: 'G1', name: 'Rose', line: 'Beaded Bracelet', swatch: '#e7b', photo: '/img/fam/2000.jpg', photo_qc: true, ai_image: true,
@@ -159,6 +170,10 @@ test('cards.json photos[]: photos[0].src == photo, alt + ai + qc per entry, ever
   assert.ok(photoErrors(gal({ photos: [...gal().photos, { src: '/img/fam/9999_2.jpg', alt: 'x', qc: true, ai: true }] })).some((e) => /missing file/.test(e)))
   assert.ok(photoErrors(gal({ photos: [gal().photos[0], { src: '/img/fam/2023.jpg', alt: '', qc: true }] })).some((e) => /alt|ai label/.test(e)))
   assert.ok(photoErrors(gal({ photos: [{ ...gal().photos[0] }], photo_qc: false })).includes('photos without a QC hero photo'))
+  assert.deepEqual(photoErrors(gal({ lead: 2 })), [])
+  for (const bad of [0, 3, 1.5, '1', -1]) assert.ok(photoErrors(gal({ lead: bad })).includes('lead index'), 'lead ' + bad)
+  assert.ok(photoErrors(gal({ lead: 1, photos: gal().photos.map((p, i) => (i === 1 ? { ...p, qc: false } : p)) })).includes('lead photo not qc'))
+  assert.ok(photoErrors(gal({ lead: 1, photos: gal().photos.map((p, i) => (i === 1 ? { ...p, alt: 'Rose, 8 mm beads' } : p)) })).includes('lead alt size claim'))
 })
 
 test('data rule: photos[0] may omit ai (follows ai_image); an extra photo without a boolean ai fails (K&D #93 note)', () => {

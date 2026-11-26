@@ -170,16 +170,34 @@
    *  the card is byte-for-byte the one-photo card (tests/product-gallery.test.mjs pins it against the pre-gallery render). */
   function sfPhotos(c) {
     var ps = c && c.photo && c.photo_qc && Array.isArray(c.photos) ? c.photos.filter(function (x) { return x && typeof x.src === 'string' && x.src && x.qc === true; }) : [];
-    return ps.length > 1 && ps[0].src === c.photo ? ps : [];
+    if (!(ps.length > 1 && ps[0].src === c.photo)) return [];
+    var k = sfLeadIdx(c), L = k ? ps.indexOf(c.photos[k]) : 0;   // PHOTO-MIX v1 trial: the lead photo first, the rest in order
+    return L > 0 ? [ps[L]].concat(ps.slice(0, L), ps.slice(L + 1)) : ps;
+  }
+  /** PHOTO-MIX RULE v1 trial (D-004, 26 Nov): optional c.lead = index into c.photos of the photo the card shows FIRST
+   *  (default 0 = the main photo). Valid only as an integer >= 1 pointing at a qc:true entry of a card whose photos[0] is
+   *  its QC main photo; anything else = 0, so a card without lead is byte-for-byte what it was. photos[0] stays the main
+   *  photo in the data. Rule + checker: scripts/photo-mix.mjs, tests/photo-mix-lead.test.mjs. */
+  function sfLeadIdx(c) {
+    var ps = c && Array.isArray(c.photos) ? c.photos : null, n = c && c.lead;
+    if (!ps || !c.photo || !c.photo_qc || !ps[0] || ps[0].src !== c.photo) return 0;
+    return typeof n === 'number' && n % 1 === 0 && n > 0 && n < ps.length && ps[n] && ps[n].qc === true && typeof ps[n].src === 'string' && ps[n].src ? n : 0;
+  }
+  /** The image that stands for the card everywhere else (bag line thumbnail, BY[].img): the lead photo, else c.photo. */
+  function sfLeadSrc(c) {
+    var k = sfLeadIdx(c);
+    return k && sfPhotos(c).length ? c.photos[k].src : (c && c.photo) || null;
   }
   /** Card carousel: native scroll-snap track + dot buttons (index.html klCar* binds dots / arrow keys / scroll). Fixed 4/5
    *  box (.imgwrap), every img with width/height, photo 1 eager, 2+ lazy; one "AI-styled image" label per AI photo
    *  (ai missing: photo 1 follows c.ai_image, later photos are labelled). Pure. */
   function sfGallery(c, ps) {
-    var n = ps.length, base = c.name + ', ' + c.line, slides = '', dots = '';
+    var n = ps.length, base = c.name + ', ' + c.line, slides = '', dots = '', m = 0;
+    for (var j = 1; j < n; j++) if (c.photo && ps[j].src === c.photo) m = j;   // where the main photo sits (slide 2 when a lead swapped it; v1 trial)
     ps.forEach(function (x, i) {
-      // photo 1 is the card's main photo: an AI main photo stays labelled whatever its entry says (K&D #93 B1)
-      var ai = i === 0 ? (x.ai === true || !!c.ai_image) : (x.ai == null ? true : x.ai === true);
+      // the card's main photo: an AI main photo stays labelled whatever its entry says (K&D #93 B1); every other photo,
+      // the lead included, follows its OWN ai flag (missing = labelled, never an unlabelled render; D-004 K&D condition)
+      var ai = i === m ? (x.ai === true || !!c.ai_image) : (x.ai == null ? true : x.ai === true);
       slides += '<div class="kl-slide" role="group" aria-roledescription="slide" aria-label="' + (i + 1) + ' of ' + n + '">'
         + '<img src="' + sfEsc(x.src) + '" width="400" height="500" ' + (i ? 'loading="lazy" decoding="async"' : 'loading="eager"')
         + ' alt="' + sfEsc(x.alt || (i ? base + ', photo ' + (i + 1) : base)) + '">'
@@ -691,7 +709,7 @@
         FAM = (doc && Array.isArray(doc.cards) ? doc.cards : []).filter(function (c) { return c && c.barcode && c.tab !== 'gradient' && SF_TABS.indexOf(c.tab) >= 0; });
         FAM.forEach(function (c) {
           FAMBY[c.barcode] = c;
-          if (!BY[c.barcode]) BY[c.barcode] = { barcode: c.barcode, type: c.line, color_en: c.name, swatch: c.swatch, img: c.photo || '', family: true };
+          if (!BY[c.barcode]) BY[c.barcode] = { barcode: c.barcode, type: c.line, color_en: c.name, swatch: c.swatch, img: sfLeadSrc(c) || '', family: true };   // bag thumbnail = the card's lead image (D-004)
         });
         // bag lines saved before reload for family pieces (dropped by migrateCart because BY did not know them yet)
         (window.__klPendingCart || []).forEach(function (l) { if (FAMBY[l.bc] && !cart.some(function (c) { return c.bc === l.bc; })) cart.push({ bc: l.bc, qty: l.qty }); });

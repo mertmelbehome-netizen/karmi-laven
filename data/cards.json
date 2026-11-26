@@ -78,6 +78,7 @@
    "photo": "/img/fam/2040.jpg",
    "photo_qc": true,
    "ai_image": true,
+   "lead": 1,
    "photos": [
     {
      "src": "/img/fam/2040.jpg",
@@ -195,6 +196,7 @@
    "photo": "/img/fam/6180.jpg",
    "photo_qc": true,
    "ai_image": true,
+   "lead": 1,
    "photos": [
     {
      "src": "/img/fam/6180.jpg",
@@ -341,6 +343,7 @@
    "photo": "/img/fam/1468.jpg",
    "photo_qc": true,
    "ai_image": true,
+   "lead": 1,
    "photos": [
     {
      "src": "/img/fam/1468.jpg",
@@ -415,6 +418,7 @@
    "photo": "/img/fam/1477.jpg",
    "photo_qc": true,
    "ai_image": true,
+   "lead": 1,
    "photos": [
     {
      "src": "/img/fam/1477.jpg",
@@ -478,6 +482,7 @@
    "photo": "/img/fam/6002.jpg",
    "photo_qc": true,
    "ai_image": true,
+   "lead": 1,
    "photos": [
     {
      "src": "/img/fam/6002.jpg",
@@ -515,6 +520,7 @@
    "photo": "/img/fam/6011.jpg",
    "photo_qc": true,
    "ai_image": true,
+   "lead": 1,
    "photos": [
     {
      "src": "/img/fam/6011.jpg",
@@ -563,6 +569,7 @@
    "photo": "/img/fam/6058.jpg",
    "photo_qc": true,
    "ai_image": true,
+   "lead": 1,
    "photos": [
     {
      "src": "/img/fam/6058.jpg",
@@ -637,6 +644,7 @@
    "photo": "/img/fam/6170.jpg",
    "photo_qc": true,
    "ai_image": true,
+   "lead": 1,
    "photos": [
     {
      "src": "/img/fam/6170.jpg",
@@ -663,6 +671,7 @@
    "photo": "/img/fam/7058.jpg",
    "photo_qc": true,
    "ai_image": true,
+   "lead": 1,
    "photos": [
     {
      "src": "/img/fam/7058.jpg",
@@ -700,6 +709,7 @@
    "photo": "/img/fam/6095.jpg",
    "photo_qc": true,
    "ai_image": true,
+   "lead": 1,
    "photos": [
     {
      "src": "/img/fam/6095.jpg",
@@ -787,6 +797,7 @@
    "photo": "/img/fam/81004.jpg",
    "photo_qc": true,
    "ai_image": true,
+   "lead": 1,
    "photos": [
     {
      "src": "/img/fam/81004.jpg",
@@ -813,6 +824,7 @@
    "photo": "/img/fam/81006.jpg",
    "photo_qc": true,
    "ai_image": true,
+   "lead": 1,
    "photos": [
     {
      "src": "/img/fam/81006.jpg",
@@ -850,6 +862,7 @@
    "photo": "/img/fam/81013.jpg",
    "photo_qc": true,
    "ai_image": true,
+   "lead": 1,
    "photos": [
     {
      "src": "/img/fam/81013.jpg",
@@ -876,6 +889,7 @@
    "photo": "/img/fam/81014.jpg",
    "photo_qc": true,
    "ai_image": true,
+   "lead": 1,
    "photos": [
     {
      "src": "/img/fam/81014.jpg",
