@@ -1765,7 +1765,7 @@ function changeQty(i,delta){const c=cart[i]; if(!c)return; if(delta>0 && atLimit
 function removeItem(i){const was=tierOn(); cart.splice(i,1);save();updateBag();renderCart(); belowTenNote(was);}
 /* basket-nits: leaving the 10+ price by remove / qty - says so (toast, aria-live polite); never when the bag is empty or stays at 10+ */
 function tierOn(){ try{ return m1On()&&!!m1Summary(cart).tier_unlocked; }catch(e){ return false; } }
-function belowTenNote(was){ if(!was||!cart.length||tierOn()) return; const n=totalQty(); const tf=m1Summary(cart).tier_from; toast('Now '+n+' item'+(n===1?'':'s')+': add '+(tf-n)+' more for the '+tf+'+ price',4500); }
+function belowTenNote(was){ if(!was||!cart.length||tierOn()) return; const s=m1Summary(cart), n=(s.tier_units!==undefined?s.tier_units:s.units), u=s.to_unlock, r=klRingsNote(); if(!(u>0)) return; /* K&D B1: count only units that count to 10+ (no rings, no ungrouped) */ toast('Now '+n+r+' item'+(n===1?'':'s')+': add '+u+' more for the '+s.tier_from+'+ price',4500); }
 function subtotal(){return cartTotal(cart);}
 function hasFreeShip(){return deliveryFor(Math.round(subtotal()*100), totalQty()).free;}
 function renderCart(){
