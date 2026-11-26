@@ -2,7 +2,7 @@
 import './fixtures/use-live-table.mjs' // pools-table tests: frozen 23 Nov table (see the file)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createHandler } from '../api/checkout.js'
+import { createHandler, cleanLineName } from '../api/checkout.js'
 import stockHandler from '../api/stock.js'
 import { GRADIENT } from '../api/_gradient.js'
 
@@ -74,7 +74,8 @@ test('Gradient Edit unchanged: 5 = £12, 6 = £14.99; promo codes on; client nam
     assert.equal(total(p), want)
     assert.equal(p.allow_promotion_codes, true)
     assert.ok(p.line_items.every((l) => !/Diamond/.test(l.price_data.product_data.name)))
-    assert.equal(p.line_items[0].price_data.product_data.name, `${G1} · ${GRADIENT[G1]}`)
+    assert.equal(p.line_items[0].price_data.product_data.name, GRADIENT[G1])
+    assert.equal(p.line_items[0].price_data.product_data.metadata.bc, G1)
     assert.deepEqual(p.after_expiration, { recovery: { enabled: false } }, 'Gradient-only: recovery OFF too (24 Nov 2026)')
     assert.equal(p.expires_at, undefined)
   }
@@ -88,8 +89,8 @@ test('a new family is charged the WAT single price from the DB; mixed cart 3 Gra
   assert.equal(r.status, 200)
   const p = stripe.created[0]
   assert.equal(total(p), 1349)
-  const line = p.line_items.find((l) => l.price_data.product_data.name.startsWith('6101'))
-  assert.deepEqual([line.price_data.unit_amount, line.price_data.product_data.name], [599, '6101 · Stretch Charm — Rose'])
+  const line = p.line_items.find((l) => l.price_data.product_data.metadata.bc === '6101')
+  assert.deepEqual([line.price_data.unit_amount, line.price_data.product_data.name], [599, 'Stretch Charm — Rose'])
   assert.equal(p.allow_promotion_codes, false, 'no promo codes once a capped product is in the cart')
   assert.deepEqual(p.after_expiration, { recovery: { enabled: false } }, 'capped product in the cart: recovery OFF')
   assert.ok(p.expires_at > Date.parse('2026-11-25T12:30:00Z') / 1000 && p.expires_at <= Date.parse('2026-11-25T12:31:00Z') / 1000)
@@ -725,4 +726,151 @@ test('N6 + K3: the overshoot alarm names the product (line name + ordered barcod
     'family Stretch Charm Bracelet (stretch_charm): 5 sold + 0 held > cap 4; '
     + 'Stretch Charm — Rose (6101) in Stretch Charm Bracelet (stretch_charm): 4 sold + 1 held > cap 2; '
     + 'Hair Claw — Pearl (7001) in hair: 2 sold + 0 held > cap 1')
+})
+
+// U6 (26 Nov 2026): Stripe Checkout showed "6180 - <product name>" - an internal code reached the shopper.
+test('no checkout line name starts with a barcode', async () => {
+  const { readFileSync } = await import('node:fs')
+  const cards = JSON.parse(readFileSync(new URL('../data/cards.json', import.meta.url), 'utf8')).cards
+  const CODE = /^[0-9A-Z-]{3,}\s*-\s/
+  const names = new Map()
+  // every card, priced by the DB; also a dirty DB display_name ("<bc> - <name>") must be cleaned by the server
+  for (const c of cards) {
+    for (const dirty of [false, true]) {
+      const dbName = (dirty ? `${c.barcode} - ` : '') + `${c.name} · ${c.line}`
+      const reply = (a) => ({ ok: true, ref: 'r', short_session: false, recovery_ok: true,
+        lines: a.p_barcodes.map((bc) => ({ bc, product_id: 'p', family: 'x', price_pence: 599, name: dbName })) })
+      const { stripe, h } = make({ reserveReply: reply })
+      const r = await call(h, { items: [{ bc: c.barcode, qty: 1 }] })
+      if (r.status !== 200) continue // not sellable in this fake (caps/group rules): nothing reaches Stripe
+      for (const l of stripe.created[0].line_items) names.set(`${c.barcode}|${dirty}`, l.price_data.product_data.name)
+    }
+  }
+  for (const bc of Object.keys(GRADIENT)) {
+    const { stripe, h } = make({ reserveReply: OK_GRADIENT })
+    const r = await call(h, { items: [{ bc, qty: 1 }] })
+    assert.equal(r.status, 200)
+    for (const l of stripe.created[0].line_items) names.set(`${bc}|g`, l.price_data.product_data.name)
+  }
+  assert.ok(names.size > 10, 'built line items for the catalogue (' + names.size + ')')
+  for (const [k, n] of names) assert.doesNotMatch(n, CODE, k + ' ' + n)
+  assert.equal(cleanLineName('6180 - Rose Gold Ring'), 'Rose Gold Ring')
+  assert.equal(cleanLineName('1074 · Champagne'), 'Champagne')
+  assert.equal(cleanLineName('Blue No. 2025 · Stretch Charm Bracelet'), 'Blue No. 2025 · Stretch Charm Bracelet')
+})
+
+// Webhook line-item barcode: new sessions carry price.product.metadata.bc (checkout.js), old ones "{bc} · {name}".
+test('webhook recordOrder: barcode from product metadata, legacy description, metadata wins, neither warns', async () => {
+  const wh = await import('../api/stripe-webhook.js')
+  const saved = { ...process.env }
+  const realFetch = globalThis.fetch
+  const realWarn = console.warn, realLog = console.log, realErr = console.error
+  const warns = []
+  console.log = console.error = () => {}
+  console.warn = (...a) => warns.push(a.map(String).join(' '))
+  process.env.OPS_SUPABASE_URL = 'https://db.test'; process.env.OPS_SUPABASE_SERVICE_KEY = 'k'; delete process.env.OPS_APP_URL
+  const run = async (li) => {
+    const calls = []
+    let listArgs
+    globalThis.fetch = async (url, opts = {}) => { calls.push({ url, body: opts.body ? JSON.parse(opts.body) : null }); return { ok: true, status: 200, text: async () => '' } }
+    const stripeClient = { checkout: { sessions: { listLineItems: async (id, a) => { listArgs = a; return { data: li } } } } }
+    warns.length = 0
+    const row = await wh.recordOrder({ id: 'cs_x', metadata: {}, customer_details: {} }, { stripeClient })
+    const ins = calls.find((c) => c.url.includes('/online_orders'))
+    return { row, ins, listArgs, items: ins.body.items }
+  }
+  try {
+    // (1) legacy: description only
+    let r = await run([{ description: '6101 · Stretch Charm — Rose', quantity: 2, amount_total: 1198 }])
+    assert.deepEqual(r.items.map((i) => [i.bc, i.qty, i.name]), [['6101', 2, 'Stretch Charm — Rose']])
+    assert.deepEqual(r.listArgs.expand, ['data.price.product'])
+    // (2) new: metadata.bc, description = the clean name
+    r = await run([{ description: 'Stretch Charm — Rose', quantity: 3, amount_total: 1797, price: { product: { metadata: { bc: '6101' } } } }])
+    assert.deepEqual(r.items.map((i) => [i.bc, i.qty, i.name]), [['6101', 3, 'Stretch Charm — Rose']])
+    // (3) both, different: metadata wins
+    r = await run([{ description: '9999 · Other', quantity: 1, amount_total: 599, price: { product: { metadata: { bc: '6101' } } } }])
+    assert.deepEqual(r.items.map((i) => [i.bc, i.qty]), [['6101', 1]])
+    assert.equal(warns.length, 0)
+    // (4) neither: no barcode -> warned (order itself is still recorded)
+    r = await run([{ description: 'Mystery', quantity: 1, amount_total: 599, price: { product: {} } }])
+    assert.equal(r.items[0].bc, '')
+    assert.ok(warns.some((w) => /without a barcode/.test(w) && /cs_x/.test(w)), warns.join('|'))
+  } finally {
+    globalThis.fetch = realFetch; console.warn = realWarn; console.log = realLog; console.error = realErr
+    for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k]
+    Object.assign(process.env, saved)
+  }
+})
+
+// Webhook handler end to end (real signature check, faked Stripe line items + faked ops fetch): livemode guard.
+test('webhook handler: test-mode guard, live regression, forged body, no-barcode alert', async () => {
+  const { default: StripeLib } = await import('stripe')
+  const { createWebhookHandler } = await import('../api/stripe-webhook.js')
+  const real = new StripeLib('sk_test_unit')
+  const SECRET = 'whsec_unit_test'
+  const saved = { ...process.env }
+  const realFetch = globalThis.fetch
+  const realWarn = console.warn, realLog = console.log, realErr = console.error
+  const logs = []
+  console.warn = console.log = console.error = (...a) => logs.push(a.map(String).join(' '))
+  process.env.STRIPE_WEBHOOK_SECRET = SECRET
+  process.env.OPS_SUPABASE_URL = 'https://db.test'; process.env.OPS_SUPABASE_SERVICE_KEY = 'k'; process.env.OPS_APP_URL = 'https://ops.test'
+  delete process.env.META_PIXEL_ID; delete process.env.GA4_MEASUREMENT_ID
+  let listed = 0
+  const mk = (data) => ({ webhooks: real.webhooks, checkout: { sessions: { listLineItems: async () => { listed++; return { data } } } } })
+  const NEW = [{ description: 'Stretch Charm — Rose', quantity: 2, amount_total: 1198, price: { product: { metadata: { bc: '6101' } } } }]
+  const event = (livemode) => ({ id: 'evt_1', type: 'checkout.session.completed', livemode,
+    data: { object: { id: livemode ? 'cs_live_1' : 'cs_test_1', livemode, metadata: { hold_ref: 'h1', consent: 'accepted' },
+      customer_details: { email: 'buyer@example.com', name: 'A Buyer' }, amount_total: 1198 } } })
+  const send = async (h, payload, header) => {
+    const body = typeof payload === 'string' ? payload : JSON.stringify(payload)
+    const handlers = {}
+    const req = { method: 'POST', headers: { 'stripe-signature': header ?? real.webhooks.generateTestHeaderString({ payload: body, secret: SECRET }) },
+      on(e, f) { handlers[e] = f; if (e === 'end') setImmediate(() => { handlers.data && handlers.data(Buffer.from(body)); f() }); return this } }
+    let status, json
+    const res = { status(c) { status = c; return this }, json(b) { json = b; return this }, send(b) { json = b; return this } }
+    await h(req, res)
+    return { status, json }
+  }
+  const spy = () => { const calls = []; globalThis.fetch = async (url, o = {}) => { calls.push({ url: String(url), body: o.body ? JSON.parse(o.body) : null })
+    return { ok: true, status: 200, json: async () => ({ ok: true, data: {} }), text: async () => '' } }; return calls }
+  try {
+    // (a) verified TEST-mode event: zero ops calls, one log line with bc/qty/name only
+    let calls = spy(); logs.length = 0; listed = 0
+    let r = await send(createWebhookHandler({ stripe: mk(NEW) }), event(false))
+    assert.equal(r.status, 200); assert.equal(listed, 1)
+    assert.equal(calls.length, 0, JSON.stringify(calls))
+    const tl = logs.filter((l) => l.includes('test-mode session'))
+    assert.equal(tl.length, 1)
+    assert.equal(tl[0], '[stripe-webhook] test-mode session cs_test_1: items [{"bc":"6101","qty":2,"name":"Stretch Charm — Rose"}]')
+    assert.ok(!logs.join('\n').includes('buyer@example.com'))
+    // (b) LIVE event: same ops calls as before the guard (hold complete, order insert, late flag, overshoot alarm)
+    calls = spy()
+    r = await send(createWebhookHandler({ stripe: mk(NEW) }), event(true))
+    assert.equal(r.status, 200)
+    const tails = calls.map((c) => c.url.replace('https://db.test/rest/v1', '').replace('https://ops.test', ''))
+    assert.deepEqual(tails, ['/rpc/fn_karmi_checkout_complete', '/online_orders', '/api/orders/notify', '/rpc/fn_karmi_flag_late_order', '/rpc/fn_karmi_cap_overshoot', 'https://melbehome-ops-v2.vercel.app/api/track'])
+    assert.deepEqual(calls.find((c) => c.url.endsWith('/online_orders')).body.items.map((i) => [i.bc, i.qty]), [['6101', 2]])
+    // (c) forged / unsigned body claiming livemode false: rejected by the signature check, nothing listed or written
+    calls = spy(); listed = 0
+    for (const hdr of ['t=1,v1=deadbeef', '']) {
+      r = await send(createWebhookHandler({ stripe: mk(NEW) }), event(false), hdr)
+      assert.equal(r.status, 400)
+    }
+    assert.equal(calls.length, 0); assert.equal(listed, 0)
+    // (d) LIVE line without a barcode: agent_runs row + owner alert push, order still recorded
+    calls = spy()
+    r = await send(createWebhookHandler({ stripe: mk([{ description: 'Mystery', quantity: 1, amount_total: 599, price: { product: {} } }]) }), event(true))
+    assert.equal(r.status, 200)
+    const run = calls.find((c) => c.url.endsWith('/rest/v1/agent_runs'))
+    assert.deepEqual(run.body, { routine: 'karmi:webhook-no-bc', status: 'error', meta: { session_id: 'cs_live_1', name: 'Mystery' } })
+    const alert = calls.find((c) => c.url === 'https://ops.test/api/orders/notify')
+    assert.equal(alert.body.detail, 'Online order line without a barcode: Mystery (session cs_live_1)')
+    assert.ok(!JSON.stringify(alert.body).includes('buyer@example.com'))
+    assert.ok(calls.some((c) => c.url.endsWith('/online_orders')))
+  } finally {
+    globalThis.fetch = realFetch; console.warn = realWarn; console.log = realLog; console.error = realErr
+    for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k]
+    Object.assign(process.env, saved)
+  }
 })
