@@ -123,7 +123,9 @@ test('checker on the shipped data: no fixable neighbouring worn leads, first scr
     for (const p of rep.pairs) assert.equal(p.fixable, false, `${t}: ${p.a}+${p.b}`)
   }
   // data limits are known and listed (no close-up on either card; the v1 trial makes no new render)
-  assert.deepEqual(report(CARDS, 'bracelets').pairs.map((p) => p.a + '+' + p.b), ['6009+6017'])
+  // Bangle + Sparkle Line 13 (26 Nov): 4 of the 5 new Sparkle cards are wrist shots with no close-up; with the flat 81049
+  // in the middle of them (cards.json order) 2 new worn pairs remain, the minimum for 4 wrist + 1 flat in that block
+  assert.deepEqual(report(CARDS, 'bracelets').pairs.map((p) => p.a + '+' + p.b), ['6009+6017', '81056+81038', '81038+81025'])
   assert.deepEqual(report(CARDS, 'necklaces').pairs.map((p) => p.a + '+' + p.b), ['7056+6091'])
   assert.ok(report(CARDS, 'bracelets').firstShare >= 0.6)
 })
