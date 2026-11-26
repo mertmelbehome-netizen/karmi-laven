@@ -22,7 +22,9 @@ import { fileURLToPath } from 'node:url';
 
 // Product-only main photos (no hand / neck), classified by eye from img/fam/<bc>.jpg on 26 Nov 2026 (contact sheet in
 // orchestrator/outputs/2026-11-26_photo_mix_lead). A new card is NOT in this list, so it counts as worn until added.
-export const PRODUCT_ONLY_MAIN = ['2000', '6008', '80012', '80043'];
+// Bangle + Sparkle Line 13 (26 Nov 2026, morning_review/47_bangle_sparkle_final): flat shots (no wrist) 80030 80028 80034
+// 80011 80016 80022 80024 81049; the wrist shots 80047 81056 81038 81025 81026 stay worn (not listed).
+export const PRODUCT_ONLY_MAIN = ['2000', '6008', '80012', '80043', '80030', '80028', '80034', '80011', '80016', '80022', '80024', '81049'];
 export const COLS = 2;
 export const FIRST = 8;
 export const MIN_NON_WORN = 0.6;
