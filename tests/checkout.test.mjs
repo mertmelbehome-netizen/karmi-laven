@@ -758,3 +758,46 @@ test('no checkout line name starts with a barcode', async () => {
   assert.equal(cleanLineName('1074 · Champagne'), 'Champagne')
   assert.equal(cleanLineName('Blue No. 2025 · Stretch Charm Bracelet'), 'Blue No. 2025 · Stretch Charm Bracelet')
 })
+
+// Webhook line-item barcode: new sessions carry price.product.metadata.bc (checkout.js), old ones "{bc} · {name}".
+test('webhook recordOrder: barcode from product metadata, legacy description, metadata wins, neither warns', async () => {
+  const wh = await import('../api/stripe-webhook.js')
+  const saved = { ...process.env }
+  const realFetch = globalThis.fetch
+  const realWarn = console.warn, realLog = console.log, realErr = console.error
+  const warns = []
+  console.log = console.error = () => {}
+  console.warn = (...a) => warns.push(a.map(String).join(' '))
+  process.env.OPS_SUPABASE_URL = 'https://db.test'; process.env.OPS_SUPABASE_SERVICE_KEY = 'k'; delete process.env.OPS_APP_URL
+  const run = async (li) => {
+    const calls = []
+    let listArgs
+    globalThis.fetch = async (url, opts = {}) => { calls.push({ url, body: opts.body ? JSON.parse(opts.body) : null }); return { ok: true, status: 200, text: async () => '' } }
+    const stripeClient = { checkout: { sessions: { listLineItems: async (id, a) => { listArgs = a; return { data: li } } } } }
+    warns.length = 0
+    const row = await wh.recordOrder({ id: 'cs_x', metadata: {}, customer_details: {} }, { stripeClient })
+    const ins = calls.find((c) => c.url.includes('/online_orders'))
+    return { row, ins, listArgs, items: ins.body.items }
+  }
+  try {
+    // (1) legacy: description only
+    let r = await run([{ description: '6101 · Stretch Charm — Rose', quantity: 2, amount_total: 1198 }])
+    assert.deepEqual(r.items.map((i) => [i.bc, i.qty, i.name]), [['6101', 2, 'Stretch Charm — Rose']])
+    assert.deepEqual(r.listArgs.expand, ['data.price.product'])
+    // (2) new: metadata.bc, description = the clean name
+    r = await run([{ description: 'Stretch Charm — Rose', quantity: 3, amount_total: 1797, price: { product: { metadata: { bc: '6101' } } } }])
+    assert.deepEqual(r.items.map((i) => [i.bc, i.qty, i.name]), [['6101', 3, 'Stretch Charm — Rose']])
+    // (3) both, different: metadata wins
+    r = await run([{ description: '9999 · Other', quantity: 1, amount_total: 599, price: { product: { metadata: { bc: '6101' } } } }])
+    assert.deepEqual(r.items.map((i) => [i.bc, i.qty]), [['6101', 1]])
+    assert.equal(warns.length, 0)
+    // (4) neither: no barcode -> warned (order itself is still recorded)
+    r = await run([{ description: 'Mystery', quantity: 1, amount_total: 599, price: { product: {} } }])
+    assert.equal(r.items[0].bc, '')
+    assert.ok(warns.some((w) => /without a barcode/.test(w) && /cs_x/.test(w)), warns.join('|'))
+  } finally {
+    globalThis.fetch = realFetch; console.warn = realWarn; console.log = realLog; console.error = realErr
+    for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k]
+    Object.assign(process.env, saved)
+  }
+})

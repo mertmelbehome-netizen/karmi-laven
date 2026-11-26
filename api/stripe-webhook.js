@@ -28,7 +28,7 @@ const sha = (v) =>
 
 // Record the paid order into ops v2 (online_orders) so it can be fulfilled from
 // the /orders page (stockroom-first WAT decrement). Idempotent on stripe_session_id.
-export async function recordOrder(s) {
+export async function recordOrder(s, { stripeClient = stripe } = {}) {
   const base = process.env.OPS_SUPABASE_URL, key = process.env.OPS_SUPABASE_SERVICE_KEY;
   if (!base || !key) {
     console.warn('[stripe-webhook] recordOrder skipped: OPS_SUPABASE_URL or OPS_SUPABASE_SERVICE_KEY not set');
@@ -38,7 +38,7 @@ export async function recordOrder(s) {
   // Pull line items to get the per-barcode breakdown + exact line revenue.
   let lineItems = [];
   try {
-    const li = await stripe.checkout.sessions.listLineItems(s.id, { limit: 100, expand: ['data.price.product'] });
+    const li = await stripeClient.checkout.sessions.listLineItems(s.id, { limit: 100, expand: ['data.price.product'] });
     lineItems = li.data || [];
   } catch (e) {
     console.warn('[stripe-webhook] listLineItems failed (fallback to metadata):', e.message);
@@ -61,6 +61,9 @@ export async function recordOrder(s) {
     byBc.set(k, e);
   }
   let items = [...byBc.values()];
+  // A line with no barcode (neither product metadata.bc nor a legacy "{bc} · name" description) cannot be matched to
+  // stock: keep the order, log loudly so it is fixed by hand.
+  for (const it of items) if (!it.bc) console.warn('[stripe-webhook] line item without a barcode (no metadata.bc, no legacy prefix):', s.id, it.name);
   // Fallback to metadata.items ("1077x1,1111x2") if line items were unavailable.
   if (!items.length && s.metadata && s.metadata.items) {
     items = s.metadata.items.split(',').map((p) => {
