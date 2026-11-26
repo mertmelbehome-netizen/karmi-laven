@@ -108,3 +108,21 @@ See `SETUP-VERCEL.md` for the original Vercel/Stripe setup steps.
 - `photos[0]` (the main photo) may omit `ai`: it is labelled from the card's `ai_image`. Every extra photo must
   carry `ai: true/false`; an AI-styled extra photo shows the "AI-styled image" label on its slide.
 - Gradient cards use the same rule in the inline `DATA` (`DATA[].photos`, `photos[0].src === img`).
+
+### 7a. Lead photo: PHOTO-MIX RULE v1 trial (D-004, 26 Nov 2026)
+
+- Optional `lead` on a family card in `data/cards.json` = index into `photos[]` of the photo the card shows FIRST
+  (default 0 = the main photo). Slides: the lead photo, then the rest in their original order; `photos[0]` stays
+  the main photo in the data. No `lead` (or an invalid one) = the card is byte-identical to before.
+- The "AI-styled image" label follows each image's own `ai` flag (the lead included); the main photo keeps its
+  `ai_image` label wherever it sits. The bag line thumbnail uses the lead image too. Stripe line items, og:image and
+  JSON-LD carry no card image, so nothing else changes. No size claim in a close-up's alt text.
+- Rule (v1 trial, 2-column phone grid): (b) no two neighbouring cards (side by side, or one row down) lead with a
+  worn shot (wrist / neck template); (c) a real photo keeps the lead; (a) >= 60 % of the first 8 cards lead with a
+  non-worn image. Fewest swaps; the owner's Sparkle cards 81004 / 81006 / 81013 always lead with the close-up.
+- `node scripts/photo-mix.mjs` prints the scene sequence per tab before/after; `--solve` prints the minimum swap set;
+  `tests/photo-mix-lead.test.mjs` fails on a neighbouring worn pair that a close-up could fix, or an unneeded swap.
+  From the wave-1 config, `gallery_lead` (>= 1) becomes `lead` in gen-cards.
+- Known data limits (no close-up on either card; no new render in v1): bracelets 6009 + 6017, necklaces 7056 + 6091
+  (necklaces first screen 4 of 7 non-worn). Measure: `funnel_events` add_to_cart per `product_bc`, lead cards vs the
+  rest, the two weeks before vs after the deploy (the beacon has no field for the lead; no new table in v1).

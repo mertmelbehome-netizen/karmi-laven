@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { buildCards, galleryPhotos } from '../scripts/gen-cards.mjs';
+import { buildCards, galleryPhotos, leadOf } from '../scripts/gen-cards.mjs';
 
 const item = (bc, extra = {}) => ({ barcode: bc, name_status: 'final', tab: 'Hair', family: 'F', customer_name_en: 'Line — Short', tone_group: 'x', ...extra });
 
@@ -51,4 +51,19 @@ test('K&D #93 B1: ai_image card + gallery_ai false -> slide 1 still labelled AI,
   assert.deepEqual(slides.map((x) => x.includes('AI-styled image')), [true, false, false]);
   const real = sfGallery({ ...c, ai_image: false }, ps).split('class="kl-slide"').slice(1);
   assert.deepEqual(real.map((x) => x.includes('AI-styled image')), [false, false, false]);
+});
+
+test('PHOTO-MIX v1 trial: gallery_lead -> card.lead (index of an extra photo); none = no lead key; bad index throws', (t) => {
+  const d = mkdtempSync(join(tmpdir(), 'gc-'));
+  t.after(() => rmSync(d, { recursive: true, force: true }));
+  for (const f of ['555.jpg', '555_2.jpg', '666.jpg', '666_2.jpg']) writeFileSync(join(d, f), 'x');
+  const [a, b] = buildCards([item('555', { gallery_ai: true, gallery_lead: 1 }), item('666', { gallery_ai: true })], d);
+  assert.equal(a.lead, 1);
+  assert.equal(a.photos[0].src, a.photo, 'photos[0] stays the main photo');
+  assert.ok(!('lead' in b));
+  assert.equal(leadOf('x', null, undefined), null);
+  assert.equal(leadOf('x', null, 0), null);
+  assert.throws(() => leadOf('777', [{}, {}], 2), /gallery_lead 2 for 777/);
+  assert.throws(() => leadOf('777', null, 1), /gallery_lead 1 for 777/);
+  assert.throws(() => buildCards([item('888', { gallery_lead: 1 })], d), /gallery_lead 1 for 888/, 'lead without a gallery');
 });
