@@ -150,6 +150,7 @@ nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
 .cbody .sub{font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--soft); margin:5px 0 9px;
   display:flex; align-items:center; justify-content:center; gap:7px}
 .cbody .sub .d{width:8px; height:8px; border-radius:50%}
+.cbody .sub.kl-ged{display:none}   /* 'Gradient Edit' card line: families view only (css/storefront.css) */
 .cbody .pr{font-size:13px; letter-spacing:.04em; color:var(--ink)}
 .cbody .pr s{color:#bdb3a3; margin-left:4px; font-size:12px}
 .cbody .fee{font-size:12px; letter-spacing:.02em; color:var(--ink); opacity:.78; margin-top:3px; line-height:1.35}
@@ -626,7 +627,7 @@ var SFL_CHIP = { gradient: 'Beaded', bracelets: 'Bracelets', necklaces: 'Necklac
  *  2026); '#bracelets-beaded' and the old '#gradient...' links = the Gradient Edit view ('gradient', no chip of its own).
  *  h = the hash asked for ('' = none); a hidden or unknown tab falls back to the landing tab. */
 function sfDefTab(vis, h) {
-  vis = vis || []; h = String(h || '').toLowerCase(); if (h === 'bracelets-beaded') return 'gradient';
+  vis = vis || []; h = String(h || '').toLowerCase(); if (h === 'bracelets-beaded' || h === 'bracelets-gradient' || h.indexOf('bracelets-gradient-') === 0) return 'gradient';
   h = h.split('-')[0];
   if (SFL_TABS.indexOf(h) >= 0 && (h === 'gradient' || h === 'bracelets' || vis.indexOf(h) >= 0)) return h;
   return 'bracelets';
@@ -1144,6 +1145,7 @@ function card(d,i){
     ${klAiImg(d)?'<small class="kl-ai kl-ai-s"'+(isNew?' style="left:auto;right:8px"':'')+'>AI-styled image</small>':''}<span class="stk">${stockTxt(d)}</span><span class="zoom">View</span></div>
     <div class="cbody">
       <div class="nm">${d.color_en}</div>
+      <div class="sub kl-ged">Gradient Edit</div>
       <div class="sub"><span class="d" style="background:${d.swatch}"></span>Beaded bracelet</div>
       <div class="pr">${m1On()?m1PriceHtml(d.barcode):pt}</div>
       <div class="fee" data-kl="cardship">${cardShipText()}</div>

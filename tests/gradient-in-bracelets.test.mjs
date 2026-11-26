@@ -1,5 +1,6 @@
 // Gradient Edit into Bracelets (26 Nov 2026): the 8 Gradient cards on sale sit in the Bracelets grid (All) and under a
-// 'Beaded' sub-chip of Bracelets; the separate last 'Beaded' chip is gone. Internally the Gradient Edit stays tab
+// 'Gradient' sub-chip of Bracelets (+ 'Gradient Classic' / 'Gradient Cobra'; K&D usability: shoppers and our marketing
+// know the word 'Gradient'); the separate last 'Beaded' chip is gone. Internally the Gradient Edit stays tab
 // 'gradient' (= the Bracelets > Beaded view), so its pool / ladder (api/_pricing.js poolKey, not edited), bundle builder,
 // sticky bar, colour bar, gift picks and cart lines are the same code as before. Pure functions run as-is from
 // js/storefront.js (KL-SF-CORE) and index.html (KL-SF-LAYOUT); the DOM wiring is pinned on its source lines.
@@ -25,7 +26,7 @@ test('no separate Beaded chip: the chip bar has no gradient button; Bracelets is
   assert.doesNotMatch(html, /kltab-gradient|data-tab="gradient"/)
   assert.deepEqual([...html.matchAll(/data-tab="([a-z]+)"/g)].map((m) => m[1]), ['bracelets', 'necklaces', 'gifts', 'hair', 'rings'])
   // the Gradient view (#gradient, #bracelets-beaded) selects the Bracelets chip; Bracelets shows even with no family card on sale
-  for (const h of ['gradient', 'gradient-cobra', 'bracelets-beaded']) {
+  for (const h of ['gradient', 'gradient-cobra', 'bracelets-beaded', 'bracelets-gradient', 'bracelets-gradient-cobra']) {
     assert.equal(lay.sfDefTab(['necklaces', 'gradient'], h), 'gradient', h)
     assert.match(lay.sfBar(navDoc, ['necklaces', 'gradient'], null, h).innerHTML, /id="kltab-bracelets" data-tab="bracelets" aria-controls="klFam" aria-selected="true" tabindex="0">Bracelets /, h)
   }
@@ -36,34 +37,51 @@ test('no separate Beaded chip: the chip bar has no gradient button; Bracelets is
   assert.equal(core.sfPoolKey({ pools: { gradient: {}, 800: {} } }, true, 800), 'gradient')
 })
 
-test('old links keep landing on the Gradient cards; the view\'s own URL is #bracelets-beaded', () => {
-  for (const [h, sub] of [['#gradient', 'all'], ['#gradient-classic', 'classic'], ['#gradient-cobra', 'cobra'], ['#gradient-nope', 'all'], ['#bracelets-beaded', 'all'], ['#BRACELETS-BEADED', 'all']]) {
+test('old links keep landing on the Gradient cards and select the named chip; the view\'s own URL is #bracelets-gradient', () => {
+  for (const [h, sub] of [['#gradient', 'all'], ['#gradient-classic', 'classic'], ['#gradient-cobra', 'cobra'], ['#gradient-nope', 'all'],
+    ['#bracelets-beaded', 'all'], ['#BRACELETS-BEADED', 'all'], ['#bracelets-gradient', 'all'], ['#bracelets-gradient-classic', 'classic'],
+    ['#bracelets-gradient-cobra', 'cobra'], ['#bracelets-gradient-nope', 'all']]) {
     assert.deepEqual(core.sfParseHash(h), { tab: 'gradient', sub }, h)
   }
-  assert.equal(core.sfHash('gradient', 'all'), '#bracelets-beaded')
-  assert.equal(core.sfHash('bracelets', 'beaded'), '#bracelets-beaded')
-  assert.equal(core.sfHash('gradient', 'classic'), '#gradient-classic')
+  assert.equal(core.sfHash('gradient', 'all'), '#bracelets-gradient')
+  assert.equal(core.sfHash('gradient', 'classic'), '#bracelets-gradient-classic')
+  assert.equal(core.sfHash('gradient', 'cobra'), '#bracelets-gradient-cobra')
+  assert.equal(core.sfHash('bracelets', 'gradient-cobra'), '#bracelets-gradient-cobra')
   assert.deepEqual(core.sfParseHash('#bracelets'), { tab: 'bracelets', sub: 'all' })
-  // start + popstate + every in-page '#...' link go through sfParseHash -> setTab; setTab maps Bracelets > Beaded to the view
-  assert.match(SF, /if \(t === 'bracelets' && s === 'beaded'\) \{ t = 'gradient'; s = 'all'; \}/)
-  assert.match(SF, /<a class="btn ghost" href="#bracelets-beaded">See beaded bracelets<\/a>/)
+  // start + popstate + every in-page '#...' link go through sfParseHash -> setTab; setTab maps the Bracelets Gradient chips to the view
+  assert.match(SF, /if \(t === 'bracelets' && s && \(s === 'beaded' \|\| s === 'gradient' \|\| s\.indexOf\('gradient-'\) === 0\)\) \{ t = 'gradient'; s = sfGradSub\(s\); \}/)
+  // the named chip of the view is the one selected (and scrolled into view) in the Bracelets row
+  assert.match(SF, /var cur = t === 'bracelets' && tab === 'gradient' \? \(sub\.gradient && sub\.gradient !== 'all' \? 'gradient-' \+ sub\.gradient : 'gradient'\) : sub\[t\];/)
+  assert.match(SF, /var sb = tab === 'gradient' \? \$\('#klBSubs \[aria-selected="true"\]'\)/)
+  assert.match(SF, /<a class="btn ghost" href="#bracelets-gradient">See beaded bracelets<\/a>/)
 })
 
-test('Bracelets sub-chips: Beaded counts exactly the Gradient pieces on sale; All = family + Gradient', () => {
-  assert.deepEqual(core.SF_SUBS.bracelets.map((x) => x.k), ['stretch', 'charm', 'bangle', 'double', 'sparkle', 'beaded'])
+test('the 8 Gradient cards carry a small "Gradient Edit" line (card meta style, families view only); labels stay short', () => {
+  assert.match(HTML, /<div class="sub kl-ged">Gradient Edit<\/div>\r?\n\s*<div class="sub"><span class="d" style="background:\$\{d\.swatch\}"><\/span>Beaded bracelet<\/div>/)
+  assert.match(HTML, /\.cbody \.sub\.kl-ged\{display:none\}/)
+  assert.match(CSS, /html\.kl-v2 \.cbody \.sub\.kl-ged\{display:block;/)
+  // one Bracelets row: the in-panel Beaded / Beaded Cobra row is not shown in the families view
+  assert.match(CSS, /html\.kl-v2 #klGSubs\{display:none !important\}/)
+  for (const s of core.SF_SUBS.bracelets) assert.ok(s.label.length <= 16, s.label)
+})
+
+test('Bracelets sub-chips: Gradient counts exactly the Gradient pieces on sale (Classic + Cobra); All = family + Gradient', () => {
+  assert.deepEqual(core.SF_SUBS.bracelets.map((x) => x.k), ['stretch', 'charm', 'bangle', 'double', 'sparkle', 'gradient', 'gradient-classic', 'gradient-cobra'])
   const fam = CARDS.filter((c) => c.tab === 'bracelets').map((c) => ({ line: c.line, ok: true }))
-  const grad = DATA.filter((d) => ['Lux Bracelet', 'Lux Cobra Bracelet'].includes(d.type)).map((d) => ({ line: d.type, ok: ON_SALE.includes(d.barcode), sub: 'beaded' }))
-  for (const c of fam) assert.notEqual(core.sfSubOf('bracelets', c.line), 'beaded', c.line)
+  const gsub = (t) => ['gradient', 'gradient-' + core.sfSubOf('gradient', t)]   // = storefront gradSubs
+  const grad = DATA.filter((d) => ['Lux Bracelet', 'Lux Cobra Bracelet'].includes(d.type)).map((d) => ({ line: d.type, ok: ON_SALE.includes(d.barcode), sub: gsub(d.type) }))
+  for (const c of fam) assert.ok(!/^gradient/.test(core.sfSubOf('bracelets', c.line) || ''), c.line)
   const v = Object.fromEntries(core.sfVisibleSubs('bracelets', fam.concat(grad)).map((x) => [x.k, x.n]))
-  assert.equal(v.beaded, 8)
+  assert.equal(v.gradient, 8); assert.equal(v['gradient-classic'], 2); assert.equal(v['gradient-cobra'], 6)
   assert.equal(v.all, fam.length + 8)
   // the 'from' price of Bracelets > All takes the Gradient cards into account (they are shown there)
   const rows = fam.map((c, i) => ({ bc: 'F' + i, tab: 'bracelets', line: c.line, ok: true }))
-    .concat(DATA.map((d) => ({ bc: d.barcode, tab: 'bracelets', line: d.type, sub: 'beaded', ok: ON_SALE.includes(d.barcode) })))
+    .concat(DATA.map((d) => ({ bc: d.barcode, tab: 'bracelets', line: d.type, sub: gsub(d.type), ok: ON_SALE.includes(d.barcode) })))
   const all = core.sfTabPick('bracelets', 'all', rows)
   for (const bc of ON_SALE) assert.ok(all.includes(bc), bc)
   assert.deepEqual(core.sfTabPick('bracelets', 'stretch', rows).filter((bc) => ON_SALE.includes(bc)), [])
-  assert.match(SF, /return t === 'bracelets' \? fam\.concat\(gradItems\(\)\.map\(function \(x\) \{ return \{ line: x\.line, ok: x\.ok, sub: 'beaded' \}; \}\)\) : fam;/)
+  assert.match(SF, /return t === 'bracelets' \? fam\.concat\(gradItems\(\)\.map\(function \(x\) \{ return \{ line: x\.line, ok: x\.ok, sub: gradSubs\(x\.line\) \}; \}\)\) : fam;/)
+  assert.match(SF, /function gradSubs\(type\) \{ var k = sfSubOf\('gradient', type\); return k \? \['gradient', 'gradient-' \+ k\] : \['gradient'\]; \}/)
   assert.match(SF, /if \(tab === 'bracelets'\) rows = rows\.concat\(\(window\.DATA \|\| \[\]\)\.filter\(function \(d\) \{ return isGrad\(d\.barcode\); \}\)/)
 })
 

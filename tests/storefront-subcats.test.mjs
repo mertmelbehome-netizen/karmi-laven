@@ -51,12 +51,14 @@ test('hash routing: #tab-sub (ASCII, hyphen); All is the bare tab hash; unknown 
   for (const t of Object.keys(core.SF_SUBS)) for (const s of core.SF_SUBS[t]) {
     const h = core.sfHash(t, s.k)
     assert.match(h, /^#[a-z]+-[a-z]+(-[a-z]+)?$/)
-    // Bracelets > Beaded is the Gradient Edit view (26 Nov 2026): its URL opens tab 'gradient' (All)
-    assert.deepEqual(core.sfParseHash(h), t === 'bracelets' && s.k === 'beaded' ? { tab: 'gradient', sub: 'all' } : { tab: t, sub: s.k }, 'round trip ' + h)
+    // Bracelets > Gradient (-Classic / -Cobra) is the Gradient Edit view (26 Nov 2026): its URL opens tab 'gradient'
+    const g = t === 'bracelets' && s.k.indexOf('gradient') === 0 ? { tab: 'gradient', sub: s.k === 'gradient' ? 'all' : s.k.slice(9) } : null
+    const want = g || (t === 'gradient' ? { tab: 'gradient', sub: s.k } : { tab: t, sub: s.k })
+    assert.deepEqual(core.sfParseHash(h), want, 'round trip ' + h)
   }
-  // the Gradient Edit view's own URL + the old links (#gradient, #gradient-<sub>) keep landing on the same cards
-  assert.equal(core.sfHash('gradient', 'all'), '#bracelets-beaded')
-  assert.equal(core.sfHash('gradient', 'cobra'), '#gradient-cobra')
+  // the Gradient Edit view's own URL + the old links (#gradient, #gradient-<sub>, #bracelets-beaded) keep landing on the same cards
+  assert.equal(core.sfHash('gradient', 'all'), '#bracelets-gradient')
+  assert.equal(core.sfHash('gradient', 'cobra'), '#bracelets-gradient-cobra')
   assert.deepEqual(core.sfParseHash('#bracelets-beaded'), { tab: 'gradient', sub: 'all' })
   assert.deepEqual(core.sfParseHash('#gradient'), { tab: 'gradient', sub: 'all' })
   assert.deepEqual(core.sfParseHash('#gradient-classic'), { tab: 'gradient', sub: 'classic' })
@@ -71,12 +73,13 @@ test('sub-chips: only sub-categories with >= 1 sellable piece; fewer than 2 = no
   assert.deepEqual(v.map((x) => x.n), [3, 2, 1])
   assert.deepEqual(core.sfVisibleSubs('bracelets', [{ line: 'Bangle', ok: true }, { line: 'Stretch Bracelet', ok: false }]), [], 'one sub on sale = no row')
   assert.deepEqual(core.sfVisibleSubs('necklaces', [{ line: 'Bead Necklace', ok: true }]), [])
-  // order as the owner listed it; the Gradient Edit last as 'Beaded' (26 Nov 2026)
-  assert.deepEqual(core.SF_SUBS.bracelets.map((x) => x.label), ['Stretch', 'Stretch Charm', 'Bangle', 'Stretch Double', 'Sparkle Line', 'Beaded'])
-  // 'Beaded' is never reached by a product line (no family bracelet can land there), only by the Gradient items' own sub
-  for (const l of ['Stretch Bracelet', 'Lux Bracelet', 'Lux Cobra Bracelet', 'Charm Bracelet', 'Beaded', '']) assert.notEqual(core.sfSubOf('bracelets', l), 'beaded', l)
-  const g = core.sfVisibleSubs('bracelets', items.concat([{ line: 'x', ok: true, sub: 'beaded' }, { line: 'x', ok: true, sub: 'beaded' }, { line: 'x', ok: false, sub: 'beaded' }]))
-  assert.deepEqual(g.map((x) => x.k + ':' + x.n), ['all:5', 'stretch:2', 'bangle:1', 'beaded:2'])
+  // order as the owner listed it; the Gradient Edit last, named 'Gradient' + its two styles (K&D 26 Nov 2026)
+  assert.deepEqual(core.SF_SUBS.bracelets.map((x) => x.label), ['Stretch', 'Stretch Charm', 'Bangle', 'Stretch Double', 'Sparkle Line', 'Gradient', 'Gradient Classic', 'Gradient Cobra'])
+  // the Gradient chips are never reached by a product line (no family bracelet can land there), only by the Gradient items' own subs
+  for (const l of ['Stretch Bracelet', 'Lux Bracelet', 'Lux Cobra Bracelet', 'Charm Bracelet', 'Gradient', 'Beaded', '']) assert.ok(!/^gradient/.test(core.sfSubOf('bracelets', l) || ''), l)
+  const gs = ['gradient', 'gradient-cobra']
+  const g = core.sfVisibleSubs('bracelets', items.concat([{ line: 'x', ok: true, sub: gs }, { line: 'x', ok: true, sub: gs }, { line: 'x', ok: false, sub: gs }]))
+  assert.deepEqual(g.map((x) => x.k + ':' + x.n), ['all:5', 'stretch:2', 'bangle:1', 'gradient:2', 'gradient-cobra:2'])
 })
 
 test('visible labels never say Lux / crystal / diamond / stone; the pre-paint Gradient row = SF_SUBS', () => {
