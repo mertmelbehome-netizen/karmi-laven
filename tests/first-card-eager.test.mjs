@@ -9,3 +9,11 @@ test('default grid: first card photo is eager + high priority, later ones lazy',
 test('families grid: first card photo is made eager + high priority', () => {
   assert.match(sf, /g\.querySelector\('img\[loading="lazy"\]'\)[\s\S]{0,200}fetchpriority/);
 });
+test('families first screen is drawn from cards.json before /api/stock: no price, disabled button, label kept', () => {
+  assert.match(sf, /function sfPreviewHTML/);
+  assert.match(sf, /loadCards\(\)\.then\(function \(\) \{ try \{ renderPreview\(\)/);
+  const fn = sf.slice(sf.indexOf('function sfPreviewHTML'), sf.indexOf('function renderPreview'));
+  assert.match(fn, /disabled aria-disabled="true">Loading prices/);
+  assert.match(fn, /AI-styled image/);
+  assert.doesNotMatch(fn, /sfMoney|unitPrice|£/);
+});
