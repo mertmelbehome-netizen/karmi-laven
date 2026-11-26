@@ -47,14 +47,14 @@ function page(opt = {}) {
   const PRICE = Number(HTML.match(/\],\s*PRICE=([\d.]+);/)[1])
   const LADDER_TYPES = JSON.parse(HTML.match(/const LADDER_TYPES=(\[[^\]]*\]);/)[1].replace(/'/g, '"'))
   const calls = { open: 0, scroll: 0, timers: [] }
-  const window = { klPrice: () => null, klGroup: (bc) => (opt.groups || {})[bc] || DBGROUP[bc] || null, klLadders: opt.view || VIEW, klGroupList: () => ALL,
+  const window = { klPrice: () => null, klGroup: (bc) => (opt.groups || {})[bc] || DBGROUP[bc] || null, klLadders: opt.view || VIEW, klGroupList: () => ALL, ...(opt.avail ? { klAvail: opt.avail } : {}),
     scrollTo() { calls.scroll++ }, scrollBy() { calls.scroll++ }, innerHeight: 812 }
   const b = blocks(HTML)
   const glue = ['m1Foot', 'm1LineText', 'itemWord', 'totalQty', 'subtotal', 'updateBag', 'addToCart', 'tierOn', 'belowTenNote', 'changeQty', 'removeItem', 'toast', 'markAdded', 'hideAddBar', 'showAddBar', 'viewBagFromAddBar', 'addedFeedback', 'addedLabel', 'toastPlace', 'nudgeTarget', 'nudgeLabel', 'nudgeBtn', 'nudgeAddOne']
     .map((n) => fnSrc(HTML, n)).join('\n')
   const stubs = `let cart=[], addBarT=null, toastT=null, colours=[], capQty=(bc,q)=>q;
 const atLimit=()=>false, addToCartSilent=(bc)=>{ const f=cart.find(c=>c.bc===bc); if(f) f.qty++; else cart.push({bc,qty:1}); },
- save=()=>{}, renderCart=()=>{}, openCart=()=>{ calls.open++; }, track=()=>{}, flTrack=()=>{}, kl=()=>{}, syncLimits=undefined;
+ save=()=>{}, openBundle=()=>{ calls.bundle=(calls.bundle||0)+1; }, renderCart=()=>{}, openCart=()=>{ calls.open++; }, track=()=>{}, flTrack=()=>{}, kl=()=>{}, syncLimits=undefined;
 const setTimeout=(f,ms)=>{ calls.timers.push({f,ms}); return calls.timers.length; }, clearTimeout=()=>{};`
   const p = new Function('BY', 'LADDER_TYPES', 'PRICE', 'window', 'document', 'NA_TXT', 'calls',
     `${stubs}\n${b.pricing}\n${b.delivery}\n${b.m1}\n${glue}\n; return { nudgeLabel, nudgeAddOne, m1Foot, patchSummary: (f) => { const o = m1Summary; m1Summary = (l) => f(o(l)) }, changeQty, removeItem, setCart: (c) => { cart = c }, getCart: () => cart, applyLadderShipping, addToCart, updateBag, m1Summary, viewBagFromAddBar };`)(BY, LADDER_TYPES, PRICE, window, doc, 'n/a', calls)
@@ -159,6 +159,14 @@ test('nits-3 (K&D B1): with a 10+ promise shown, the pill adds from the promise 
   p.nudgeAddOne()
   const after = p.m1Summary(p.getCart())
   assert.ok(after.tier_unlocked); assert.equal(after.charged_pence, s.unlock_total_pence, 'total after the tap = the promised total')
+})
+test('nits-3 (K&D #111 nit): promise group sold out -> pill says "Add to bag" and opens the bundle picker, never a dearer item', () => {
+  const soldOutA = (bc) => (DBGROUP[bc] === 'A' ? 0 : 99)
+  const { p, calls } = page({ avail: soldOutA }); p.setCart([{ bc: A, qty: 8 }, { bc: C, qty: 1 }])
+  assert.equal(p.m1Summary(p.getCart()).unlock_group, 'A')
+  assert.equal(p.nudgeLabel(), 'Add to bag')
+  const before = JSON.stringify(p.getCart()); p.nudgeAddOne()
+  assert.equal(JSON.stringify(p.getCart()), before, 'nothing added'); assert.equal(calls.bundle, 1, 'bundle picker opened')
 })
 test('nits-3: short names are kept whole, long names are cut with an ellipsis (one line at 375 px)', () => {
   const { p } = page(); p.setCart([{ bc: '81004', qty: 9 }])
