@@ -2081,7 +2081,105 @@ function cookieChoice(accepted){
   localStorage.setItem('kl_cookie_consent', accepted ? 'accepted' : 'rejected');
   if(accepted){ initConsentedAnalytics(); klRememberFirstTouch(); }
   else { try{ localStorage.removeItem('kl_sid'); sessionStorage.removeItem('kl_ft'); }catch(e){} }
+  try{ if(accepted){ if(typeof klViewStart==='function') klViewStart(); } else if(typeof klViewStop==='function') klViewStop(); }catch(e){}   // view funnel: Accept starts, Reject stops (KL-VIEW below)
 }
+</script>
+
+<script>
+/* ---- VIEW FUNNEL (26 Nov 2026): first-party 'view' events through flTrack, ONLY with cookie consent (PECR).
+   Per SESSION (sessionStorage, read/written only after Accept; no sessionStorage = in memory for this page load):
+   1 page view (no product_bc, flag kl_view_page) + 1 card view per product barcode (kl_view_seen, JSON array) when
+   the card is >= 50% on screen (classic Gradient grid + families grid, any [data-kl-card][data-bc]). Hard cap: 30
+   'view' beacons per session in total (kl_view_n); at the cap the observers are disconnected and nothing more is
+   sent. Card views are queued (first seen first) and sent at most 1 per 400 ms. No consent / rejected = nothing is
+   observed or sent; Reject mid-visit stops everything; Accept later starts it (cookieChoice). No
+   IntersectionObserver = card views off. Never throws. No price, no email, no personal data. ---- */
+/*KL-VIEW-START*/
+var klView=(function(){
+  var CAP=30, GAP=400, K_SEEN='kl_view_seen', K_N='kl_view_n', K_PAGE='kl_view_page';
+  var st={io:null,mo:null,q:[],queued:{},timer:null,ss:undefined,mem:{seen:{},n:0,page:false}};
+  function ok(){ try{ return typeof klConsent==='function'&&klConsent()==='accepted'&&typeof flTrack==='function'; }catch(e){ return false; } }
+  function ss(){   // probed once per page load, only ever called after consent
+    if(st.ss!==undefined) return st.ss;
+    try{ var s=window.sessionStorage; if(s){ s.setItem('kl_view_t','1'); s.removeItem('kl_view_t'); } st.ss=s||null; }catch(e){ st.ss=null; }
+    return st.ss;
+  }
+  function seen(){
+    var s=ss(); if(!s) return st.mem.seen;
+    try{ var a=JSON.parse(s.getItem(K_SEEN)||'[]'), o={}; if(Array.isArray(a)) for(var i=0;i<a.length;i++) o[String(a[i])]=1; return o; }catch(e){ return {}; }
+  }
+  function markSeen(bc){
+    st.mem.seen[bc]=1; var s=ss(); if(!s) return;
+    try{ var o=seen(), a=[]; o[bc]=1; for(var k in o) if(Object.prototype.hasOwnProperty.call(o,k)) a.push(k); s.setItem(K_SEEN,JSON.stringify(a)); }catch(e){}
+  }
+  function count(){ var s=ss(); if(!s) return st.mem.n; try{ var n=parseInt(s.getItem(K_N)||'0',10); return n>0?n:0; }catch(e){ return CAP; } }
+  function bump(){ st.mem.n++; var s=ss(); if(!s) return; try{ s.setItem(K_N,String(count()+1)); }catch(e){} }
+  function pageDone(){ var s=ss(); if(!s) return st.mem.page; try{ return s.getItem(K_PAGE)==='1'; }catch(e){ return true; } }
+  function send(payload){ bump(); flTrack('view',payload); if(count()>=CAP) stop(); }
+  function stop(){
+    try{ if(st.io) st.io.disconnect(); }catch(e){} try{ if(st.mo) st.mo.disconnect(); }catch(e){}
+    st.io=null; st.mo=null; st.q=[]; st.queued={};
+    try{ if(st.timer) clearTimeout(st.timer); }catch(e){} st.timer=null;
+  }
+  function flush(){
+    st.timer=null;
+    try{
+      if(!ok()||count()>=CAP){ stop(); return; }
+      var done=seen();
+      while(st.q.length){
+        var it=st.q.shift(); delete st.queued[it.bc];
+        if(done[it.bc]) continue;
+        markSeen(it.bc); send({product_bc:it.bc,product_name:it.name});
+        break;
+      }
+      if(st.q.length&&st.io) st.timer=setTimeout(flush,GAP);
+    }catch(e){}
+  }
+  function nameOf(card){ try{ var n=card.querySelector('.nm'); return n?String(n.textContent||'').replace(/\s+/g,' ').trim().slice(0,120):''; }catch(e){ return ''; } }
+  function onSeen(es){
+    try{
+      if(!ok()){ stop(); return; }
+      var done=seen();
+      for(var i=0;i<es.length;i++){
+        var e=es[i]; if(!e.isIntersecting||e.intersectionRatio<0.5) continue;
+        var c=e.target, bc=String((c.getAttribute&&c.getAttribute('data-bc'))||'');
+        try{ if(st.io) st.io.unobserve(c); }catch(x){}
+        if(!bc||done[bc]||st.queued[bc]) continue;
+        st.queued[bc]=1; st.q.push({bc:bc,name:nameOf(c)});
+      }
+      if(st.q.length&&!st.timer) st.timer=setTimeout(flush,GAP);
+    }catch(e){}
+  }
+  function watch(el){
+    try{
+      if(!st.io||!el||el.nodeType!==1) return;
+      var list=[], done=seen(); if(el.matches&&el.matches('[data-kl-card][data-bc]')) list.push(el);
+      if(el.querySelectorAll){ var q=el.querySelectorAll('[data-kl-card][data-bc]'); for(var i=0;i<q.length;i++) list.push(q[i]); }
+      for(var j=0;j<list.length;j++){ var bc=String(list[j].getAttribute('data-bc')||''); if(bc&&!done[bc]) st.io.observe(list[j]); }
+    }catch(e){}
+  }
+  function start(){
+    try{
+      if(!ok()||count()>=CAP) return;
+      if(!pageDone()){
+        st.mem.page=true; var s=ss(); if(s){ try{ s.setItem(K_PAGE,'1'); }catch(e){} }
+        send({}); if(count()>=CAP) return;
+      }
+      if(st.io||typeof window.IntersectionObserver!=='function') return;
+      st.io=new IntersectionObserver(onSeen,{threshold:[0.5]});
+      watch(document.body);
+      if(typeof window.MutationObserver==='function'){
+        st.mo=new MutationObserver(function(ms){ try{ for(var i=0;i<ms.length;i++){ var a=ms[i].addedNodes; for(var j=0;j<a.length;j++) watch(a[j]); } }catch(e){} });
+        st.mo.observe(document.body,{childList:true,subtree:true});
+      }
+    }catch(e){}
+  }
+  return {start:start,stop:stop,_state:st};
+})();
+function klViewStart(){ try{ klView.start(); }catch(e){} }
+function klViewStop(){ try{ klView.stop(); }catch(e){} }
+klViewStart();
+/*KL-VIEW-END*/
 </script>
 
 <script>
