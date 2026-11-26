@@ -91,18 +91,21 @@ test('#2 card (deal-first): "£2.40 each when you buy any 10+ items (70% off) ·
   assert.equal(p.m1TierHint(13), '£2.40 each (70% off) · free UK delivery included')
 })
 
-test('#3 bag at 10+: "Instant 70% off applied: £2.40 each instead of £8", one figure pair per group, current single price', () => {
+// re-pinned 26 Nov 2026 ON PURPOSE (K&D #101: no was/now wording in the bag): "£y each instead of £x" -> "£y each (70% off)",
+// one per distinct 10+ price in the bag; the single price is not named on this line any more
+test('#3 bag at 10+: "10+ price applied: £2.40 each (70% off)", one figure per group, no "instead of"', () => {
   const p = page(M1P)
   // 10 x £2.40 = £24.00: the 10+ price applies, delivery is not free (owner 25 Nov 2026) -> the spend nudge (= engine progress())
-  assert.deepEqual(p.m1Lines([{ bc: G1, qty: 10 }]), { progress: null, applied: 'Instant 70% off applied: £2.40 each instead of £8', promo: 'Promo codes can’t be used with the 10+ price.', delivery: 'Add £6.00 for free delivery' })
+  assert.deepEqual(p.m1Lines([{ bc: G1, qty: 10 }]), { progress: null, applied: '10+ price applied: £2.40 each (70% off)', promo: 'Promo codes can’t be used with the 10+ price.', delivery: 'Add £6.00 for free delivery' })
   assert.deepEqual(progress(units([{ bc: G1, qty: 10 }]), M1P).lines, ['Best multi-buy price unlocked', 'Add £6.00 for free delivery'])
   assert.deepEqual(p.m1Lines([{ bc: G1, qty: 13 }]).delivery, undefined, '£31.20: free, no nudge')
-  assert.equal(p.m1Lines([{ bc: G1, qty: 6 }, { bc: G2, qty: 8 }]).applied, 'Instant 70% off applied: £2.40 each instead of £8')
+  assert.equal(p.m1Lines([{ bc: G1, qty: 6 }, { bc: G2, qty: 8 }]).applied, '10+ price applied: £2.40 each (70% off)')
   assert.equal(p.m1Lines([{ bc: G1, qty: 4 }, { bc: 'SA', qty: 3 }, { bc: 'SC', qty: 3 }]).applied,
-    'Instant 70% off applied: £1.50 each instead of £5 · £2.40 each instead of £8 · £3.90 each instead of £13')
-  // "instead of £x" = the single price of the same group in the served table (not a historic price)
+    '10+ price applied: £1.50 each (70% off) · £2.40 each (70% off) · £3.90 each (70% off)')
+  // the figure = the 10+ price of the same group in the served table
   const raw = structuredClone(RAW); raw.groups.B = { ...raw.groups.B, single: 1000, tier_each: 300 }
-  assert.equal(page(load(raw)).m1Lines([{ bc: G1, qty: 10 }]).applied, 'Instant 70% off applied: £3.00 each instead of £10')
+  assert.equal(page(load(raw)).m1Lines([{ bc: G1, qty: 10 }]).applied, '10+ price applied: £3.00 each (70% off)')
+  assert.doesNotMatch(read('../index.html'), /each instead of/, 'no was/now pair left in the bag code')
 })
 
 test('#4 bag 1–9: "Add N more for 70% off every item", N = 10 − all units; page line = engine line', () => {

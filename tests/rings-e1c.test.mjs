@@ -125,8 +125,10 @@ const sha = (o) => createHash('sha256').update(JSON.stringify(o)).digest('hex')
 // record(OFF) against origin/master b23e75b: only 'free over £30' -> 'free on orders of £30 or more' (every delivery text),
 // mdesc 'stack it into the gradient.' -> 'stack a few shades.' and og/twitter title ('The Gradient Edit £2.40 ...' ->
 // 'Colour, worn softly · from £1.50 each when you buy any 10+ items'); prices, carts, bag lines, hero block unchanged
-const PIN_OFF = '12f04451bac409510b87ea35b820104919d9ee9efacca22568bdbcd92d7a2c5e'
-const PIN_FALLBACK = '12f04451bac409510b87ea35b820104919d9ee9efacca22568bdbcd92d7a2c5e'   // M1_FALLBACK = publicLadders(ladders.json)
+// re-pinned again 26 Nov 2026 ON PURPOSE (K&D #101 no was/now in the bag): diffed record(OFF) against 25a0531: only the 10+
+// applied line moved ('Instant 70% off applied: £2.40 each instead of £8' -> '10+ price applied: £2.40 each (70% off)')
+const PIN_OFF = 'faf231060dc75ec4d75ab9b6d589020a740022fe4bd8c4cc77105f001013fcc4'
+const PIN_FALLBACK = 'faf231060dc75ec4d75ab9b6d589020a740022fe4bd8c4cc77105f001013fcc4'   // M1_FALLBACK = publicLadders(ladders.json)
 
 test('rings OFF (ladders.json today + first paint): every page text byte-for-byte = master (sha pin)', () => {
   assert.equal(RAW.flat_groups.R.enabled, false)

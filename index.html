@@ -286,7 +286,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
   width:min(880px,calc(100vw - 20px)); max-height:90vh; background:var(--paper); display:grid; grid-template-columns:1fr 1fr; overflow:hidden;
   transition:.4s cubic-bezier(.2,.8,.2,1); box-shadow:0 50px 100px -40px rgba(28,25,22,.6)}
 .modal.open{opacity:1; pointer-events:auto; transform:translateY(-50%) scale(1)}
-.modal .mimg{background:#f3eee6; aspect-ratio:4/5} .modal .mimg img{width:100%; height:100%; object-fit:cover; display:block}
+.modal .mimg{position:relative; background:#f3eee6; aspect-ratio:4/5} .modal .mimg img{width:100%; height:100%; object-fit:cover; display:block}
 .modal .mbody{padding:38px 34px; display:flex; flex-direction:column; justify-content:center; position:relative}
 .modal .mclose{position:absolute; top:16px; right:18px; background:none; border:none; font-size:20px; cursor:pointer; color:var(--soft)}
 .modal .meyebrow{font-size:12px; letter-spacing:.24em; text-transform:uppercase; color:var(--accent); display:flex; align-items:center; gap:8px; margin-bottom:12px}
@@ -312,6 +312,8 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
   /* R8 (rules v2, plan item 1): Add to bag on screen when the product view opens at 375x812 / 390x844: the photo box keeps
      4:5 but is capped at 45% of the viewport height, and the add button + returns link stay pinned to the modal's bottom */
   .modal .mimg{height:45vh; width:auto; max-width:100%; aspect-ratio:4/5; justify-self:center}
+  /* K&D #101: the close button stays on screen while the product view scrolls (pinned to the modal's top-right) */
+  .modal .mclose{position:sticky; top:6px; align-self:flex-end; margin:-20px -16px -24px 0; z-index:4; background:var(--paper); border-radius:50%}
   .modal .madd-bar{position:sticky; bottom:0; z-index:3; background:var(--paper); margin:0 -22px; padding:10px 22px 2px; box-shadow:0 -10px 14px -12px rgba(28,25,22,.35)}}
 
 /* PRODUCT GALLERY (24 Nov, shipped dormant): only a product with 2+ QC-passed photos (cards.json / DATA photos[]) gets
@@ -430,7 +432,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 .stickybar{position:fixed; left:0; right:0; bottom:0; z-index:55; display:none; background:rgba(255,254,251,.97);
   backdrop-filter:blur(10px); border-top:1px solid var(--hair); padding:10px 14px calc(10px + env(safe-area-inset-bottom));
   align-items:center; justify-content:space-between; gap:12px; box-shadow:0 -10px 30px -20px rgba(28,25,22,.5)}
-.stickybar .sp{font-size:12px; color:var(--soft); line-height:1.3}
+.stickybar .sp{font-size:14px; color:var(--ink); line-height:1.2}   /* K&D #101: the 10+ condition >= 14 px beside the deal price (R1'/R6'); delivery line .dl stays 12 px */
 .stickybar .sp b{font-family:'Cormorant Garamond'; font-size:19px; color:var(--ink); font-weight:500}
 .stickybar .sbtn{flex:1; max-width:230px; font-family:'Jost'; font-weight:400; font-size:12px; letter-spacing:.16em;
   text-transform:uppercase; color:var(--bg); background:var(--ink); border:none; padding:14px 0; cursor:pointer}
@@ -445,7 +447,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 @media(max-width:840px){.stickybar{display:flex} body{padding-bottom:var(--bar-h,84px)} html{scroll-padding-bottom:calc(var(--bar-h,84px) + 12px)}}
 /* phone: the button never shrinks below its longest word (a11y.css min-width:44px let 'Shop Bracelets' overflow next to the
    longer delivery sentence); the price + delivery text keeps fee + threshold in full */
-@media(max-width:840px){.stickybar .sbtn{min-width:min-content}}
+@media(max-width:840px){.stickybar .sbtn{min-width:min-content} .stickybar{padding-top:6px; padding-bottom:calc(6px + env(safe-area-inset-bottom))} .stickybar .sp b{font-size:18px; line-height:1}}
 
 /* toast */
 .toast{position:fixed; z-index:95; bottom:84px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
@@ -511,6 +513,12 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
   #cookie-banner .cb-text{ flex:1 1 100%; }
   #cookie-banner .cb-btns{ flex:1 1 100%; justify-content:flex-end; gap:8px; }
   .cb-btn{ padding:7px 14px; font-size:12px; min-height:32px; }
+  /* first load at 375x812 / 390x844 (K&D #101): the banner ends below the first card's Add button and stays < 15% of the
+     viewport: text uses the full width, the two equal buttons sit LEFT, so the bottom-right help corner stays clear
+     without the 84 px right padding (a11y.css) that wrapped the text to 5 lines */
+  html #cookie-banner{ padding:5px 12px; gap:4px 8px; line-height:1.25 }
+  html #cookie-banner .cb-btns{ justify-content:flex-start }
+  html #cookie-banner .cb-btn{ min-width:96px }
 }
 /* LIVE STOCK — sold-out state */
 .card.sold-out{display:none !important}
@@ -541,7 +549,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 </head>
 <body>
 <div id="cookie-banner" role="region" aria-label="Cookie consent">
-  <div class="cb-text">We use cookies (Meta Pixel and Google Analytics) to measure visits and purchases and improve your experience. Nothing is loaded until you click Accept. <a href="/privacy.html">Learn more</a></div>
+  <div class="cb-text">We use cookies (Meta Pixel and Google Analytics) to measure visits and purchases. Nothing is loaded until you click Accept. <a href="/privacy.html">Learn more</a></div>
   <div class="cb-btns">
     <button class="cb-btn" onclick="cookieChoice(false)">Reject</button>
     <button class="cb-btn accept" onclick="cookieChoice(true)">Accept</button>
@@ -574,7 +582,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
     <div class="spectrum fadein d4" id="spectrum"></div>
   </div>
   <div class="hero-img fadein d2">
-    <img id="heroImg" src="/img/gradient/1268.jpg" fetchpriority="high" decoding="async" alt="Karmi Laven beaded bracelet, worn">
+    <img id="heroImg" src="/img/gradient/1268.jpg" fetchpriority="high" decoding="async" alt="Karmi Laven beaded bracelet, worn"><small class="kl-ai kl-ai-s">AI-styled image</small>
     <div class="cap"><div class="n" id="heroName">Ice Blue</div><div class="s">Colour, worn softly</div></div>
   </div>
 </header>
@@ -1094,6 +1102,10 @@ function stockTxt(d){
   if(typeof matchMedia==='function' && matchMedia('(max-width:560px)').matches) return 'Ships in 1–2 business days';
   return 'Ships within 1–2 business days'+(st.length?' · '+st[0]:'');
 }
+// K&D #101 (9): every Gradient image in /img/gradient/ is a render (morning_review/19_live_gradient_audit); the colour tiles
+// (/img/tone/) are not images of the piece. A render carries the 'AI-styled image' label wherever it shows: grid card, product
+// view (one-photo; a photos[] gallery labels its own slides) and the hero.
+function klAiImg(d){ return !!d&&typeof d.img==='string'&&d.img.indexOf('/img/gradient/')===0; }
 function imgAlt(d){ return (!d.img||d.img.indexOf('/img/tone/')===0) ? (d.color_en+' colour tile, not a photo') : (d.color_en+(d.family?(', '+(d.type||'')):' bracelet, worn')); }
 function priceTxt(bc){ const p=unitPrice(bc); return p?('£'+p.toFixed(2)):''; }
 function card(d,i){
@@ -1102,7 +1114,7 @@ function card(d,i){
   el.setAttribute('data-kl-card',''); el.dataset.bc=d.barcode; el.dataset.klState=lad?'sellable':'single';   // measurement hooks (vitrin rule audit), no visual change
   el.innerHTML=`<div class="imgwrap" onclick="openModal('${d.barcode}')">${isNew?'<span class="new">New</span>':''}
     <img loading="lazy" src="${d.img}" srcset="${d.img.replace('/img/gradient/','/img/gradient/w480/')} 480w, ${d.img} 1000w" sizes="(max-width:560px) 50vw, 300px" alt="${d.img.indexOf('/img/tone/')===0 ? d.color_en+' colour tile, not a photo' : d.color_en+' bracelet, worn'}">
-    <span class="stk">${stockTxt(d)}</span><span class="zoom">View</span></div>
+    ${klAiImg(d)?'<small class="kl-ai kl-ai-s"'+(isNew?' style="left:auto;right:8px"':'')+'>AI-styled image</small>':''}<span class="stk">${stockTxt(d)}</span><span class="zoom">View</span></div>
     <div class="cbody">
       <div class="nm">${d.color_en}</div>
       <div class="sub"><span class="d" style="background:${d.swatch}"></span>Beaded bracelet</div>
@@ -1133,6 +1145,7 @@ function openModal(bc){
   const d=BY[bc]; if(!d) return; window._mbc=bc;
   { const mi=document.getElementById('mImg'); mi.src=d.img||''; mi.alt=imgAlt(d); }
   klModalGallery(d);
+  { const box=document.querySelector('#modal .mimg'); if(box&&!klModalPhotos(d).length&&klAiImg(d)){ const a=document.createElement('small'); a.className='kl-ai kl-ai-s'; a.textContent='AI-styled image'; box.appendChild(a); } }
   document.getElementById('mName').textContent=d.color_en;
   document.getElementById('mDot').style.background=d.swatch;
   document.getElementById('mPrice').innerHTML=`<span class="p">${m1On()?m1PriceHtml(bc):priceTxt(bc)}</span><div class="fee" data-kl="cardship">${cardShipText()}</div>`;
@@ -1441,9 +1454,9 @@ function m1Lines(lines){
   if(s.flat_short) out.rings=s.flat_short.map(x=>{ const T=m1RingTexts(x.group); return T?T.short(x.add):x.message; });
   if(s.tier_unlocked){
     const each=[...new Set(lg.map(g=>g.tier_each))];
-    // K&D 70%-off list #3: one "£y each instead of £x" per group in the bag, x = that group's CURRENT single price
+    // K&D #101 (26 Nov 2026): no was/now wording in the bag: one "£y each (70% off)" per distinct 10+ price in the bag (the old single-price pair is gone)
     out.applied = s.pct_off!==null
-      ? 'Instant '+s.pct_off+'% off applied: '+lg.map(g=>gbpP(g.tier_each)+' each instead of '+gbpShort(g.single)).join(' · ')
+      ? s.tier_from+'+ price applied: '+[...new Set(lg.map(g=>gbpP(g.tier_each)))].map(e=>e+' each ('+s.pct_off+'% off)').join(' · ')
       : s.tier_from+'+ price applied: '+(each.length===1?gbpP(each[0])+' each':'every'+klRingsNote()+' item at its '+s.tier_from+'+ price');
     out.promo='Promo codes can’t be used with the '+s.tier_from+'+ price.';
   } else if(s.unlock_total_pence!==null){

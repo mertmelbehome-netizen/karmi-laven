@@ -125,7 +125,40 @@ test('D-001: no "small studio" / "established retailer" claims; the factual line
 // longest word (a11y.css min-width:44px allowed it: 'Shop Bracelets' overflowed at 64 px) and must not grow the bar over
 // the first card's Add button (measured 375/390, Bracelets + Beaded: clearance >= origin/master on every view)
 test('sticky bar: the button keeps min-content width on phones; the delivery text is not shortened', () => {
-  assert.match(HTML, /@media\(max-width:840px\)\{\.stickybar \.sbtn\{min-width:min-content\}\}/)
+  assert.match(HTML, /@media\(max-width:840px\)\{\.stickybar \.sbtn\{min-width:min-content\} \.stickybar\{padding-top:6px; padding-bottom:calc\(6px \+ env\(safe-area-inset-bottom\)\)\} \.stickybar \.sp b\{font-size:18px; line-height:1\}\}/)
+  // K&D #101: the 10+ condition beside the deal price >= 14 px (R1'/R6'); the delivery line may stay 12 px
+  assert.match(HTML, /\.stickybar \.sp\{font-size:14px; color:var\(--ink\); line-height:1\.2\}/)
+  assert.match(HTML, /\.stickybar \.sp \.dl\{display:block; font-size:12px;/)
   assert.doesNotMatch(HTML, /\.stickybar \.sbtn\{flex:0 0 auto/)
   assert.match(HTML, /<span class="dl" data-kl="fee1">\+ £3\.99 UK delivery, free on orders of £30 or more<\/span><\/div>\n  <button class="sbtn" id="stickyBtn"/)
+})
+
+// K&D #101 (6): first load at 375x812 / 390x844: the phone cookie banner ends below the first card's Add button and stays
+// < 15% of the viewport (measured 103 px / 12.7% at 375, 88 px / 10.4% at 390; was 131 px, 16.1% / 15.5%). Reject and
+// Accept: same size; the bottom-right help corner stays clear (buttons left, no 84 px right padding that wrapped the text)
+test('cookie banner on phones: compact, equal buttons on the left, the notice keeps what / why / nothing before Accept', () => {
+  assert.match(HTML, /html #cookie-banner\{ padding:5px 12px; gap:4px 8px; line-height:1\.25 \}/)
+  assert.match(HTML, /html #cookie-banner \.cb-btns\{ justify-content:flex-start \}/)
+  assert.match(HTML, /html #cookie-banner \.cb-btn\{ min-width:96px \}/)
+  assert.match(HTML, /We use cookies \(Meta Pixel and Google Analytics\) to measure visits and purchases\. Nothing is loaded until you click Accept\. <a href="\/privacy\.html">Learn more<\/a>/)
+  assert.match(HTML, /<button class="cb-btn" onclick="cookieChoice\(false\)">Reject<\/button>\s*<button class="cb-btn accept" onclick="cookieChoice\(true\)">Accept<\/button>/)
+})
+
+// K&D #101 (7): the product view's close button stays on screen while the view scrolls on phones (pinned top-right)
+test('modal close button is pinned inside the scrolling product view on phones', () => {
+  assert.match(HTML, /\.modal \.mclose\{position:sticky; top:6px; align-self:flex-end; margin:-20px -16px -24px 0; z-index:4; background:var\(--paper\); border-radius:50%\}/)
+  assert.match(HTML, /<button class="mclose" onclick="closeModal\(\)" aria-label="Close">/)
+})
+
+// K&D #101 (9): the Beaded (Gradient) tab: /img/gradient/*.jpg are renders (19_live_gradient_audit), /img/tone/*.svg colour
+// tiles. Live 26 Nov the tab sells 8: 1268 (render, referee-passed) + 7 colour tiles. Every render is labelled on every surface.
+test('Beaded tab: every Gradient render carries the "AI-styled image" label (grid card, product view, hero); tiles do not', () => {
+  assert.match(HTML, /function klAiImg\(d\)\{ return !!d&&typeof d\.img==='string'&&d\.img\.indexOf\('\/img\/gradient\/'\)===0; \}/)
+  assert.match(HTML, /\$\{klAiImg\(d\)\?'<small class="kl-ai kl-ai-s"'\+\(isNew\?' style="left:auto;right:8px"':''\)\+'>AI-styled image<\/small>':''\}<span class="stk">/)
+  assert.match(HTML, /if\(box&&!klModalPhotos\(d\)\.length&&klAiImg\(d\)\)\{ const a=document\.createElement\('small'\); a\.className='kl-ai kl-ai-s'; a\.textContent='AI-styled image'; box\.appendChild\(a\); \}/)
+  assert.match(HTML, /<img id="heroImg" src="\/img\/gradient\/1268\.jpg"[^>]*><small class="kl-ai kl-ai-s">AI-styled image<\/small>/)
+  const DATA = JSON.parse(HTML.match(/const DATA=(\[[\s\S]*?\]), PRICE=/)[1])
+  for (const d of DATA) assert.ok(/^\/img\/(gradient|tone)\//.test(d.img), d.barcode + ': image is a render or a colour tile')
+  const tile = DATA.filter((d) => d.img.startsWith('/img/tone/')).map((d) => d.barcode).sort()
+  assert.deepEqual(tile, ['1266', '1267', '1269', '1271', '1272', '1302', '1310'], 'the 7 renders that failed the referees are colour tiles')
 })

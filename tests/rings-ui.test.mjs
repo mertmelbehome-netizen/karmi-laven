@@ -239,9 +239,9 @@ test('E1 (b): a bag with rings says the 10+ count is for non-ring items; 1-4 rin
   L = p.m1Lines([{ bc: RING, qty: 4 }])
   assert.deepEqual(L.rings, ['Add 1 more ring to check out (minimum 5)']); assert.equal(L.progress, null)
   L = p.m1Lines([{ bc: RING, qty: 1 }]); assert.deepEqual(L.rings, ['Add 4 more rings to check out (minimum 5)'])
-  // 10+ applied with rings: the "£y each instead of £x" pairs name the ladder groups only (never "£4.00 each instead of £4")
+  // 10+ applied with rings: the "£y each (70% off)" figures name the ladder groups only (never a ring price)
   L = p.m1Lines([{ bc: 'RB', qty: 10 }, { bc: RING, qty: 5 }])
-  assert.equal(L.applied, 'Instant 70% off applied: £2.40 each instead of £8'); assert.deepEqual(L.rings, [])
+  assert.equal(L.applied, '10+ price applied: £2.40 each (70% off)'); assert.deepEqual(L.rings, [])
   // bag footer (m1Foot): free line + band say "items (rings included)" (K-070), the 10+ price line "non-ring items" (E1c);
   // checkout disabled while rings are short
   const foot = HTML.match(/function m1Foot\(\)\{[\s\S]*?\n\}/)[0]
