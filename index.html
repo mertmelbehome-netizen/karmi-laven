@@ -1833,6 +1833,11 @@ function toastPlace(t){ const c=document.getElementById('cart'), open=!!(c&&c.cl
 /* the bag's Add pill adds this barcode; its label names it (basket-nits-3) */
 function nudgeTarget(){
   const avail=(bc)=>(typeof window.klAvail==='function'?window.klAvail(bc):Infinity);
+  // K&D #111 B1 (CMA/DMCC): while the bag shows a 10+ promise ('total drops to X'), the pill adds from the group that
+  // promise is priced on (m1Summary.unlock_group, the cheapest tier group): an in-bag line of it first, else its first colour
+  try{ if(m1On()){ const s=m1Summary(cart), g=s&&s.to_unlock>0?s.unlock_group:null;
+    if(g){ const inG=cart.filter(c=>m1Group(c.bc)===g&&c.qty<avail(c.bc)); if(inG.length) return inG[inG.length-1].bc;
+      if(typeof colours!=='undefined'){ const c=colours.find(x=>m1Group(x.bc)===g&&((cart.find(k=>k.bc===x.bc)||{qty:0}).qty)<avail(x.bc)); if(c) return c.bc; } } } }catch(e){}
   const nr=cart.filter(c=>!(m1On()&&m1FlatOf(c.bc)));   // K-069: the '+ Add' next to the 10+ line never adds a ring (rings do not count)
   if(nr.length){const last=nr[nr.length-1]; if(last.qty<avail(last.bc)) return last.bc;}
   if(typeof colours!=='undefined'){const c=colours.find(x=>{const inCart=cart.find(k=>k.bc===x.bc); return (inCart?inCart.qty:0)<avail(x.bc);}); if(c) return c.bc;}

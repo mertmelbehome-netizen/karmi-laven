@@ -150,6 +150,16 @@ test('nits-3: the bag Add pill reads "Add 1 more <name>" for the product it adds
   const before = p.getCart().find((c) => c.bc === A2).qty; p.nudgeAddOne()
   assert.equal(p.getCart().find((c) => c.bc === A2).qty, before + 1)
 })
+test('nits-3 (K&D B1): with a 10+ promise shown, the pill adds from the promise group, so the tap lands on the stated total', () => {
+  const { p } = page(); p.setCart([{ bc: A, qty: 8 }, { bc: C, qty: 1 }])   // last line = the dearer group C
+  const s = p.m1Summary(p.getCart())
+  assert.equal(s.to_unlock, 1); assert.equal(s.unlock_group, 'A', 'the promise is priced on the cheapest group')
+  const cut = (n) => (n.length > 22 ? n.slice(0, 21).trim() + '…' : n)
+  assert.equal(p.nudgeLabel(), 'Add 1 more ' + cut(NAME[A]), 'names an item of the promise group, not the last (dearer) line')
+  p.nudgeAddOne()
+  const after = p.m1Summary(p.getCart())
+  assert.ok(after.tier_unlocked); assert.equal(after.charged_pence, s.unlock_total_pence, 'total after the tap = the promised total')
+})
 test('nits-3: short names are kept whole, long names are cut with an ellipsis (one line at 375 px)', () => {
   const { p } = page(); p.setCart([{ bc: '81004', qty: 9 }])
   const l = p.nudgeLabel(); assert.match(l, /^Add 1 more /); assert.ok(l.length <= 'Add 1 more '.length + 22)
