@@ -52,7 +52,7 @@ test('M1: a grouped product WITHOUT a till price is charged its group price (C �
   assert.equal(LADDERS.mode, 'cart_qty_groups')
   let r = await run([{ bc: 'SC', qty: 1 }])
   assert.deepEqual([r.status, r.items, r.total], [200, 1300, 1699])   // £13 + £3.99 (owner 25 Nov 2026)
-  assert.equal(r.s.line_items[0].price_data.product_data.name, 'SC · Sparkle Line — Gold-tone Swan')
+  assert.equal(r.s.line_items[0].price_data.product_data.name, 'Sparkle Line — Gold-tone Swan')
   r = await run([{ bc: 'SC', qty: 10 }])
   assert.deepEqual([r.status, r.items, r.total], [200, 3900, 3900])
   r = await run([{ bc: 'SB', qty: 2 }])   // group from family_groups, no till price

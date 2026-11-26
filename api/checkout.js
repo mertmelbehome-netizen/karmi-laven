@@ -6,6 +6,8 @@ import { priceUnits, freeShipping, shippingFeeP, LADDERS, MODE_GROUPS, previewLa
 import { reserve, attach, release, gradientFallback, resolveStaleHolds, MSG_UNAVAILABLE } from './_caps-lib.js';
 import { fromBody, toMetadata } from './_attribution.js';
 
+/** Strip a leading internal code ("6180 - ", "6180 · ") so it can never reach the customer's Stripe page (U6, 26 Nov). */
+export const cleanLineName = n => String(n == null ? '' : n).replace(/^\s*(?=[0-9A-Z-]*\d)[0-9A-Z-]{3,}\s*[-\u2013\u2014\u00b7]\s+/, '').trim();
 const clampN = n => Math.max(1, Math.min(99, parseInt(n) || 1));
 export const MSG_PRICING_UNAVAILABLE = 'Checkout is unavailable right now, please try again shortly.';
 
@@ -180,7 +182,7 @@ export function createHandler({
       }
       const totalQty = units.length;
 
-      // Group into Stripe line items by (barcode, name, price). Line name "{bc} · {name}" is parsed by the webhook.
+      // Group into Stripe line items by (barcode, name, price). Line name = customer-safe name only; the barcode rides in product metadata.bc (webhook reads it; legacy "{bc} · {name}" sessions still parse).
       const groups = new Map();
       units.forEach(u => {
         const key = `${u.bc}|${u.name}|${u.price}`;
@@ -188,7 +190,7 @@ export function createHandler({
         g.qty++; groups.set(key, g);
       });
       const line_items = [...groups.values()].map(g => ({
-        price_data: { currency: 'gbp', unit_amount: g.price, product_data: { name: `${g.bc} · ${g.name}` } },
+        price_data: { currency: 'gbp', unit_amount: g.price, product_data: { name: cleanLineName(g.name) || 'Karmi Laven', metadata: { bc: g.bc } } },
         quantity: g.qty,
       }));
 

@@ -243,7 +243,7 @@ async function checkout(items, ladders = ON) {
   const p = stripe.created[0]
   return {
     status, json, db, p,
-    lines: p ? Object.fromEntries(p.line_items.map((l) => [l.price_data.product_data.name.split(' · ')[0], [l.price_data.unit_amount, l.quantity]])) : null,
+    lines: p ? Object.fromEntries(p.line_items.map((l) => [l.price_data.product_data.metadata.bc, [l.price_data.unit_amount, l.quantity]])) : null,
     ship: p ? p.shipping_options[0].shipping_rate_data.fixed_amount.amount : null,
   }
 }

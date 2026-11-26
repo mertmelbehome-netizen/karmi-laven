@@ -38,19 +38,20 @@ export async function recordOrder(s) {
   // Pull line items to get the per-barcode breakdown + exact line revenue.
   let lineItems = [];
   try {
-    const li = await stripe.checkout.sessions.listLineItems(s.id, { limit: 100 });
+    const li = await stripe.checkout.sessions.listLineItems(s.id, { limit: 100, expand: ['data.price.product'] });
     lineItems = li.data || [];
   } catch (e) {
     console.warn('[stripe-webhook] listLineItems failed (fallback to metadata):', e.message);
   }
 
-  // Aggregate by barcode. Line description is "{bc} · {colour}" (set by checkout.js).
+  // Aggregate by barcode. Barcode = product metadata.bc; legacy sessions: description "{bc} · {colour}".
   const byBc = new Map();
   for (const li of lineItems) {
     const desc = li.description || '';
     const sep = desc.indexOf(' · ');
-    const bc = sep > 0 ? desc.slice(0, sep).trim() : '';
-    const name = sep > 0 ? desc.slice(sep + 3).trim() : desc;
+    const pm = (li.price && li.price.product && li.price.product.metadata) || {};
+    const bc = pm.bc ? String(pm.bc).trim() : (sep > 0 ? desc.slice(0, sep).trim() : '');
+    const name = pm.bc ? desc : (sep > 0 ? desc.slice(sep + 3).trim() : desc);
     const qty = li.quantity || 1;
     const revenue = (li.amount_total || 0) / 100; // £, ex-shipping, post-discount
     const k = bc || name;
@@ -188,7 +189,7 @@ async function handleRefund(charge) {
   // Reconstruct line items from the original session so we know per-barcode qty.
   let lineItems = [];
   try {
-    const li = await stripe.checkout.sessions.listLineItems(sessionId, { limit: 100 });
+    const li = await stripe.checkout.sessions.listLineItems(sessionId, { limit: 100, expand: ['data.price.product'] });
     lineItems = li.data || [];
   } catch(e) { /* fall through — ops will use stored order.items */ }
 
@@ -196,8 +197,9 @@ async function handleRefund(charge) {
   for (const li of lineItems) {
     const desc = li.description || '';
     const sep = desc.indexOf(' · ');
-    const bc = sep > 0 ? desc.slice(0, sep).trim() : '';
-    const name = sep > 0 ? desc.slice(sep + 3).trim() : desc;
+    const pm = (li.price && li.price.product && li.price.product.metadata) || {};
+    const bc = pm.bc ? String(pm.bc).trim() : (sep > 0 ? desc.slice(0, sep).trim() : '');
+    const name = pm.bc ? desc : (sep > 0 ? desc.slice(sep + 3).trim() : desc);
     const qty = li.quantity || 1;
     const revenue = (li.amount_total || 0) / 100;
     const k = bc || name;

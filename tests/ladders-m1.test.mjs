@@ -259,7 +259,7 @@ test('/api/checkout + M1 on a preview: Stripe lines = group prices, shipping, pr
     // mixed: Gradient (B) + Stretch Charm (B, family map) + Stretch Double (C) + Necklace Lux Stone (C) = 10
     r = await runCheckout({ ladder: 'M1_mert_list', items: [{ bc: G1, qty: 4 }, { bc: 'S1', qty: 3 }, { bc: 'D1', qty: 2 }, { bc: 'N1', qty: 1 }] })
     assert.deepEqual([r.status, r.total, r.ship], [200, 7 * 240 + 3 * 390, 0])
-    assert.deepEqual(r.s.line_items.map((l) => [l.price_data.product_data.name.split(' · ')[0], l.price_data.unit_amount, l.quantity]),
+    assert.deepEqual(r.s.line_items.map((l) => [l.price_data.product_data.metadata.bc, l.price_data.unit_amount, l.quantity]),
       [[G1, 240, 4], ['S1', 240, 3], ['D1', 390, 2], ['N1', 390, 1]])
     // hair: no group (Clips B / Claws C split) -> 503, hold released, nothing sent to Stripe
     r = await runCheckout({ ladder: 'M1_mert_list', items: [{ bc: G1, qty: 2 }, { bc: 'H1', qty: 1 }] })
