@@ -150,7 +150,7 @@ nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
 .cbody .sub{font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--soft); margin:5px 0 9px;
   display:flex; align-items:center; justify-content:center; gap:7px}
 .cbody .sub .d{width:8px; height:8px; border-radius:50%}
-.cbody .sub.kl-ged{display:none}   /* 'Gradient Edit' card line: families view only (css/storefront.css) */
+.cbody .sub.kl-ged{display:none}   /* collection card line: families view only (css/storefront.css) */
 .cbody .pr{font-size:13px; letter-spacing:.04em; color:var(--ink)}
 .cbody .pr s{color:#bdb3a3; margin-left:4px; font-size:12px}
 .cbody .fee{font-size:12px; letter-spacing:.02em; color:var(--ink); opacity:.78; margin-top:3px; line-height:1.35}
@@ -606,7 +606,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
     <div class="spectrum fadein d4" id="spectrum"></div>
   </div>
   <div class="hero-img fadein d2">
-    <img id="heroImg" src="/img/gradient/1268.jpg" fetchpriority="high" decoding="async" alt="Karmi Laven beaded bracelet, worn"><small class="kl-ai kl-ai-s">AI-styled image</small>
+    <img id="heroImg" src="/img/gradient/1268.jpg" fetchpriority="high" decoding="async" alt="Karmi Laven bracelet, worn"><small class="kl-ai kl-ai-s">AI-styled image</small>
     <div class="cap"><div class="n" id="heroName">Ice Blue</div><div class="s">Colour, worn softly</div></div>
   </div>
 </header>
@@ -621,13 +621,13 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 (function(){
 /*KL-SF-LAYOUT-START*/
 var SFL_TABS = ['bracelets', 'necklaces', 'gifts', 'hair', 'rings', 'gradient'];   // owner 26 Nov 2026: categories first; = storefront.js SF_TABS. 'gradient' = the Gradient Edit view (Bracelets > Beaded), no chip of its own
-var SFL_CHIP = { gradient: 'Beaded', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };   // = storefront.js SF_CHIP (test-checked)
+var SFL_CHIP = { gradient: 'Colour, worn softly', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };   // = storefront.js SF_CHIP (test-checked)
 /** The chip bar (storefront.js binds it). vis = tabs shown (the Gradient Edit always), n = counts, sel = selected tab. */
 /** Landing tab (owner 26 Nov 2026): Bracelets (All). Bracelets is always shown since it holds the Gradient Edit (26 Nov
  *  2026); '#bracelets-beaded' and the old '#gradient...' links = the Gradient Edit view ('gradient', no chip of its own).
  *  h = the hash asked for ('' = none); a hidden or unknown tab falls back to the landing tab. */
 function sfDefTab(vis, h) {
-  vis = vis || []; h = String(h || '').toLowerCase(); if (h === 'bracelets-beaded' || h === 'bracelets-gradient' || h.indexOf('bracelets-gradient-') === 0) return 'gradient';
+  vis = vis || []; h = String(h || '').toLowerCase(); if (h === 'bracelets-beaded' || /^bracelets-(colour|gradient)(-|$)/.test(h)) return 'gradient';
   h = h.split('-')[0];
   if (SFL_TABS.indexOf(h) >= 0 && (h === 'gradient' || h === 'bracelets' || vis.indexOf(h) >= 0)) return h;
   return 'bracelets';
@@ -718,13 +718,13 @@ function sfBundleChip(doc) {
 /** The Gradient Edit's two styles as sub-chips, first in the colour chip row (after the bundle chip): no extra row, so
  *  the phone first screen and CLS are unchanged. Labels = storefront.js SF_SUBS.gradient (test-checked): never
  *  Lux / crystal. gs = last visit's sub-counts (storefront.js renderTabs), {} = none on sale; storefront.js keeps them. */
-var SFL_GSUBS = [['all', 'All'], ['classic', 'Beaded'], ['cobra', 'Beaded Cobra']];
+var SFL_GSUBS = [['all', 'All'], ['classic', 'Classic'], ['cobra', 'Cobra']];
 function sfGradSubs(doc, gs) {
   var sbi = doc.getElementById('swatchbar'); if (!sbi || doc.getElementById('klGSubs')) return;
   var sel = String(((doc.defaultView || (typeof window !== 'undefined' ? window : {})).location || {}).hash || '').replace(/^#/, '');
   sel = sel.indexOf('gradient-') === 0 ? sel.slice(9) : 'all';
   var row = doc.createElement('div'); row.className = 'kl-subs kl-gsubs'; row.id = 'klGSubs';
-  row.setAttribute('role', 'tablist'); row.setAttribute('aria-label', 'Beaded bracelet styles');
+  row.setAttribute('role', 'tablist'); row.setAttribute('aria-label', 'Styles');
   var on = function (k) { return !gs || k === 'all' || gs[k] > 0; }, nv = SFL_GSUBS.filter(function (x) { return x[0] !== 'all' && on(x[0]); }).length;
   if (nv < 2) { row.hidden = true; sel = 'all'; }
   if (!on(sel)) sel = 'all';
@@ -1145,7 +1145,7 @@ function card(d,i){
     ${klAiImg(d)?'<small class="kl-ai kl-ai-s"'+(isNew?' style="left:auto;right:8px"':'')+'>AI-styled image</small>':''}<span class="stk">${stockTxt(d)}</span><span class="zoom">View</span></div>
     <div class="cbody">
       <div class="nm">${d.color_en}</div>
-      <div class="sub kl-ged">Gradient Edit</div>
+      <div class="sub kl-ged">Colour, worn softly</div>
       <div class="sub"><span class="d" style="background:${d.swatch}"></span>Beaded bracelet</div>
       <div class="pr">${m1On()?m1PriceHtml(d.barcode):pt}</div>
       <div class="fee" data-kl="cardship">${cardShipText()}</div>

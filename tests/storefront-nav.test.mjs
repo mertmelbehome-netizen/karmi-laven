@@ -151,8 +151,8 @@ test('F2: chip bar sticky top:0 and <= 56 px; colour bar sticks under it (deskto
 })
 
 test('F4/F6: short chip labels, panel titles and tab roles unchanged', () => {
-  assert.deepEqual(core.SF_CHIP, { gradient: 'Beaded', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' })
-  assert.equal(core.SF_TITLE.gradient, 'Beaded')
+  assert.deepEqual(core.SF_CHIP, { gradient: 'Colour, worn softly', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' })
+  assert.equal(core.SF_TITLE.gradient, 'Colour, worn softly')
   assert.match(LAYOUT, /role="tab" type="button" id="kltab-' \+ t \+ '"[^\n]*aria-selected[^\n]*SFL_CHIP\[t\]/)
   assert.deepEqual(new Function(`${LAYOUT}; return SFL_CHIP;`)(), core.SF_CHIP, 'pre-paint chip labels = storefront.js labels')
   assert.match(SF, /\['ArrowRight', 'ArrowLeft', 'Home', 'End'\]/)

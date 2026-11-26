@@ -68,8 +68,9 @@ test('modal: add button + "14-day returns" link in one bar, pinned to the modal 
 test('tabs: Bracelets, Necklaces, Gifts first, the Gradient Edit last as "Beaded"; ids / hashes stay "gradient"', () => {
   assert.deepEqual(core.SF_TABS, ['bracelets', 'necklaces', 'gifts', 'hair', 'rings', 'gradient'])
   assert.deepEqual(lay.SFL_TABS, core.SF_TABS)
-  assert.equal(core.SF_CHIP.gradient, 'Beaded'); assert.deepEqual(lay.SFL_CHIP, core.SF_CHIP)
-  assert.deepEqual(core.SF_SUBS.gradient.map((x) => x.label), ['Beaded', 'Beaded Cobra'])
+  // Komuta 26 Nov 2026 (D-002 stands): no 'Beaded' / 'Gradient' chip; the collection is 'Colour, worn softly' / Classic / Cobra
+  assert.equal(core.SF_CHIP.gradient, 'Colour, worn softly'); assert.deepEqual(lay.SFL_CHIP, core.SF_CHIP)
+  assert.deepEqual(core.SF_SUBS.gradient.map((x) => x.label), ['Classic', 'Cobra'])
   assert.match(LAYOUT, /id="kltab-' \+ t \+ '" data-tab="' \+ t \+ '"/)
 })
 
@@ -103,7 +104,7 @@ test('D-002: "Gradient" is not a visible word on the static pages (internal keys
     assert.doesNotMatch(v, /gradient/i, p)
   }
   assert.match(HTML, /<title>Karmi Laven — Bracelets &amp; Necklaces · Colour, worn softly<\/title>/)
-  assert.equal(core.SF_TITLE.gradient, 'Beaded')
+  assert.equal(core.SF_TITLE.gradient, 'Colour, worn softly')
   assert.doesNotMatch(SF, /'The Gradient <em>Edit<\/em>'|See The Gradient Edit|stack it into the gradient/)
 })
 

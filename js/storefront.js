@@ -16,11 +16,11 @@
   // 'gradient' (26 Nov 2026, Gradient into Bracelets): an INTERNAL view, no chip of its own any more. It is Bracelets >
   // Beaded: the Gradient Edit panel (#palette: colour bar, bundle builder, Beaded / Beaded Cobra row, the page's sticky
   // bar) under the Bracelets chip + its 'Beaded' sub-chip. Bracelets > All = the family grid with the Gradient cards after
-  // it. Its URL: #bracelets-gradient(-classic|-cobra); old #gradient(-<sub>) and #bracelets-beaded still open it (sfParseHash).
-  // K&D 26 Nov (usability): the word shoppers and our marketing know is 'Gradient', so the Bracelets row names it
-  // 'Gradient' / 'Gradient Classic' / 'Gradient Cobra' (the old in-panel Beaded / Beaded Cobra row is hidden there).
-  var SF_TITLE = { gradient: 'Beaded', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };
-  var SF_CHIP = { gradient: 'Beaded', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };   // short chip labels: the first 4 fit one 390 px row (nav fix F4); the row scrolls sideways when Rings shows; panel titles keep SF_TITLE
+  // it. Its URL: #bracelets-colour(-classic|-cobra); old #gradient(-<sub>), #bracelets-beaded and #bracelets-gradient(-<sub>)
+  // still open it (sfParseHash). Komuta 26 Nov (D-002 stands, no visible 'Gradient'; 'Beaded' only as the card meta): the
+  // Bracelets row names it 'Colour, worn softly' / 'Classic' / 'Cobra'; the old in-panel style row is hidden there.
+  var SF_TITLE = { gradient: 'Colour, worn softly', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };
+  var SF_CHIP = { gradient: 'Colour, worn softly', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };   // short chip labels: the first 4 fit one 390 px row (nav fix F4); the row scrolls sideways when Rings shows; panel titles keep SF_TITLE
   var SF_ORDER = { sellable: 0, single: 0, cap: 1, photo: 2, soldout: 3 };
   function sfMoney(p) { return '£' + (p / 100).toFixed(2); }
   /** Pool key exactly as the server (api/_pricing.js poolKey): Gradient Edit -> 'gradient'; any other product -> its
@@ -96,14 +96,14 @@
   var SF_SUBS = {
     // Gradient: index.html LADDER_TYPES (the two DB types of the Gradient Edit) told apart by the word Cobra; regexes, so
     // no DB type name sits in this file as a string (K-08 wording test)
-    gradient: [{ k: 'classic', label: 'Beaded', re: /^(?!.*\bcobra\b).*\bbracelet$/i }, { k: 'cobra', label: 'Beaded Cobra', re: /\bcobra bracelet$/i }],
+    gradient: [{ k: 'classic', label: 'Classic', re: /^(?!.*\bcobra\b).*\bbracelet$/i }, { k: 'cobra', label: 'Cobra', re: /\bcobra bracelet$/i }],
     bracelets: [{ k: 'stretch', label: 'Stretch', re: /\bstretch bracelet$/i }, { k: 'charm', label: 'Stretch Charm', re: /^stretch charm bracelet$/i },
       { k: 'bangle', label: 'Bangle', re: /^bangle$/i }, { k: 'double', label: 'Stretch Double', re: /^stretch double bracelet$/i },
       { k: 'sparkle', label: 'Sparkle Line', re: /^sparkle line$/i },
       // the Gradient Edit inside Bracelets (26 Nov 2026): never matched by a line (these re match nothing); the Gradient
-      // items carry their subs themselves (storefront famItems: ['gradient', 'gradient-<style>']), so no family line lands here
-      { k: 'gradient', label: 'Gradient', re: /[^\s\S]/ }, { k: 'gradient-classic', label: 'Gradient Classic', re: /[^\s\S]/ },
-      { k: 'gradient-cobra', label: 'Gradient Cobra', re: /[^\s\S]/ }],
+      // items carry their subs themselves (storefront famItems: ['colour', 'colour-<style>']), so no family line lands here
+      { k: 'colour', label: 'Colour, worn softly', re: /[^\s\S]/ }, { k: 'colour-classic', label: 'Classic', re: /[^\s\S]/ },
+      { k: 'colour-cobra', label: 'Cobra', re: /[^\s\S]/ }],
     // Rings (K-069, 31_rings_ui_spec): one generic barcode per ring style ('we pick, designs vary'). Labels make no
     // unverified material claim (no stainless / zircon / gemstone / natural; 'Steel-look' until K&D + owner confirm).
     // Keys may hold a hyphen ('#rings-steel-chunky'): sfParseHash splits at the FIRST hyphen only.
@@ -120,25 +120,27 @@
     return null;
   }
   /** '#bracelets-bangle' -> {tab:'bracelets', sub:'bangle'}; unknown tab -> null; unknown sub -> 'all'.
-   *  '#bracelets-gradient(-<style>)' and the old '#bracelets-beaded' -> the Gradient Edit view {tab:'gradient', sub};
+   *  '#bracelets-colour(-<style>)' and the old '#bracelets-beaded' / '#bracelets-gradient(-<style>)' -> the Gradient Edit view {tab:'gradient', sub};
    *  old '#gradient' / '#gradient-cobra' as before. */
   function sfParseHash(h) {
     h = String(h || '').replace(/^#/, '').toLowerCase();
     var i = h.indexOf('-'), t = i < 0 ? h : h.slice(0, i), s = i < 0 ? '' : h.slice(i + 1);
     if (SF_TABS.indexOf(t) < 0) return null;
-    if (t === 'bracelets' && (s === 'beaded' || s === 'gradient' || s.indexOf('gradient-') === 0)) return { tab: 'gradient', sub: sfGradSub(s) };
+    if (t === 'bracelets' && sfIsGradSub(s)) return { tab: 'gradient', sub: sfGradSub(s) };
     var ok = (SF_SUBS[t] || []).some(function (x) { return x.k === s; });
     return { tab: t, sub: ok ? s : 'all' };
   }
-  /** 'gradient-cobra' / 'gradient' / 'beaded' (a Bracelets sub key) -> the Gradient Edit sub ('cobra' / 'all') */
+  /** a Bracelets sub key that means the Gradient Edit view: 'colour(-<style>)', old 'beaded', old 'gradient(-<style>)' */
+  function sfIsGradSub(s) { s = String(s || ''); return s === 'beaded' || /^(colour|gradient)(-|$)/.test(s); }
+  /** 'colour-cobra' / 'gradient-cobra' / 'colour' / 'beaded' -> the Gradient Edit sub ('cobra' / 'all') */
   function sfGradSub(s) {
-    var g = String(s || '').indexOf('gradient-') === 0 ? String(s).slice(9) : '';
+    var m = /^(?:colour|gradient)-(.+)$/.exec(String(s || '')), g = m ? m[1] : '';
     return SF_SUBS.gradient.some(function (x) { return x.k === g; }) ? g : 'all';
   }
-  /** URL of a tab + sub-chip; the Gradient Edit view = '#bracelets-gradient', its styles '#bracelets-gradient-<style>' */
+  /** URL of a tab + sub-chip; the Gradient Edit view = '#bracelets-colour', its styles '#bracelets-colour-<style>' */
   function sfHash(tab, sub) {
     var has = function (t) { return sub && sub !== 'all' && (SF_SUBS[t] || []).some(function (x) { return x.k === sub; }); };
-    if (tab === 'gradient') return '#bracelets-gradient' + (has('gradient') ? '-' + sub : '');
+    if (tab === 'gradient') return '#bracelets-colour' + (has('gradient') ? '-' + sub : '');
     return '#' + tab + (has(tab) ? '-' + sub : '');
   }
   /** Sub-chips of a tab: [{k,label,n}] with All first; only subs with >= 1 sellable item (like the main tabs, K-01).
@@ -342,7 +344,7 @@
     bc = String(bc); if (FAMBY[bc]) return FAMBY[bc]; if (GIFTBY[bc]) return GIFTBY[bc];
     var d = (window.DATA || []).filter(function (x) { return String(x.barcode) === bc; })[0]; if (!d || !isGrad(bc)) return null;
     var sk = sfSubOf('gradient', d.type), sl = SF_SUBS.gradient.filter(function (x) { return x.k === sk; })[0], real = !!d.img && String(d.img).indexOf('/img/tone/') !== 0;
-    return (GIFTBY[bc] = { barcode: bc, tab: 'gradient', grad: true, name: d.color_en, line: sl ? sl.label : SF_TITLE.gradient, swatch: d.swatch,
+    return (GIFTBY[bc] = { barcode: bc, tab: 'gradient', grad: true, name: d.color_en, line: 'Beaded bracelet', swatch: d.swatch,   // = the Gradient card meta (Komuta 26 Nov: 'Beaded' only there)
       photo: real ? d.img : null, photo_qc: real, ai_image: giftMeta(bc).ai_image === true });
   }
   /** a gift pick's card state: a QC-passed photo only (never a colour tile, never a ring); Gradient picks: the M1 group
@@ -389,7 +391,7 @@
     sec.setAttribute('role', 'tabpanel'); sec.setAttribute('tabindex', '-1');
     sec.innerHTML = '<div class="kl-err" id="klErr" role="alert" hidden><span>Prices are not loading. Try again.</span> <button type="button" class="btn" id="klRetry">Try again</button></div>'
       + '<div class="col-head"><h2 id="klFamTitle"></h2><div class="c" id="klFamCount" aria-live="polite"></div><div class="kl-dlv" data-kl="ship"></div><div class="kl-dlv kl-rdlv" id="klRDlv" hidden></div></div>'
-      + '<div class="kl-empty" id="klEmpty" hidden><p class="et">Nothing here yet</p><p class="es">This category opens once its pieces are photographed.</p><a class="btn ghost" href="#bracelets-gradient">See beaded bracelets</a></div>'
+      + '<div class="kl-empty" id="klEmpty" hidden><p class="et">Nothing here yet</p><p class="es">This category opens once its pieces are photographed.</p><a class="btn ghost" href="#bracelets">See all bracelets</a></div>'
       + '<div class="kl-subs" id="klBSubs" role="tablist" aria-label="Bracelet styles" hidden>' + sfSubButtons('bracelets', 'klFamGrid') + '</div>'
       + '<div class="kl-subs" id="klRSubs" role="tablist" aria-label="Ring styles" hidden>' + sfSubButtons('rings', 'klFamGrid') + '</div>'
       + '<div id="klBGrid"><div class="grid" id="klFamGrid"></div></div>';   // klBGrid: Bracelets > All = ONE grid of the family cards + the Gradient cards (#grid moved in, renderTabs)
@@ -415,7 +417,7 @@
   function landingTab() { return KL.sfDefTab ? KL.sfDefTab(sfVisibleTabs(FAM, famState, sfGiftCount(giftRows())), '') : 'gradient'; }
   function setTab(t, push, s) {
     if (SF_TABS.indexOf(t) < 0) t = landingTab();
-    if (t === 'bracelets' && s && (s === 'beaded' || s === 'gradient' || s.indexOf('gradient-') === 0)) { t = 'gradient'; s = sfGradSub(s); }   // Bracelets > Gradient (-Classic / -Cobra) = the Gradient Edit view
+    if (t === 'bracelets' && s && sfIsGradSub(s)) { t = 'gradient'; s = sfGradSub(s); }   // Bracelets > Gradient (-Classic / -Cobra) = the Gradient Edit view
     tab = t;
     if (s !== undefined && sub[t] !== undefined) sub[t] = s || 'all';
     renderTabs();   // may fall back to 'All' when the asked sub-category has nothing on sale (hidden)
@@ -429,8 +431,8 @@
     else if (!push && location.hash && location.hash !== h) history.replaceState(null, '', url);   // deep link to a hidden sub-tab
   }
   /* Gradient Edit pieces on sale now (same rule as decorateGradient: not sold out) */
-  /** the Bracelets subs of a Gradient piece: 'gradient' (all of them) + its style chip ('gradient-classic' / '-cobra') */
-  function gradSubs(type) { var k = sfSubOf('gradient', type); return k ? ['gradient', 'gradient-' + k] : ['gradient']; }
+  /** the Bracelets subs of a Gradient piece: 'colour' (all of them) + its style chip ('colour-classic' / '-cobra') */
+  function gradSubs(type) { var k = sfSubOf('gradient', type); return k ? ['colour', 'colour-' + k] : ['colour']; }
   function gradOk(bc) { return !(typeof window.klIsSold === 'function' && window.klStockReady && window.klStockReady() && window.klIsSold(bc)); }
   function gradItems() {
     return (window.DATA || []).filter(function (d) { return isGrad(d.barcode); }).map(function (d) { return { line: d.type, ok: gradOk(d.barcode) }; });
@@ -447,7 +449,7 @@
     if (keys.indexOf(sub[t]) < 0) sub[t] = 'all';
     if (!row) return vs;
     row.hidden = !vs.length;
-    var cur = t === 'bracelets' && tab === 'gradient' ? (sub.gradient && sub.gradient !== 'all' ? 'gradient-' + sub.gradient : 'gradient') : sub[t];
+    var cur = t === 'bracelets' && tab === 'gradient' ? (sub.gradient && sub.gradient !== 'all' ? 'colour-' + sub.gradient : 'colour') : sub[t];
     $$('[role=tab]', row).forEach(function (b) {
       var x = vs.filter(function (v) { return v.k === b.dataset.sub; })[0], on = !!x && b.dataset.sub === cur;
       b.hidden = !x; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1;
@@ -495,7 +497,7 @@
     // only the open tab's cards are in the page (no hidden duplicate buttons / texts)
     if (isG) {
       $('#klFamGrid').innerHTML = ''; $('#klEmpty').hidden = true; $('#klErr').hidden = !stockErr; $('#klFamCount').textContent = '';
-      $('#klFamTitle').textContent = SF_TITLE.bracelets + ' · Beaded';
+      $('#klFamTitle').textContent = SF_TITLE.bracelets + ' · ' + SF_TITLE.gradient;
       if (gridMode !== 'g' || !grid.children.length || lastGSub !== sub.gradient) { gridMode = 'g'; lastGSub = sub.gradient; rerenderGradient(); }
     } else {
       renderFam(vis.indexOf(tab) >= 0);

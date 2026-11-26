@@ -301,11 +301,11 @@ html.kl-v2 #klFam:not([hidden]){min-height:calc(100vh - var(--kl-tb-h,54px))}
    panel is only its sub-chip row above the colour bar (no second head, no one-screen min height), then the Gradient
    Edit panel exactly as before. */
 html.kl-v2[data-kl-gall] #klBGrid > .grid{display:contents}
-/* K&D 26 Nov: the Gradient styles are named chips in the Bracelets row ('Gradient' / 'Gradient Classic' / 'Gradient Cobra'),
-   so the old in-panel Beaded / Beaded Cobra row is not shown in the families view (one row, nothing cut off at 375 px).
-   Each Gradient card carries a small 'Gradient Edit' line in the card's own meta style (families view only). */
+/* Komuta 26 Nov (D-002): the collection's styles are named chips in the Bracelets row ('Colour, worn softly' / 'Classic' /
+   'Cobra'), so the old in-panel style row is not shown in the families view (one row, nothing cut off at 375 px).
+   Each of its cards carries a small 'Colour, worn softly' line in the card's own meta style (families view only). */
 html.kl-v2 #klGSubs{display:none !important}
-html.kl-v2 .cbody .sub.kl-ged{display:block; margin:5px 0 0; color:var(--gold-text)}
+html.kl-v2 .cbody .sub.kl-ged{display:block; margin:5px 0 0; color:var(--gold-text); text-transform:none; letter-spacing:.04em}   /* same capitalisation as the chip (K&D) */
 html.kl-v2 .cbody .sub.kl-ged + .sub{margin-top:2px}
 html.kl-v2[data-kl-tab="gradient"] #klFam{min-height:0; padding-top:10px; padding-bottom:0}
 html.kl-v2[data-kl-tab="gradient"] #klFam .col-head, html.kl-v2[data-kl-tab="gradient"] #klFam .kl-empty{display:none}
