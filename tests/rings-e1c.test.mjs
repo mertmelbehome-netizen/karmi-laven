@@ -121,8 +121,10 @@ const sha = (o) => createHash('sha256').update(JSON.stringify(o)).digest('hex')
 // diffed record(OFF) against origin/master e46d673 with the same ladders.json: only delivery texts moved (ship sentence,
 // tier hints 10-12, ad, cta/each/faqa delivery part, meta/JSON-LD sentence, bag spend nudge "Add £x for free delivery",
 // unlock totals "+ £3.99 delivery", cartShipVal note); prices, carts, hero block unchanged
-const PIN_OFF = '24cc2317f85fa247f87c252604aa4b96165c2ed7bbd47c4531f59c2b5ef56c84'
-const PIN_FALLBACK = '24cc2317f85fa247f87c252604aa4b96165c2ed7bbd47c4531f59c2b5ef56c84'   // M1_FALLBACK = publicLadders(ladders.json)
+// re-pinned 26 Nov 2026 ON PURPOSE (U5 bag hint uses the line's own group price): diffed record(OFF) against origin/master 7bf6fc9:
+// only the cartM1 hint of bags holding a non-Gradient group moved (A bag 'Now £8 ... (£2.40 each)' -> 'Now £5 ... (£1.50 each)'); Gradient-only bags byte-identical
+const PIN_OFF = '71bacf27b9c9f3054c3252f87d2a53bb8cd3d894680a2753ca8e6f561f1ec932'
+const PIN_FALLBACK = '71bacf27b9c9f3054c3252f87d2a53bb8cd3d894680a2753ca8e6f561f1ec932'   // M1_FALLBACK = publicLadders(ladders.json)
 
 test('rings OFF (ladders.json today + first paint): every page text byte-for-byte = master (sha pin)', () => {
   assert.equal(RAW.flat_groups.R.enabled, false)
