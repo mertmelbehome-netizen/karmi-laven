@@ -1164,6 +1164,7 @@ function render(list){
   countEl.textContent=countText(list.length);
   requestAnimationFrame(()=>{const cs=[...grid.children];
     cs.forEach((c,i)=>c.style.transitionDelay=(i*40)+'ms');
+    if(typeof IntersectionObserver!=='function'){ cs.forEach(c=>c.classList.add('in')); return; }   // no IntersectionObserver (very old browsers): show the cards at once instead of throwing and leaving them at opacity 0
     const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.06});
     cs.forEach(c=>io.observe(c));});
 }
