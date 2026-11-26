@@ -17,3 +17,6 @@ test('families first screen is drawn from cards.json before /api/stock: no price
   assert.match(fn, /AI-styled image/);
   assert.doesNotMatch(fn, /sfMoney|unitPrice|£/);
 });
+test('a rejecting stock refresh still reaches the render (preview never stuck)', () => {
+  assert.match(sf, /return refresh\(\); \}, function \(\) \{ stockErr = true; \}\)\.catch\(function \(\) \{ stockErr = true; \}\)\.then\(function \(\) \{/);
+});

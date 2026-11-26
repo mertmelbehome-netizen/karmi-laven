@@ -796,7 +796,7 @@
     hook(); bindEvents();
     if (!CFG.families) { renderCart(); return; }
     buildShell();
-    loadCards().then(function () { try { renderPreview(); } catch (e) {} return refresh(); }, function () { stockErr = true; }).then(function () {
+    loadCards().then(function () { try { renderPreview(); } catch (e) {} return refresh(); }, function () { stockErr = true; }).catch(function () { stockErr = true; }).then(function () {   // a refresh() that rejects still reaches the render (the preview must never stay at 'Loading prices')
       try { render(DATA); } catch (e) {}
       var ph = sfParseHash(location.hash);   // '#bracelets-bangle' opens Bracelets with Bangle selected
       setTab(ph ? ph.tab : landingTab(), false, ph ? ph.sub : 'all');
