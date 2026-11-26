@@ -443,8 +443,9 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-bottom:calc(var(--bar-h,84px) + 12px)}
 @media(min-width:841px){.stickybar{padding-left:max(14px,calc(50vw - 560px)); padding-right:max(14px,calc(50vw - 560px))}}
 @media(max-width:840px){.stickybar{display:flex} body{padding-bottom:var(--bar-h,84px)} html{scroll-padding-bottom:calc(var(--bar-h,84px) + 12px)}}
-/* phone: the button keeps its label on one line; the price + delivery text wraps beside it (fee + threshold kept in full) */
-@media(max-width:840px){.stickybar .sp{flex:1 1 0; min-width:0} .stickybar .sbtn{flex:0 0 auto; max-width:48%; padding-left:12px; padding-right:12px}}
+/* phone: the button never shrinks below its longest word (a11y.css min-width:44px let 'Shop Bracelets' overflow next to the
+   longer delivery sentence); the price + delivery text keeps fee + threshold in full */
+@media(max-width:840px){.stickybar .sbtn{min-width:min-content}}
 
 /* toast */
 .toast{position:fixed; z-index:95; bottom:84px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
@@ -764,7 +765,7 @@ function sfMetaCats(doc, hair) {
   <div class="trustband">
     <div class="tb-item">
       <span class="tb-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l1.5-4.5h15L21 9M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9M3 9h18M9 20v-5h6v5"/></svg></span>
-      <span class="tb-txt">Part of <b>Melbe Home</b><small>a UK high-street retailer</small></span>
+      <span class="tb-txt">Part of <b>Melbe Home</b><small>A UK brand with shops in Watford and Guildford</small></span>
     </div>
     <div class="tb-item">
       <span class="tb-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.3 7-11a7 7 0 0 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg></span>
@@ -937,7 +938,7 @@ try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vi
     <div class="cart-pre" id="cartPre">Ships within 1–2 business days; delivery usually 2–5 business days after dispatch</div>
     <div class="cart-m1near" id="cartM1Near" aria-live="polite" hidden></div>
     <button class="cart-checkout" id="checkoutBtn" onclick="checkout()">Secure Checkout →</button>
-    <div class="cart-trustline">🔒 Secure payment · 14-day returns · A real UK brand — 2 high-street shops</div>
+    <div class="cart-trustline">🔒 Secure payment · 14-day returns · A UK brand with shops in Watford and Guildford</div>
     <div class="cart-storeproof">Part of <b>Melbe Home</b> · shops in Watford &amp; Guildford</div>
     <div class="cart-wallet">Apple Pay &amp; Google Pay at checkout</div>
   </div>

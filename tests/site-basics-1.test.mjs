@@ -110,4 +110,22 @@ test('D-001: no "small studio" / "established retailer" claims; the factual line
   assert.doesNotMatch(SF, /small (?:uk )?(?:jewellery )?studio|established (?:uk )?retailer/i)
   assert.match(read('../contact.html'), /Karmi Laven is from Melbe Home, with shops in Watford and Guildford\./)
   assert.match(HTML, /Karmi Laven is a UK brand with shops in Watford and Guildford, part of <b>Melbe Home UK Ltd<\/b>\./)
+  // Komuta follow-up: no unprovable size/age description ('high-street', 'retailer') in visible text either; the
+  // registered office address ('8 Turner Court, High Street, Berkhamsted') is a legal fact and stays
+  for (const p of PAGES) {
+    const v = visible(read('../' + p)).replace(/<[^>]+>/g, ' ').replace(/8 Turner Court, High Street, Berkhamsted/g, '')
+    assert.doesNotMatch(v, /high[- ]street|retailer|established|studio/i, p)
+  }
+  assert.doesNotMatch(SF, /high[- ]street|retailer|established|studio/i)
+  assert.match(HTML, /Part of <b>Melbe Home<\/b><small>A UK brand with shops in Watford and Guildford<\/small>/)
+  assert.match(HTML, /14-day returns · A UK brand with shops in Watford and Guildford<\/div>/)
+})
+
+// Komuta follow-up (V-01 first-card rule): the longer delivery sentence must not squeeze the sticky button below its
+// longest word (a11y.css min-width:44px allowed it: 'Shop Bracelets' overflowed at 64 px) and must not grow the bar over
+// the first card's Add button (measured 375/390, Bracelets + Beaded: clearance >= origin/master on every view)
+test('sticky bar: the button keeps min-content width on phones; the delivery text is not shortened', () => {
+  assert.match(HTML, /@media\(max-width:840px\)\{\.stickybar \.sbtn\{min-width:min-content\}\}/)
+  assert.doesNotMatch(HTML, /\.stickybar \.sbtn\{flex:0 0 auto/)
+  assert.match(HTML, /<span class="dl" data-kl="fee1">\+ £3\.99 UK delivery, free on orders of £30 or more<\/span><\/div>\n  <button class="sbtn" id="stickyBtn"/)
 })
