@@ -40,12 +40,12 @@ export const GRADIENT = Object.freeze({
   "1269": "Neon Pink", // Lux Cobra Bracelet
   "1271": "Orchid Pink", // Lux Cobra Bracelet
   "1272": "Salmon Pink", // Lux Cobra Bracelet
-  "1302": "Light Champagne", // Lux Bracelet
+  "1302": "Light Champagne Starfish", // Lux Bracelet (pearl-look beads + gold starfish; 1310 = shells)
   "1304": "Baby Green", // Lux Bracelet
   "1306": "Teal", // Lux Bracelet
   "1307": "Clear", // Lux Bracelet
   "1308": "Azure Blue", // Lux Bracelet
-  "1310": "Light Champagne", // Lux Bracelet
+  "1310": "Light Champagne Shell", // Lux Bracelet (2 spotted cone shells + cream starfish)
 });
 
 export const isGradient = (bc) => Object.prototype.hasOwnProperty.call(GRADIENT, String(bc));
