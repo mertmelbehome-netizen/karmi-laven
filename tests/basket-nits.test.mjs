@@ -50,14 +50,14 @@ function page(opt = {}) {
   const window = { klPrice: () => null, klGroup: (bc) => (opt.groups || {})[bc] || DBGROUP[bc] || null, klLadders: opt.view || VIEW, klGroupList: () => ALL,
     scrollTo() { calls.scroll++ }, scrollBy() { calls.scroll++ }, innerHeight: 812 }
   const b = blocks(HTML)
-  const glue = ['m1Foot', 'm1LineText', 'itemWord', 'totalQty', 'subtotal', 'updateBag', 'addToCart', 'tierOn', 'belowTenNote', 'changeQty', 'removeItem', 'toast', 'markAdded', 'hideAddBar', 'showAddBar', 'viewBagFromAddBar', 'addedFeedback', 'addedLabel']
+  const glue = ['m1Foot', 'm1LineText', 'itemWord', 'totalQty', 'subtotal', 'updateBag', 'addToCart', 'tierOn', 'belowTenNote', 'changeQty', 'removeItem', 'toast', 'markAdded', 'hideAddBar', 'showAddBar', 'viewBagFromAddBar', 'addedFeedback', 'addedLabel', 'toastPlace', 'nudgeTarget', 'nudgeLabel', 'nudgeBtn', 'nudgeAddOne']
     .map((n) => fnSrc(HTML, n)).join('\n')
   const stubs = `let cart=[], addBarT=null, toastT=null, colours=[], capQty=(bc,q)=>q;
 const atLimit=()=>false, addToCartSilent=(bc)=>{ const f=cart.find(c=>c.bc===bc); if(f) f.qty++; else cart.push({bc,qty:1}); },
  save=()=>{}, renderCart=()=>{}, openCart=()=>{ calls.open++; }, track=()=>{}, flTrack=()=>{}, kl=()=>{}, syncLimits=undefined;
 const setTimeout=(f,ms)=>{ calls.timers.push({f,ms}); return calls.timers.length; }, clearTimeout=()=>{};`
   const p = new Function('BY', 'LADDER_TYPES', 'PRICE', 'window', 'document', 'NA_TXT', 'calls',
-    `${stubs}\n${b.pricing}\n${b.delivery}\n${b.m1}\n${glue}\n; return { m1Foot, patchSummary: (f) => { const o = m1Summary; m1Summary = (l) => f(o(l)) }, changeQty, removeItem, setCart: (c) => { cart = c }, getCart: () => cart, applyLadderShipping, addToCart, updateBag, m1Summary, viewBagFromAddBar };`)(BY, LADDER_TYPES, PRICE, window, doc, 'n/a', calls)
+    `${stubs}\n${b.pricing}\n${b.delivery}\n${b.m1}\n${glue}\n; return { nudgeLabel, nudgeAddOne, m1Foot, patchSummary: (f) => { const o = m1Summary; m1Summary = (l) => f(o(l)) }, changeQty, removeItem, setCart: (c) => { cart = c }, getCart: () => cart, applyLadderShipping, addToCart, updateBag, m1Summary, viewBagFromAddBar };`)(BY, LADDER_TYPES, PRICE, window, doc, 'n/a', calls)
   p.applyLadderShipping(VIEW)
   return { p, doc, calls }
 }
@@ -95,7 +95,7 @@ test('nit 3: at 9 items the bag drawer says "Add 1 more" once, above Secure Chec
   p.m1Foot()
   const count = (h) => (h.match(/Add 1 more/g) || []).length
   const band = doc.getElementById('cartShip').innerHTML, near = doc.getElementById('cartM1Near')
-  assert.equal(count(band), 0)
+  assert.equal(count(band.replace(/<button[\s\S]*<\/button>/, '')), 0, 'the explanation text is not repeated in the band (the pill label names its product)')
   assert.match(band, /class="nudge-add"/)
   assert.equal(count(near.innerHTML + near.textContent), 1)
   assert.equal(near.hidden, false)
@@ -125,4 +125,42 @@ test('nit 4: 9 -> 8 and 12 -> 11 and emptying the bag show no notice', () => {
   const a = page(); a.p.setCart([{ bc: A, qty: 9 }]); a.p.changeQty(0, -1); assert.equal(toastOf(a.doc).textContent, '')
   const b = page(); b.p.setCart([{ bc: A, qty: 12 }]); b.p.changeQty(0, -1); assert.equal(toastOf(b.doc).textContent, '')
   const c = page(); c.p.setCart([{ bc: A, qty: 10 }]); c.p.removeItem(0); assert.equal(toastOf(c.doc).textContent, '')
+})
+
+// ---------- basket-nits-3 (1): the toast never covers the bag explanation / Secure Checkout ----------
+test('nits-3: bag closed keeps the old toast spot; bag open = in-bag class, bottom measured from the cart footer top', () => {
+  const closed = page(); closed.p.setCart([{ bc: A, qty: 10 }]); closed.p.changeQty(0, -1)
+  assert.ok(!toastOf(closed.doc).cls.has('in-bag')); assert.equal(toastOf(closed.doc).style.bottom, '')
+  assert.match(HTML, /.toast{position:fixed; z-index:95; bottom:84px;/)
+  const open = page(); open.doc.getElementById('cart').classList.add('open')
+  open.doc.querySelector = (sel) => (sel === '#cart .cart-foot' ? { getBoundingClientRect: () => ({ top: 500 }) } : null)
+  open.p.setCart([{ bc: A, qty: 10 }]); open.p.changeQty(0, -1)
+  assert.ok(toastOf(open.doc).cls.has('in-bag'))
+  assert.equal(toastOf(open.doc).style.bottom, '320px', '812 - 500 + 8: the toast bottom edge sits 8 px above the footer top')
+  const css = HTML.match(/\.toast\.in-bag\{([^}]*)\}/)[1]
+  assert.match(css, /bottom:min\(300px,45vh\)/, 'unmeasured fallback is still well above the footer'); assert.match(css, /right:calc\(min\(420px,92vw\) \/ 2\)/)
+})
+
+// ---------- basket-nits-3 (2): the bag's Add pill says what it adds ----------
+test('nits-3: the bag Add pill reads "Add 1 more <name>" for the product it adds, and still adds that same product', () => {
+  const { p, doc } = page(); p.setCart([{ bc: A, qty: 5 }, { bc: A2, qty: 4 }]); p.updateBag(); p.m1Foot()
+  assert.equal(p.nudgeLabel(), 'Add 1 more ' + NAME[A2], 'names the last non-ring line (the one the pill adds)')
+  assert.match(doc.getElementById('cartShip').innerHTML, />Add 1 more [^<]+<\/button>/)
+  assert.doesNotMatch(doc.getElementById('cartShip').innerHTML, />Add to bag</)
+  const before = p.getCart().find((c) => c.bc === A2).qty; p.nudgeAddOne()
+  assert.equal(p.getCart().find((c) => c.bc === A2).qty, before + 1)
+})
+test('nits-3 (K&D B1): with a 10+ promise shown, the pill adds from the promise group, so the tap lands on the stated total', () => {
+  const { p } = page(); p.setCart([{ bc: A, qty: 8 }, { bc: C, qty: 1 }])   // last line = the dearer group C
+  const s = p.m1Summary(p.getCart())
+  assert.equal(s.to_unlock, 1); assert.equal(s.unlock_group, 'A', 'the promise is priced on the cheapest group')
+  const cut = (n) => (n.length > 22 ? n.slice(0, 21).trim() + '…' : n)
+  assert.equal(p.nudgeLabel(), 'Add 1 more ' + cut(NAME[A]), 'names an item of the promise group, not the last (dearer) line')
+  p.nudgeAddOne()
+  const after = p.m1Summary(p.getCart())
+  assert.ok(after.tier_unlocked); assert.equal(after.charged_pence, s.unlock_total_pence, 'total after the tap = the promised total')
+})
+test('nits-3: short names are kept whole, long names are cut with an ellipsis (one line at 375 px)', () => {
+  const { p } = page(); p.setCart([{ bc: '81004', qty: 9 }])
+  const l = p.nudgeLabel(); assert.match(l, /^Add 1 more /); assert.ok(l.length <= 'Add 1 more '.length + 22)
 })
