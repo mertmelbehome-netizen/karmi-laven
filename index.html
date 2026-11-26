@@ -424,6 +424,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 .nudge-save{color:var(--gold); font-weight:600; margin-left:2px}
 .nudge-add{display:inline-block; margin-left:6px; font-family:'Jost'; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:#fff; background:linear-gradient(90deg,var(--accent),var(--gold)); border:none; border-radius:20px; padding:3px 11px; cursor:pointer; vertical-align:middle}
 .nudge-add:hover{opacity:.9}
+.nudge-add{max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}   /* 'Add 1 more <name>' stays on one line at 375 px */
 .cart-trustline{text-align:center; font-size:12px; letter-spacing:.02em; color:var(--soft); line-height:1.55; margin-top:9px}
 .cart-storeproof{text-align:center; font-size:12px; letter-spacing:.02em; color:var(--soft); margin-top:6px}
 .cart-storeproof b{color:var(--gold); font-weight:500}
@@ -454,6 +455,9 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
   background:var(--ink); color:var(--bg); font-family:'Jost'; font-size:12px; letter-spacing:.1em; text-transform:uppercase;
   padding:13px 26px; transition:.35s; pointer-events:none; width:max-content; max-width:calc(100vw - 32px); text-align:center}   /* left:50% alone shrinks the box to half the screen: 4+ lines on a phone */
 .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+/* basket-nits-3: bag open = centred on the drawer, bottom set by toastPlace() just above .cart-foot (fallback here when unmeasured) */
+.toast.in-bag{left:auto; right:calc(min(420px,92vw) / 2); bottom:min(300px,45vh); transform:translateX(50%) translateY(20px); max-width:calc(min(420px,92vw) - 32px)}
+.toast.in-bag.show{transform:translateX(50%) translateY(0)}
 /* basket-1 (K&D 4): adding never opens the bag. A small bar sits just above the sticky bag bar (bottom = the measured --bar-h),
    the wrapper lets taps through (pointer-events:none), only 'View' takes taps, so the next card's Add button and the sticky bar's
    main action stay reachable. aria-live polite; fades out after ~2.5 s; no movement with prefers-reduced-motion. */
@@ -1622,7 +1626,7 @@ function m1Foot(){
     : (SHIP.freeQty?'<span class="note">'+gbpP(SHIP.feeP)+' UK delivery · free with any '+SHIP.freeQty+'+ items'+sn+'</span>':SHIP.freeP!==null?'<span class="note">'+shipSentence()+'</span>':gbpP(SHIP.feeP));
   document.getElementById('cartTotal').textContent=q?gbpP(dlv.totalP):'—';
   const band=document.getElementById('cartShip');
-  if(L.progress) band.innerHTML='<button class="nudge-add" type="button" onclick="nudgeAddOne()">Add to bag</button>';   // K&D (26 Nov): the 'Add N more' text is said ONCE, above Secure Checkout (CTSI §20); the band keeps the bar + the Add button
+  if(L.progress) band.innerHTML=(typeof nudgeBtn==='function'?nudgeBtn():'<button class="nudge-add" type="button" onclick="nudgeAddOne()">Add to bag</button>');   // K&D (26 Nov): the 'Add N more' text is said ONCE, above Secure Checkout (CTSI §20); the band keeps the bar + the Add button
   else if(dlv.free) band.innerHTML='✓ <b>Free UK delivery</b>';
   else if(L.delivery) band.textContent=L.delivery;   // spend threshold (owner 25 Nov 2026): 'Add £x for free delivery'
   else band.textContent=R&&SHIP.freeQty&&SHIP.feeP?'Free UK delivery with any '+SHIP.freeQty+'+ items'+sn+' · otherwise '+gbpP(SHIP.feeP):shipSentence();
@@ -1812,21 +1816,30 @@ function renderCart(){
     const deal = deliveryFor(Math.round(gPrice*100),goal).free ? `${goal} for £${gPrice.toFixed(2)} + free UK delivery` : `${goal} for £${gPrice.toFixed(2)}`;
     cshEl.innerHTML = `Add ${addN} more → <b>${deal}</b>`
       + (gSave>=0.01 ? ` <span class="nudge-save">save £${gSave.toFixed(2)}</span>` : '')
-      + ` <button class="nudge-add" type="button" onclick="nudgeAddOne()">Add to bag</button>`;
+      + ' '+(typeof nudgeBtn==='function'?nudgeBtn():'<button class="nudge-add" type="button" onclick="nudgeAddOne()">Add to bag</button>');
     document.getElementById('shipFill').style.width = Math.min(100, lq/goal*100)+'%';
   }
   document.getElementById('cartPre').textContent = `${itemWord(q)}${saved>=0.01?` · multi-buy saves £${saved.toFixed(2)}`:''} · ships within 1–2 business days`;
   document.getElementById('checkoutBtn').disabled=!cart.length;
 }
 function nudgeAddOne(){
-  const avail=(bc)=>(typeof window.klAvail==='function'?window.klAvail(bc):Infinity);
-  let bc=null;
-  const nr=cart.filter(c=>!(m1On()&&m1FlatOf(c.bc)));   // K-069: the '+ Add' next to the 10+ line never adds a ring (rings do not count)
-  if(nr.length){const last=nr[nr.length-1]; if(last.qty<avail(last.bc)) bc=last.bc;}
-  if(!bc && typeof colours!=='undefined'){const c=colours.find(x=>{const inCart=cart.find(k=>k.bc===x.bc); return (inCart?inCart.qty:0)<avail(x.bc);}); if(c) bc=c.bc;}
+  const bc=nudgeTarget();
   if(bc){addToCartSilent(bc); save(); updateBag(); renderCart(); toast('Added to bag');}
   else openBundle();
 }
+/* basket-nits-3: with the bag open the toast sits just above the bag footer (never over 'Add 1 more' or Secure Checkout); bag closed = the old bottom:84px */
+function toastPlace(t){ const c=document.getElementById('cart'), open=!!(c&&c.classList.contains('open')); t.classList.toggle('in-bag',open); t.style.bottom='';
+  if(open&&document.querySelector){ const f=document.querySelector('#cart .cart-foot'); if(f&&f.getBoundingClientRect) t.style.bottom=Math.max(8,Math.round(window.innerHeight-f.getBoundingClientRect().top+8))+'px'; } }
+/* the bag's Add pill adds this barcode; its label names it (basket-nits-3) */
+function nudgeTarget(){
+  const avail=(bc)=>(typeof window.klAvail==='function'?window.klAvail(bc):Infinity);
+  const nr=cart.filter(c=>!(m1On()&&m1FlatOf(c.bc)));   // K-069: the '+ Add' next to the 10+ line never adds a ring (rings do not count)
+  if(nr.length){const last=nr[nr.length-1]; if(last.qty<avail(last.bc)) return last.bc;}
+  if(typeof colours!=='undefined'){const c=colours.find(x=>{const inCart=cart.find(k=>k.bc===x.bc); return (inCart?inCart.qty:0)<avail(x.bc);}); if(c) return c.bc;}
+  return null;
+}
+function nudgeLabel(){ const bc=nudgeTarget(), d=bc&&BY[bc], n=d&&String(d.color_en||'').trim(); if(!n) return 'Add to bag'; return 'Add 1 more '+(n.length>22?n.slice(0,21).trim()+'…':n); }
+function nudgeBtn(){ return '<button class="nudge-add" type="button" onclick="nudgeAddOne()">'+nudgeLabel().replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])).split('"').join('&quot;')+'</button>'; }
 function openCart(){renderCart();document.getElementById('cart').classList.add('open');document.getElementById('ovl').classList.add('open');}
 function closeCart(){document.getElementById('cart').classList.remove('open');syncOvl();}
 function syncOvl(){const any=['cart','modal','bundle'].some(id=>document.getElementById(id).classList.contains('open'));document.getElementById('ovl').classList.toggle('open',any);}
@@ -1875,7 +1888,7 @@ async function checkout(){
   toast('Sorry — checkout is unavailable right now. Your bag is saved; please try again in a moment.',6000);
 }
 let toastT;
-function toast(msg,ms){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),ms||1800);}
+function toast(msg,ms){let t=document.getElementById('toast');t.textContent=msg;toastPlace(t);t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),ms||1800);}
 document.getElementById('ovl').onclick=()=>{closeCart();closeModal();closeBundle();};
 
 if(M1_FALLBACK&&!window.klLadders) applyLadderShipping(M1_FALLBACK); m1ApplyPage();
