@@ -35,7 +35,7 @@ const mkEl = (o = {}) => {
 }
 
 // ---------- the page, evaluated as-is: pricing + M1 + the add / bar functions -------------
-function page() {
+function page(opt = {}) {
   const BY = {}
   for (const d of pageData(HTML)) BY[d.barcode] = d
   for (const bc of [A, A2, C, C2]) BY[bc] = { barcode: bc, type: bc[0] === '6' ? 'Stretch Bracelet' : 'Sparkle Line', color_en: NAME[bc] }
@@ -47,7 +47,7 @@ function page() {
   const PRICE = Number(HTML.match(/\],\s*PRICE=([\d.]+);/)[1])
   const LADDER_TYPES = JSON.parse(HTML.match(/const LADDER_TYPES=(\[[^\]]*\]);/)[1].replace(/'/g, '"'))
   const calls = { open: 0, scroll: 0, timers: [] }
-  const window = { klPrice: () => null, klGroup: (bc) => DBGROUP[bc] || null, klLadders: VIEW, klGroupList: () => ALL,
+  const window = { klPrice: () => null, klGroup: (bc) => (opt.groups || {})[bc] || DBGROUP[bc] || null, klLadders: opt.view || VIEW, klGroupList: () => ALL,
     scrollTo() { calls.scroll++ }, scrollBy() { calls.scroll++ }, innerHeight: 812 }
   const b = blocks(HTML)
   const glue = ['m1Foot', 'm1LineText', 'itemWord', 'totalQty', 'subtotal', 'updateBag', 'addToCart', 'tierOn', 'belowTenNote', 'changeQty', 'removeItem', 'toast', 'markAdded', 'hideAddBar', 'showAddBar', 'viewBagFromAddBar', 'addedFeedback', 'addedLabel']
@@ -103,13 +103,23 @@ test('nit 3: at 9 items the bag drawer says "Add 1 more" once, above Secure Chec
 
 // ---------- (4) 10+ -> below 10 notice ----------
 const toastOf = (doc) => doc.getElementById('toast')
-test('nit 4: removing one item 10 -> 9 shows "Bag now has 9 items: the 10+ price no longer applies" in an aria-live toast', () => {
+test('nit 4: removing one item 10 -> 9 shows "Now 9 items: add 1 more for the 10+ price" in an aria-live toast', () => {
   assert.match(HTML, /<div class="toast" id="toast" role="status" aria-live="polite"><\/div>/)
   for (const act of [(p) => p.changeQty(0, -1), (p) => { p.setCart([{ bc: A, qty: 9 }, { bc: B, qty: 1 }]); p.removeItem(1) }]) {
     const { p, doc } = page(); p.setCart([{ bc: A, qty: 10 }]); act(p)
-    assert.equal(toastOf(doc).textContent, 'Bag now has 9 items: the 10+ price no longer applies')
+    assert.equal(toastOf(doc).textContent, 'Now 9 items: add 1 more for the 10+ price')
     assert.ok(toastOf(doc).cls.has('show'))
   }
+})
+test('nit 4 (K&D B1): ring units do not count to 10+: 10 bracelets + 3 rings -> 9 bracelets says "Now 9 non-ring items: add 1 more", never a negative', () => {
+  const view = { ...structuredClone(VIEW), flat_groups: { R: { enabled: true, each: 299, min_qty: 3, unit_name: 'ring', label: 'Rings', counts_to_free_shipping: false } } }
+  const { p, doc } = page({ view, groups: { RING1: 'R' } })
+  p.setCart([{ bc: A, qty: 10 }, { bc: 'RING1', qty: 3 }])
+  assert.equal(p.m1Summary(p.getCart()).tier_units, 10)
+  p.changeQty(0, -1)
+  const t = toastOf(doc).textContent
+  assert.equal(t, 'Now 9 non-ring items: add 1 more for the 10+ price')
+  assert.doesNotMatch(t, /-\d/)
 })
 test('nit 4: 9 -> 8 and 12 -> 11 and emptying the bag show no notice', () => {
   const a = page(); a.p.setCart([{ bc: A, qty: 9 }]); a.p.changeQty(0, -1); assert.equal(toastOf(a.doc).textContent, '')
