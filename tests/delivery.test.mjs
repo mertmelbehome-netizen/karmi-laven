@@ -152,7 +152,7 @@ test('runtime: /api/stock ladders change the fee, threshold, free-at-qty and lad
   const t30 = fx('shipping_30')
   const p = page({ ladders: t30 })
   assert.equal(p.applyLadderShipping(t30), true)
-  assert.equal(p.shipSentence(), '£6.49 UK delivery, free over £30')
+  assert.equal(p.shipSentence(), '£6.49 UK delivery, free on orders of £30 or more')
   assert.equal(p.rollingText(1200, 5), 'Bag £18.49 inc. £6.49 delivery')
   assert.equal(p.rollingText(3000, 1), 'Bag £30.00 · free UK delivery')
   assert.equal(p.gradTotalP(6), t30.pools.gradient.totals[6])
@@ -160,7 +160,7 @@ test('runtime: /api/stock ladders change the fee, threshold, free-at-qty and lad
   const q = page()
   assert.equal(q.applyLadderShipping({ shipping: { free_threshold_pence: 'x' } }), false)
   assert.equal(q.applyLadderShipping(null), false)
-  assert.equal(q.shipSentence(), '£3.99 UK delivery, free over £30', 'fallback = M1 ladders.json shipping (owner 25 Nov 2026 wording)')
+  assert.equal(q.shipSentence(), '£3.99 UK delivery, free on orders of £30 or more', 'fallback = M1 ladders.json shipping (owner 25 Nov 2026 wording)')
 })
 
 
@@ -181,14 +181,14 @@ test('the story strip "£2.99 each" carries the delivery fee next to it', { skip
 
 // ---------- M1 (ladders.json in mode cart_qty_groups): static texts follow the shipping block ----------
 // Owner decision 25 Nov 2026: £3.99 UK delivery, FREE when the basket the customer pays (after the 10+ price) is >= £30.00;
-// no item-count free delivery any more. Every static claim is "£3.99 UK delivery, free over £30" (fee in the same text,
+// no item-count free delivery any more. Every static claim is "£3.99 UK delivery, free on orders of £30 or more" (fee in the same text,
 // CMA209 §5.21); no "free with any 10+ items" (quantity) claim and no "From £5" delivery text may remain in the shipped
 // HTML (body text, meta / OG / Twitter, JSON-LD) or on shipping-returns.html / terms.html.
 const M1_SH = RAW_TABLE.shipping
 const M1_SHIP = M1MODE
   ? (M1_SH.free_threshold_pence === null
     ? `${gbp(M1_SH.below_threshold_fee_pence)} UK delivery · free with any ${M1_SH.free_at_qty.qty}+ items`
-    : `${gbp(M1_SH.below_threshold_fee_pence)} UK delivery, free over ${gbpShort(M1_SH.free_threshold_pence)}`)
+    : `${gbp(M1_SH.below_threshold_fee_pence)} UK delivery, free on orders of ${gbpShort(M1_SH.free_threshold_pence)} or more`)
   : null
 const visibleHtml = (h) => h.replace(/<script(?![^>]*application\/ld\+json)[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '')
 test('owner 25 Nov 2026: ladders.json shipping = £3.99, free from £30.00 spend, no item-count free delivery', () => {
@@ -205,15 +205,17 @@ test('M1: no item-count free-delivery text and no "From £5" delivery text left 
 })
 test('M1: every static free-delivery claim is the spend sentence with the fee; meta descriptions too', { skip: !M1MODE && 'ladders.json is the pools table' }, () => {
   const html = visibleHtml(TEXT)
-  const claims = [...html.matchAll(/[^<>]*free over £\d+[^<>]*/g)].map((m) => m[0])
+  const claims = [...html.matchAll(/[^<>]*free on orders of £\d+ or more[^<>]*/g)].map((m) => m[0])
   assert.ok(claims.length >= 8, `claims found: ${claims.length}`)
-  for (const c of claims) assert.ok(c.includes(M1_SHIP), `not the owner sentence: ${c}`)
+  // the announcement bar (rules v2 R2', 26 Nov 2026) words the same sentence with a middot: fee · free threshold
+  const M1_BAR = M1_SHIP && M1_SHIP.replace(' UK delivery, free on orders', ' UK delivery · free on orders')
+  for (const c of claims) assert.ok(c.includes(M1_SHIP) || c === M1_BAR, `not the owner sentence: ${c}`)
   assert.doesNotMatch(html, /free UK delivery\. Under|with free UK delivery\./, 'the FAQ no longer promises free delivery for 10+ items')
   const metas = [...TEXT.matchAll(/<meta (?:name|property)="(description|og:description|twitter:description)" content="([^"]*)"/g)]
   assert.equal(metas.length, 3)
   for (const [, kind, content] of metas) assert.ok(content.includes(M1_SHIP), `${kind}: ${content}`)
   assert.ok(SHIP_PAGE.includes(`UK standard delivery — ${gbp(M1_SH.below_threshold_fee_pence)}.`))
-  assert.ok(SHIP_PAGE.includes(`Free on orders over ${gbpShort(M1_SH.free_threshold_pence)}`))
+  assert.ok(SHIP_PAGE.includes(`Free on orders of ${gbpShort(M1_SH.free_threshold_pence)} or more`))
   assert.ok(SHIP_PAGE.includes(`${gbp(M1_SH.free_threshold_pence)} or more`), 'policy page states the exact boundary (£30.00 = free)')
   const terms = read('../terms.html')
   assert.ok(terms.includes(M1_SHIP), 'terms.html carries the owner sentence')

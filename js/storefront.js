@@ -12,9 +12,9 @@
   'use strict';
 
   /*KL-SF-CORE-START*/ // pure functions (no DOM); tests/storefront.test.mjs evaluates this block as-is
-  var SF_TABS = ['gradient', 'bracelets', 'necklaces', 'hair', 'gifts', 'rings'];   // Gifts (W49-A2) after Hair; Rings (K-069) last; hidden like every tab while nothing in it is sellable
-  var SF_TITLE = { gradient: 'The Gradient Edit', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };
-  var SF_CHIP = { gradient: 'Gradient', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };   // short chip labels: the first 4 fit one 390 px row (nav fix F4); the row scrolls sideways when Rings shows; panel titles keep SF_TITLE
+  var SF_TABS = ['bracelets', 'necklaces', 'gifts', 'hair', 'rings', 'gradient'];   // owner 26 Nov 2026: categories first, the Gradient Edit last (chip 'Beaded'); Hair / Rings   // Gifts (W49-A2) after Hair; Rings (K-069) last; hidden like every tab while nothing in it is sellable
+  var SF_TITLE = { gradient: 'Beaded', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };
+  var SF_CHIP = { gradient: 'Beaded', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };   // short chip labels: the first 4 fit one 390 px row (nav fix F4); the row scrolls sideways when Rings shows; panel titles keep SF_TITLE
   var SF_ORDER = { sellable: 0, single: 0, cap: 1, photo: 2, soldout: 3 };
   function sfMoney(p) { return '£' + (p / 100).toFixed(2); }
   /** Pool key exactly as the server (api/_pricing.js poolKey): Gradient Edit -> 'gradient'; any other product -> its
@@ -89,7 +89,7 @@
   var SF_SUBS = {
     // Gradient: index.html LADDER_TYPES (the two DB types of the Gradient Edit) told apart by the word Cobra; regexes, so
     // no DB type name sits in this file as a string (K-08 wording test)
-    gradient: [{ k: 'classic', label: 'Gradient', re: /^(?!.*\bcobra\b).*\bbracelet$/i }, { k: 'cobra', label: 'Gradient Cobra', re: /\bcobra bracelet$/i }],
+    gradient: [{ k: 'classic', label: 'Beaded', re: /^(?!.*\bcobra\b).*\bbracelet$/i }, { k: 'cobra', label: 'Beaded Cobra', re: /\bcobra bracelet$/i }],
     bracelets: [{ k: 'stretch', label: 'Stretch', re: /\bstretch bracelet$/i }, { k: 'charm', label: 'Stretch Charm', re: /^stretch charm bracelet$/i },
       { k: 'bangle', label: 'Bangle', re: /^bangle$/i }, { k: 'double', label: 'Stretch Double', re: /^stretch double bracelet$/i },
       { k: 'sparkle', label: 'Sparkle Line', re: /^sparkle line$/i }],
@@ -196,7 +196,8 @@
       body = '<p class="kl-stt">Photo coming</p><p class="kl-why">Colour tile is a guide only. Coming soon.</p>';
     } else {
       media = gal.length ? sfGallery(c, gal) : c.photo
-        ? '<div class="imgwrap"><img src="' + sfEsc(c.photo) + '" width="400" height="500" loading="lazy" alt="' + sfEsc(c.name + ', ' + c.line) + '"></div>'
+        ? '<div class="imgwrap"><img src="' + sfEsc(c.photo) + '" width="400" height="500" loading="lazy" alt="' + sfEsc(c.name + ', ' + c.line) + '">'
+          + (c.ai_image ? '<small class="kl-ai kl-ai-s">AI-styled image</small>' : '') + '</div>'   // 26 Nov (Komuta): same overlay label as the carousel cards
         : '<div class="kl-tone" style="background-color:' + sfEsc(c.swatch) + '" role="img" aria-label="' + sfEsc(c.name) + ' colour tile, not a photo"></div>';
       if (!c.photo) body = '<p class="kl-stt">Photo coming</p><p class="kl-why">Colour tile is a guide only.</p>';
       if (st === 'sellable' || st === 'single') {
@@ -209,7 +210,7 @@
       }
     }
     return '<article class="card in kl-card' + (st === 'soldout' ? ' kl-soldout' : '') + '" data-kl-card data-kl-state="' + st + '"' + (st === 'photo' ? ' data-kl-photo="pending"' : '') + ' data-bc="' + sfEsc(c.barcode) + '">'
-      + media + '<div class="cbody">' + (c.ai_image && st !== 'photo' && !gal.length ? '<small class="kl-ai">AI-styled image</small>' : '') + '<h3 class="nm">' + sfEsc(c.name) + '</h3><div class="sub"><span class="d" style="background:' + sfEsc(c.swatch) + '" aria-hidden="true"></span>' + sfEsc(c.line) + '</div>'
+      + media + '<div class="cbody">' + (c.ai_image && st !== 'photo' && !gal.length && !c.photo ? '<small class="kl-ai">AI-styled image</small>' : '') + '<h3 class="nm">' + sfEsc(c.name) + '</h3><div class="sub"><span class="d" style="background:' + sfEsc(c.swatch) + '" aria-hidden="true"></span>' + sfEsc(c.line) + '</div>'
       + (p ? '<div class="pr">' + o.line.html + '</div><div class="fee" data-kl="' + (o.shipKey || 'cardship') + '">' + sfEsc(o.ship || '') + '</div>' + (o.note ? '<p class="kl-note">' + sfEsc(o.note) + '</p>' : '') : '') + body + '</div></article>';
   }
   /** Mobile sticky bar with an empty bag, per tab. Gradient Edit: null = keep the page's own bar ("Each £8.00" +
@@ -326,11 +327,11 @@
     $$('.gtknow .faq').forEach(function (e) {
       var q = e.querySelector('.faq-q'); if (!q) return;
       if (/bracelets made/i.test(q.textContent)) e.setAttribute('data-kl-gonly', '');   // the 10+ price FAQ is group-wide: every tab
-      else if (/online only/i.test(q.textContent)) { var a = e.querySelector('.faq-a'); if (a) a.innerHTML = 'No — Karmi Laven is part of <b>Melbe Home UK Ltd</b>, an established UK retailer with physical shops in Watford and Guildford. karmilaven.com is our online home.'; }
+      else if (/online only/i.test(q.textContent)) { var a = e.querySelector('.faq-a'); if (a) a.innerHTML = 'No — Karmi Laven is a UK brand with shops in Watford and Guildford, part of <b>Melbe Home UK Ltd</b>. karmilaven.com is our online home.'; }
     });
     var ft = $('footer .ftag'); if (ft) ft.textContent = 'Colour, worn softly';
-    var h2 = $('#palette .col-head h2'); if (h2) h2.innerHTML = 'The Gradient <em>Edit</em>';   // the count line under it says how many shades are on sale
-    var md = $('.modal .mdesc'); if (md) md.textContent = 'A single thread of 4mm faceted beads on a gold-tone chain with a delicate charm. Wear it alone, or stack it into the gradient.';
+    var h2 = $('#palette .col-head h2'); if (h2) h2.innerHTML = 'Colour, <em>worn softly</em>';   // the count line under it says how many shades are on sale
+    var md = $('.modal .mdesc'); if (md) md.textContent = 'A single thread of 4mm faceted beads on a gold-tone chain with a delicate charm. Wear it alone, or stack a few shades.';
     var sub = $('nav .submark'); if (sub) sub.textContent = 'Colour, worn softly';
     // names for icon-only controls (V-15 / WCAG 4.1.2)
     [['.mclose', 'Close'], ['.bundle-h .x', 'Close bundle builder'], ['.cart-head button', 'Close bag'], ['#klpopEmail', 'Email address']]
@@ -344,7 +345,7 @@
     sec.setAttribute('role', 'tabpanel'); sec.setAttribute('tabindex', '-1');
     sec.innerHTML = '<div class="kl-err" id="klErr" role="alert" hidden><span>Prices are not loading. Try again.</span> <button type="button" class="btn" id="klRetry">Try again</button></div>'
       + '<div class="col-head"><h2 id="klFamTitle"></h2><div class="c" id="klFamCount" aria-live="polite"></div><div class="kl-dlv" data-kl="ship"></div><div class="kl-dlv kl-rdlv" id="klRDlv" hidden></div></div>'
-      + '<div class="kl-empty" id="klEmpty" hidden><p class="et">Nothing here yet</p><p class="es">This category opens once its pieces are photographed.</p><a class="btn ghost" href="#gradient">See The Gradient Edit</a></div>'
+      + '<div class="kl-empty" id="klEmpty" hidden><p class="et">Nothing here yet</p><p class="es">This category opens once its pieces are photographed.</p><a class="btn ghost" href="#gradient">See beaded bracelets</a></div>'
       + '<div class="kl-subs" id="klBSubs" role="tablist" aria-label="Bracelet styles" hidden>' + sfSubButtons('bracelets', 'klFamGrid') + '</div>'
       + '<div class="kl-subs" id="klRSubs" role="tablist" aria-label="Ring styles" hidden>' + sfSubButtons('rings', 'klFamGrid') + '</div>'
       + '<div class="grid" id="klFamGrid"></div>';
@@ -363,8 +364,10 @@
     } catch (e) { /* bundle stays as today */ }
     applyShipTexts();
   }
+  /** landing tab (owner 26 Nov 2026): Bracelets (All) when it has a sellable card, else the Gradient Edit */
+  function landingTab() { return KL.sfDefTab ? KL.sfDefTab(sfVisibleTabs(FAM, famState, sfGiftCount(giftRows())), '') : 'gradient'; }
   function setTab(t, push, s) {
-    if (SF_TABS.indexOf(t) < 0) t = 'gradient';
+    if (SF_TABS.indexOf(t) < 0) t = landingTab();
     tab = t;
     if (s !== undefined && sub[t] !== undefined) sub[t] = s || 'all';
     renderTabs();   // may fall back to 'All' when the asked sub-category has nothing on sale (hidden)
@@ -660,7 +663,7 @@
       if (n.dataset.sub) setTab(n.dataset.subtab, true, n.dataset.sub); else setTab(n.dataset.tab, true, 'all');
       n.focus();
     });
-    window.addEventListener('popstate', function () { if (!CFG.families) return; var ph = sfParseHash(location.hash); setTab(ph ? ph.tab : 'gradient', false, ph ? ph.sub : 'all'); });
+    window.addEventListener('popstate', function () { if (!CFG.families) return; var ph = sfParseHash(location.hash); setTab(ph ? ph.tab : landingTab(), false, ph ? ph.sub : 'all'); });
   }
 
   /* ---------------- data ---------------- */
@@ -685,7 +688,7 @@
   function loadCardsJson() {
     return fetch('/data/cards.json', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error('cards ' + r.status); return r.json(); })
       .then(function (doc) {
-        FAM = (doc && Array.isArray(doc.cards) ? doc.cards : []).filter(function (c) { return c && c.barcode && SF_TABS.indexOf(c.tab) > 0; });
+        FAM = (doc && Array.isArray(doc.cards) ? doc.cards : []).filter(function (c) { return c && c.barcode && c.tab !== 'gradient' && SF_TABS.indexOf(c.tab) >= 0; });
         FAM.forEach(function (c) {
           FAMBY[c.barcode] = c;
           if (!BY[c.barcode]) BY[c.barcode] = { barcode: c.barcode, type: c.line, color_en: c.name, swatch: c.swatch, img: c.photo || '', family: true };
@@ -703,7 +706,7 @@
     loadCards().then(refresh, function () { stockErr = true; }).then(function () {
       try { render(DATA); } catch (e) {}
       var ph = sfParseHash(location.hash);   // '#bracelets-bangle' opens Bracelets with Bangle selected
-      setTab(ph ? ph.tab : 'gradient', false, ph ? ph.sub : 'all');
+      setTab(ph ? ph.tab : landingTab(), false, ph ? ph.sub : 'all');
       if (ph) scrollToTabs();
       var s = Math.max(15, Number(CFG.refresh_s) || 60);
       setInterval(function () { if (document.visibilityState !== 'hidden') refresh(); }, s * 1000);   // K-07 without reload

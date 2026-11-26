@@ -157,10 +157,10 @@ test('progress line from the table (K-05): next step, best step, single-price po
   assert.equal(core.sfProgress(LIVE, 'gradient', 0, 'x', 299), '')
 })
 
-test('tabs: Gradient Edit always first; a family tab shows only with >= 1 sellable card (K-01)', () => {
-  assert.deepEqual(core.SF_TABS, ['gradient', 'bracelets', 'necklaces', 'hair', 'gifts', 'rings'])   // Gifts (W49-A2) after Hair, Rings (K-069) last
+test('tabs: Gradient Edit always shown, last (owner 26 Nov 2026, chip Beaded); a family tab shows only with >= 1 sellable card (K-01)', () => {
+  assert.deepEqual(core.SF_TABS, ['bracelets', 'necklaces', 'gifts', 'hair', 'rings', 'gradient'])   // owner 26 Nov 2026: Bracelets, Necklaces, Gifts, (Hair, Rings when sellable), Beaded
   const cards = [{ tab: 'bracelets', st: 'photo' }, { tab: 'necklaces', st: 'single' }, { tab: 'hair', st: 'cap' }, { tab: 'hair', st: 'soldout' }]
-  assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st), ['gradient', 'necklaces'])
+  assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st), ['necklaces', 'gradient'])
   assert.deepEqual(core.sfVisibleTabs([], (c) => c.st), ['gradient'])
 })
 

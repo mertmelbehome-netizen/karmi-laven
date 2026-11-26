@@ -56,8 +56,8 @@ test('gifts.json: no price / % / deal / deadline literal anywhere; headings are 
   for (const it of items) if (typeof it === 'object') assert.deepEqual(Object.keys(it).sort(), ['ai_image', 'bc'])
 })
 
-test('Gifts tab: chip after Hair, before Rings; same label in the pre-paint bar; #gifts deep link', () => {
-  assert.deepEqual(core.SF_TABS, ['gradient', 'bracelets', 'necklaces', 'hair', 'gifts', 'rings'])
+test('Gifts tab: chip after Necklaces (owner 26 Nov 2026: Bracelets, Necklaces, Gifts, ..., Beaded last); same label in the pre-paint bar; #gifts deep link', () => {
+  assert.deepEqual(core.SF_TABS, ['bracelets', 'necklaces', 'gifts', 'hair', 'rings', 'gradient'])
   assert.deepEqual(lay.SFL_TABS, core.SF_TABS, 'pre-paint chip bar knows the Gifts chip (CLS)')
   assert.equal(core.SF_CHIP.gifts, 'Gifts'); assert.equal(lay.SFL_CHIP.gifts, 'Gifts'); assert.equal(core.SF_TITLE.gifts, 'Gifts')
   assert.deepEqual(core.sfParseHash('#gifts'), { tab: 'gifts', sub: 'all' })
@@ -69,15 +69,15 @@ test('Gifts tab: chip after Hair, before Rings; same label in the pre-paint bar;
   assert.match(nav.innerHTML, /id="kltab-gifts" data-tab="gifts" aria-controls="klFam" aria-selected="true" tabindex="0">Gifts /)
   assert.match(lay.sfBar(doc, ['gradient', 'bracelets'], null, 'gifts').innerHTML, /id="kltab-gifts"[^>]* hidden>/, 'not shown when not visible')
   // first visit (no remembered chips): the Gifts chip is painted with the others
-  assert.match(HTML, /: \['gradient', 'bracelets', 'necklaces', 'gifts'\];/)
+  assert.match(HTML, /: \['bracelets', 'necklaces', 'gifts', 'gradient'\]\)\.filter\(function \(t\) \{ return t !== 'hair' && t !== 'rings'; \}\);/)
 })
 
 test('Gifts tab hidden with fewer than 4 sellable picks; rows keep order, skip unsellable picks and empty sections', () => {
   assert.equal(core.SF_GIFTS_MIN, 4)
   const cards = [{ tab: 'bracelets', st: 'single' }]
-  assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st), ['gradient', 'bracelets'], 'no count = hidden')
-  assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st, 3), ['gradient', 'bracelets'])
-  assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st, 4), ['gradient', 'bracelets', 'gifts'])
+  assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st), ['bracelets', 'gradient'], 'no count = hidden')
+  assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st, 3), ['bracelets', 'gradient'])
+  assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st, 4), ['bracelets', 'gifts', 'gradient'])
   const doc = { sections: [{ items: ['a', 'b'] }, { heading: 'H1', items: ['c', { bc: 'd', ai_image: true }] }, { heading: 'H2', items: ['e'] }, { heading: 'H3', items: ['a'] }] }
   assert.deepEqual(core.sfGiftRows(doc, () => true), [{ bc: 'a' }, { bc: 'b' }, { h: 'H1' }, { bc: 'c' }, { bc: 'd' }, { h: 'H2' }, { bc: 'e' }], 'dedupe: H3 had only a repeat')
   const few = core.sfGiftRows(doc, (bc) => bc !== 'a' && bc !== 'b' && bc !== 'e')

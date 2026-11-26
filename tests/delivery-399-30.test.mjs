@@ -88,8 +88,8 @@ test('page = server on real bags (M1 summary): total, delivery, and the "Add £x
     else if (!L.progress || !/free (UK )?delivery/.test(L.progress)) assert.equal(L.delivery, `Add £${((3000 - amt) / 100).toFixed(2)} for free delivery`, `${g}/${a}/${c}`)
   }
   assert.equal(p.m1Lines([{ bc: G1, qty: 10 }]).delivery, 'Add £6.00 for free delivery')
-  assert.equal(p.shipSentence(), '£3.99 UK delivery, free over £30')
-  assert.equal(p.cardShipText(), '+ £3.99 UK delivery, free over £30')
+  assert.equal(p.shipSentence(), '£3.99 UK delivery, free on orders of £30 or more')
+  assert.equal(p.cardShipText(), '+ £3.99 UK delivery, free on orders of £30 or more')
 })
 
 test('no "From £5" delivery text in shipped HTML / JS; the 10+ price text "from £1.50 each" stays', () => {
