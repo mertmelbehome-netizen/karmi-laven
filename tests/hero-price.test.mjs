@@ -107,10 +107,10 @@ test('layout rules (BENCHMARK HP-1/HP-3): big >= 2x condition, condition >= 14 p
   assert.match(CSS, /\.kl-hp\{display:none\}\r?\nhtml\.kl-v2 \.kl-hp\{display:block/, 'families view only; the old page keeps its own hero price line')
 })
 
-test('phone family tabs: one-line hero price (singles line hidden; each card shows its single price + condition) so V-01 holds with the sub-chip row', async () => {
+test('phone family tabs: the single price stays in the hero block next to the deal price (K&D R1b, 26 Nov; was hidden for V-01)', async () => {
   const { readFileSync } = await import('node:fs')
   const css = readFileSync(new URL('../css/storefront.css', import.meta.url), 'utf8')
   const sf = readFileSync(new URL('../js/storefront.js', import.meta.url), 'utf8')
-  assert.match(css, /html\.kl-v2\[data-kl-tab\]:not\(\[data-kl-tab="gradient"\]\) \.kl-hp-single\{display:none\}/)
+  assert.doesNotMatch(css, /\.kl-hp-single\{display:none\}/)
   assert.match(sf, /document\.documentElement\.setAttribute\('data-kl-tab', tab\);/)
 })
