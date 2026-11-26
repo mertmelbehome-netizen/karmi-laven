@@ -82,7 +82,7 @@ test('sub-chip markup: role=tab inside a tablist, ids per tab+sub, All selected 
   assert.match(h, /id="klsub-bracelets-all"[^>]*aria-selected="true" tabindex="0"/)
   assert.match(h, /id="klsub-bracelets-bangle"[^>]*aria-controls="klFamGrid" aria-selected="false" tabindex="-1"/)
   assert.match(SF, /id="klBSubs" role="tablist" aria-label="Bracelet styles"/)
-  assert.match(HTML, /row\.setAttribute\('role', 'tablist'\); row\.setAttribute\('aria-label', 'Gradient styles'\)/)
+  assert.match(HTML, /row\.setAttribute\('role', 'tablist'\); row\.setAttribute\('aria-label', 'Beaded bracelet styles'\)/)
   const CSS = read('../css/storefront.css')
   assert.match(CSS, /\.kl-sub\{[^}]*min-height:44px/)
   // the bracelet row is in the panel, never a sticky row; the Gradient row sits in the colour chip row (no new row)
@@ -91,9 +91,17 @@ test('sub-chip markup: role=tab inside a tablist, ids per tab+sub, All selected 
 })
 
 test('deep link + back/forward: start and popstate read #tab-sub; arrows stay inside their own row', () => {
-  assert.match(SF, /var ph = sfParseHash\(location\.hash\);[^\n]*\n\s*setTab\(ph \? ph\.tab : 'gradient', false, ph \? ph\.sub : 'all'\);/)
+  assert.match(SF, /var ph = sfParseHash\(location\.hash\);[^\n]*\n\s*setTab\(ph \? ph\.tab : landingTab\(\), false, ph \? ph\.sub : 'all'\);/)
   assert.match(SF, /addEventListener\('popstate', function \(\) \{ if \(!CFG\.families\) return; var ph = sfParseHash\(location\.hash\);/)
   assert.match(SF, /\$\$\('\[role=tab\]', e\.target\.closest\('\[role=tablist\]'\) \|\| document\)/)
   // pre-paint chip bar selects Bracelets for #bracelets-bangle
-  assert.match(HTML, /sel = String\(sel \|\| ''\)\.split\('-'\)\[0\];/)
+  assert.match(HTML, /h = String\(h \|\| ''\)\.split\('-'\)\[0\];/)
+  const LAYOUT = HTML.match(/\/\*KL-SF-LAYOUT-START\*\/([\s\S]*?)\/\*KL-SF-LAYOUT-END\*\//)[1]
+  const def = new Function(`${LAYOUT}; return sfDefTab;`)()
+  assert.equal(def(['bracelets', 'gradient'], 'bracelets-bangle'), 'bracelets')
+  // owner 26 Nov 2026: no hash = Bracelets (All) when shown, else the Gradient Edit; a hidden / unknown tab = the landing tab
+  assert.equal(def(['bracelets', 'necklaces', 'gradient'], ''), 'bracelets')
+  assert.equal(def(['necklaces', 'gradient'], ''), 'gradient')
+  assert.equal(def(['bracelets', 'gradient'], 'hair'), 'bracelets')
+  assert.equal(def(['bracelets', 'gradient'], 'gradient-cobra'), 'gradient')
 })

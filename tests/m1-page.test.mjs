@@ -25,7 +25,9 @@ const [G1, G2] = Object.keys(GRADIENT)
 // page before the M1 code (c3be709) = 17b7e873…; re-pinned in the M1 cleanup PR (K&D N4): with the pools table served the
 // prices, carts and fees are unchanged and only the two spend-threshold texts are reworded ("free from £12 (or 5 items)" ->
 // "free on orders of £12+ (or 5+ items)"); before /api/stock answers the static SHIP fallback is now the served M1 table.
-const LIVE_SHA = '7ccdcbdbfef8ef9be690d8ef99fd43655c81b5bd715bc513f3ac609005242647' // re-pinned 25 Nov 2026 (owner delivery £3.99, free over £30): ONLY the before_stock phase (static SHIP fallback = ladders.json) changed; after_stock (frozen pools table served) byte-identical (checked)
+// re-pinned 26 Nov 2026 ON PURPOSE (rules v2 R2'): liveRecord diffed against origin/master b23e75b: the only change is
+// 'free over £30' -> 'free on orders of £30 or more' in the delivery texts
+const LIVE_SHA = '3bd8fa585108aa8eb7aa84c60454f7d091bb6b931535b735509b7f44b123229a' // re-pinned 25 Nov 2026 (owner delivery £3.99, free over £30): ONLY the before_stock phase (static SHIP fallback = ladders.json) changed; after_stock (frozen pools table served) byte-identical (checked)
 
 // ---------- 1. live default unchanged ----------
 // The pools-era page code (M1_FALLBACK forced to null, the frozen 23 Nov table) still produces exactly what the page

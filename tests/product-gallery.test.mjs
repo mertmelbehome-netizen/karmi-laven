@@ -56,16 +56,23 @@ const gal = (over = {}) => ({ barcode: 'G1', name: 'Rose', line: 'Beaded Bracele
 
 // ---------- 1. one photo = byte-identical to today ----------
 
-test('single photo / no photos: sfFamCard output is byte-identical to the pre-gallery render (75 cards x 5 states x 4 options)', () => {
+// Re-pinned 26 Nov 2026 ON PURPOSE (Komuta, owner screenshot 81009): a single-photo AI card now carries the SAME overlay label as
+// the carousel cards, inside .imgwrap, instead of '<small class="kl-ai">' at the top of .cbody. The golden hashes are kept
+// (pre-gallery render); legacy() moves the label back to where the golden had it, so the ONLY allowed difference is that move.
+const LBL_IMG = '<small class="kl-ai kl-ai-s">AI-styled image</small></div><div class="cbody">'
+const legacy = (h) => (NOCAR.test(h) ? h : h.replace(LBL_IMG, '</div><div class="cbody"><small class="kl-ai">AI-styled image</small>'))
+test('single photo / no photos: sfFamCard output is byte-identical to the pre-gallery render except the AI label moved onto the image (75 cards x 5 states x 4 options)', () => {
   assert.equal(Object.keys(GOLD.sha256_24).length, GOLD.inputs.length * GOLD.states.length * GOLD.opts.length)
   assert.ok(GOLD.inputs.length >= 70)
   let n = 0
   for (const c of GOLD.inputs) for (const st of GOLD.states) GOLD.opts.forEach((o, i) => {
     const k = c.barcode + '|' + st + '|' + i, want = GOLD.sha256_24[k]
-    assert.equal(sha(core.sfFamCard(c, st, o)), want, 'as today ' + k)
+    const h = core.sfFamCard(c, st, o)
+    assert.equal(sha(legacy(h)), want, 'as today (label moved only) ' + k)
+    if (c.ai_image && c.photo && st !== 'photo') assert.ok(h.includes(LBL_IMG), 'AI label on the image ' + k)
     // photos[] that is empty, or holds only the hero photo, changes nothing
-    assert.equal(sha(core.sfFamCard({ ...c, photos: [] }, st, o)), want, 'photos [] ' + k)
-    if (c.photo) assert.equal(sha(core.sfFamCard({ ...c, photos: [{ src: c.photo, type: 'hero', alt: 'x', qc: true, ai: !!c.ai_image }] }, st, o)), want, 'one photo ' + k)
+    assert.equal(sha(legacy(core.sfFamCard({ ...c, photos: [] }, st, o))), want, 'photos [] ' + k)
+    if (c.photo) assert.equal(sha(legacy(core.sfFamCard({ ...c, photos: [{ src: c.photo, type: 'hero', alt: 'x', qc: true, ai: !!c.ai_image }] }, st, o))), want, 'one photo ' + k)
     n++
   })
   assert.equal(n, 1500)
@@ -218,4 +225,29 @@ test('scope: no checkout / cart / price / api change rides on the gallery', () =
   const fns = CORE.slice(CORE.indexOf('function sfPhotos('), CORE.indexOf('function sfFamCard('))
   assert.ok(fns.includes('function sfGallery('))
   assert.doesNotMatch(fns, /\b(document|window|navigator|location)\b/, 'gallery helpers in KL-SF-CORE stay pure')
+})
+
+// 26 Nov 2026 (Komuta): every AI card, single photo or carousel, shows its 'AI-styled image' label inside the image area
+// (overlay, same class), never in the text block; one label per AI photo, so a single-photo card has exactly one
+test('AI label: every live AI card (single or carousel) has its label inside the image area, none in the text block; single photo = exactly 1', () => {
+  const ai = CARDS.filter((c) => c.ai_image && c.photo && c.photo_qc)
+  assert.ok(ai.length >= 20)
+  let single = 0, car = 0
+  for (const c of ai) for (const st of ['sellable', 'single', 'cap', 'soldout']) {
+    const h = core.sfFamCard(c, st, O), body = h.slice(h.indexOf('<div class="cbody">')), media = h.slice(0, h.indexOf('<div class="cbody">'))
+    assert.equal(count(body, /AI-styled image/g), 0, 'no label in the text block ' + c.barcode + ' ' + st)
+    assert.match(body, /^<div class="cbody"><h3 class="nm">/, 'name first in the text block ' + c.barcode)
+    assert.ok(media.includes('alt="'), 'alt kept ' + c.barcode)
+    if (NOCAR.test(h)) {
+      car++
+      const slides = media.split('<div class="kl-slide"').slice(1)
+      for (const s of slides) assert.ok(count(s, /AI-styled image/g) <= 1, 'one label per slide ' + c.barcode)
+      assert.equal(count(slides[0], /<small class="kl-ai kl-ai-s">AI-styled image<\/small>/g), 1, 'photo 1 labelled ' + c.barcode)
+    } else {
+      single++
+      assert.equal(count(media, /<small class="kl-ai kl-ai-s">AI-styled image<\/small>/g), 1, 'exactly one label on the image ' + c.barcode)
+      assert.match(media, /^<article [^>]*><div class="imgwrap"><img [^>]*><small class="kl-ai kl-ai-s">AI-styled image<\/small><\/div>$/)
+    }
+  }
+  assert.ok(single > 0 && car > 0, 'both kinds checked: ' + single + ' single, ' + car + ' carousel')
 })

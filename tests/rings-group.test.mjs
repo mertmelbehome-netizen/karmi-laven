@@ -80,9 +80,9 @@ test('even ENABLED, R never enters the ladder groups; texts change only by the "
   assert.doesNotMatch(pageTexts(publicLadders(OFF24)), /non-ring/)
 })
 
-test('LIVE delivery (owner 25 Nov 2026) + rings ON: texts carry "£3.99 UK delivery, free over £30", no item-count claim', () => {
+test('LIVE delivery (owner 25 Nov 2026) + rings ON: texts carry "£3.99 UK delivery, free on orders of £30 or more", no item-count claim', () => {
   const t = pageTexts(publicLadders(ON_LIVE))
-  assert.match(t, /£3\.99 UK delivery, free over £30/)
+  assert.match(t, /£3\.99 UK delivery, free on orders of £30 or more/)
   assert.doesNotMatch(t, /free with any|rings included|£1\.49/)
   assert.equal(t.replace(/(Buy \d+\+) non-ring items,/g, '$1,').replace(/ non-ring(?= items?\b)/g, ''), pageTexts(publicLadders(OFF_REF)))
 })

@@ -47,7 +47,7 @@ test('no shipped static file contains a pools-era string ("£2.99", "free from",
 const HTML = read('index.html')
 const LADDERS = JSON.parse(read('ladders.json'))
 
-test('fallback SHIP in index.html = ladders.json shipping (£3.99, free over £30 spend, no item-count free delivery; owner 25 Nov 2026)', () => {
+test('fallback SHIP in index.html = ladders.json shipping (£3.99, free on orders of £30 or more spend, no item-count free delivery; owner 25 Nov 2026)', () => {
   const m = HTML.match(/const SHIP=\{freeP:(\d+|null), feeP:(\d+), freeQty:(\d+|null)\};/)
   assert.ok(m, 'SHIP fallback present')
   const s = LADDERS.shipping

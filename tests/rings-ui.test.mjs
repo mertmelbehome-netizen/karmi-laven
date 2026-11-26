@@ -93,13 +93,13 @@ test('gating: a ring card without a QC photo is never sellable and never in the 
   // the grid drops 'photo' ring cards (no "Photo coming" tiles in Rings)
   assert.match(SF, /!\(x\.c\.tab === 'rings' && x\.s === 'photo'\)/)
   const cards = RINGS.map((c) => ({ ...c, st: 'photo' })).concat([{ tab: 'bracelets', st: 'single' }])
-  assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st), ['gradient', 'bracelets'])
-  assert.deepEqual(core.sfVisibleTabs([{ tab: 'rings', st: 'single' }], (c) => c.st), ['gradient', 'rings'], 'turn on = photo + R enabled')
+  assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st), ['bracelets', 'gradient'])
+  assert.deepEqual(core.sfVisibleTabs([{ tab: 'rings', st: 'single' }], (c) => c.st), ['rings', 'gradient'], 'turn on = photo + R enabled')
   assert.match(SF, /function famBcs\(\) \{ var r = typeof window\.m1FlatKeys === 'function' && window\.m1FlatKeys\(\)\.length > 0; return FAM\.filter\(function \(c\) \{ return c\.tab !== 'rings' \|\| r; \}\)/)
-  // pre-paint chip bar: Rings after Hair, hidden unless last visit showed it
+  // pre-paint chip bar: Rings after Hair, before the Gradient Edit (owner 26 Nov 2026: Beaded last); never painted from memory
   const LAYOUT = HTML.match(/\/\*KL-SF-LAYOUT-START\*\/([\s\S]*?)\/\*KL-SF-LAYOUT-END\*\//)[1]
   const L = new Function(`${LAYOUT}; return { SFL_TABS, SFL_CHIP };`)()
-  assert.deepEqual(L.SFL_TABS, core.SF_TABS); assert.equal(core.SF_TABS[core.SF_TABS.length - 1], 'rings')
+  assert.deepEqual(L.SFL_TABS, core.SF_TABS); assert.equal(core.SF_TABS[core.SF_TABS.length - 1], 'gradient'); assert.equal(core.SF_TABS[core.SF_TABS.indexOf('hair') + 1], 'rings')
   assert.equal(L.SFL_CHIP.rings, 'Rings')
 })
 
@@ -195,7 +195,7 @@ test('LIVE delivery (owner 25 Nov 2026) + rings ON: page = engine (rings count t
   assert.equal(fee([{ bc: RING, qty: 5 }, { bc: 'RB', qty: 2 }]), 0)    // £36.00
   assert.equal(fee([{ bc: 'RB', qty: 10 }]), 399)                        // 10+ = £24.00 -> pays
   assert.equal(p.m1Lines([{ bc: RING, qty: 5 }]).delivery, 'Add £10.00 for free delivery')
-  assert.equal(p.m1RingTexts().ship, '+ £3.99 UK delivery, free over £30')
+  assert.equal(p.m1RingTexts().ship, '+ £3.99 UK delivery, free on orders of £30 or more')
 })
 
 // ---------- 3. texts ----------

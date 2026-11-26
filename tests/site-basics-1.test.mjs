@@ -1,0 +1,113 @@
+// Site basics 1 (26 Nov 2026; plan research/KARMI_SITE_PLAN_2026-11.md items 1-2, rules research/KARMI_SITE_RULES_v2_2026-11.md
+// R2', R8, R10, R12, R13; owner via Komuta: categories first, Gradient Edit tab last as 'Beaded', Bracelets the landing tab;
+// Komuta D-001 / D-002). Presentation only: pricing, ladders, checkout and api/ are untouched.
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { readFileSync, readdirSync } from 'node:fs'
+
+const read = (p) => readFileSync(new URL(p, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+const HTML = read('../index.html')
+const SF = read('../js/storefront.js')
+const PAGES = ['index.html', 'shipping-returns.html', 'terms.html', 'contact.html', 'privacy.html', 'review.html']
+const visible = (h) => h.replace(/<script(?![^>]*application\/ld\+json)[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '')
+const LAYOUT = HTML.match(/\/\*KL-SF-LAYOUT-START\*\/([\s\S]*?)\/\*KL-SF-LAYOUT-END\*\//)[1]
+const CORE = SF.match(/\/\*KL-SF-CORE-START\*\/([\s\S]*?)\/\*KL-SF-CORE-END\*\//)[1]
+const lay = new Function(`${LAYOUT}; return { SFL_TABS, SFL_CHIP, sfDefTab };`)()
+const core = new Function(`${CORE}; return { SF_TABS, SF_CHIP, SF_TITLE, SF_SUBS };`)()
+
+// ---------- one delivery wording (R2' / R6'): the engine frees at subtotal >= £30, so "free over £30" was wrong ----------
+test('"free over" appears nowhere the shopper can read (pages, storefront.js, data files)', () => {
+  const files = PAGES.map((p) => ['../' + p, read('../' + p)])
+    .concat([['../js/storefront.js', SF], ['../js/christmas.js', read('../js/christmas.js')]])
+    .concat(readdirSync(new URL('../data/', import.meta.url)).filter((f) => f.endsWith('.json')).map((f) => ['../data/' + f, read('../data/' + f)]))
+  for (const [name, src] of files) assert.doesNotMatch(src, /free over|orders over/i, name)
+})
+
+test('wherever a static text says "free" about delivery, the fee and the threshold ("£30 or more") are in the same block', () => {
+  const lt = JSON.parse(read('../ladders.json')).shipping
+  const fee = '£' + (lt.below_threshold_fee_pence / 100).toFixed(2), thr = 'free on orders of £' + lt.free_threshold_pence / 100 + ' or more'
+  let n = 0
+  for (const p of ['index.html', 'shipping-returns.html', 'terms.html']) {
+    const v = visible(read('../' + p))
+    const metas = [...v.matchAll(/<meta [^>]*content="([^"]*)"/g)].map((m) => m[1])
+    const blocks = v.replace(/<meta [^>]*>/g, '').split(/<\/?(?:p|li|div|h\d|ul|section|details|summary|footer|header|main|nav|aside|article|script)\b[^>]*>/)
+      .map((b) => b.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim())
+    for (const b of metas.concat(blocks)) {
+      if (!/\bfree\b/i.test(b)) continue
+      n++
+      assert.ok(b.includes(fee), `${p}: fee missing next to "free": ${b.slice(0, 160)}`)
+      assert.ok(b.toLowerCase().includes(thr), `${p}: threshold wording missing: ${b.slice(0, 160)}`)
+    }
+  }
+  assert.ok(n >= 15, 'blocks checked: ' + n)
+})
+
+test("announcement bar: fee + free threshold in ONE sentence (R2'), one line on phones, dispatch part desktop-only", () => {
+  assert.match(HTML, /<div class="announce"><span class="an-ship">Ships within 1–2 business days · <\/span><span data-kl="bar">£3\.99 UK delivery · free on orders of £30 or more<\/span><\/div>/)
+  assert.match(HTML, /function barSentence\(\)\{ return \(SHIP\.freeP!==null&&!SHIP\.freeQty&&SHIP\.feeP>0\) \? gbpP\(SHIP\.feeP\)\+' UK delivery · free on orders of '\+gbpShort\(SHIP\.freeP\)\+' or more' : shipSentence\(\); \}/)
+  assert.match(HTML, /document\.querySelectorAll\('\[data-kl="bar"\]'\)\.forEach\(e=>\{e\.textContent=barSentence\(\);\}\);/)
+  assert.match(HTML, /@media\(max-width:620px\)\{\.announce, html\.kl-v2 \.announce\{letter-spacing:\.02em; text-transform:none\} \.announce \.an-ship\{display:none\}\}/)
+  assert.doesNotMatch(HTML, /\.announce[^{]*\{[^}]*(?:text-overflow|white-space:nowrap)/, 'never cut the threshold off')
+})
+
+// ---------- product view (R8, R10, R12, R13) ----------
+test('modal: add button + "14-day returns" link in one bar, pinned to the modal bottom on phones; photo capped at 45vh, 4:5 kept; button text 13 px', () => {
+  assert.match(HTML, /<div class="madd-bar"><button class="madd" id="mAdd" data-kl-m1="madd">Add to bag<\/button><a class="mret" href="\/shipping-returns\.html#returns">14-day returns<\/a><\/div>/)
+  assert.match(HTML, /\.modal \.madd\{font-family:'Jost'; font-weight:400; font-size:13px;/)
+  assert.match(HTML, /\.modal \.mimg\{height:45vh; width:auto; max-width:100%; aspect-ratio:4\/5; justify-self:center\}/)
+  assert.match(HTML, /\.modal \.madd-bar\{position:sticky; bottom:0;/)
+  assert.match(HTML, /\.modal \.mret\{[^}]*min-height:44px; font-size:13px/)
+  assert.match(HTML, /<img id="mImg" alt="product">/, 'gallery #97 hook kept')
+  // the returns link lands on the real returns text, and the period it names is the page's own
+  const SR = read('../shipping-returns.html')
+  assert.match(SR, /<h2 id="returns">Returns &amp; Refunds<\/h2>/)
+  assert.match(SR, /cancel your order within <b>14 days<\/b>/)
+})
+
+// ---------- menu (plan item 2 + owner 26 Nov 2026) ----------
+test('tabs: Bracelets, Necklaces, Gifts first, the Gradient Edit last as "Beaded"; ids / hashes stay "gradient"', () => {
+  assert.deepEqual(core.SF_TABS, ['bracelets', 'necklaces', 'gifts', 'hair', 'rings', 'gradient'])
+  assert.deepEqual(lay.SFL_TABS, core.SF_TABS)
+  assert.equal(core.SF_CHIP.gradient, 'Beaded'); assert.deepEqual(lay.SFL_CHIP, core.SF_CHIP)
+  assert.deepEqual(core.SF_SUBS.gradient.map((x) => x.label), ['Beaded', 'Beaded Cobra'])
+  assert.match(LAYOUT, /id="kltab-' \+ t \+ '" data-tab="' \+ t \+ '"/)
+})
+
+test('landing tab = Bracelets (All) when shown, else the Gradient Edit; deep links win', () => {
+  assert.equal(lay.sfDefTab(['bracelets', 'necklaces', 'gifts', 'gradient'], ''), 'bracelets')
+  assert.equal(lay.sfDefTab(['necklaces', 'gradient'], ''), 'gradient')
+  assert.equal(lay.sfDefTab(['bracelets', 'gradient'], 'gradient'), 'gradient')
+  assert.equal(lay.sfDefTab(['bracelets', 'necklaces', 'gradient'], 'necklaces'), 'necklaces')
+  assert.equal(lay.sfDefTab(['bracelets', 'gradient'], 'rings'), 'bracelets', 'a hidden tab falls back to the landing tab')
+  assert.match(SF, /setTab\(ph \? ph\.tab : landingTab\(\), false, ph \? ph\.sub : 'all'\);/)
+  assert.match(HTML, /klSfL\.sfPreTab\(document, klSfL\.vis\);/, 'pre-paint: the landing panel is the one painted')
+})
+
+test('Hair / Rings chips: never painted from memory while loading (only the live answer shows them)', () => {
+  assert.match(HTML, /\.filter\(function \(t\) \{ return t !== 'hair' && t !== 'rings'; \}\);/)
+  const vis = new Function('localStorage', `var SFL_TABS = ${JSON.stringify(lay.SFL_TABS)}; var m = {}; try { m = JSON.parse(localStorage.getItem('kl_sf_tabs') || '{}') || {}; } catch (e) {}
+    ${HTML.match(/  var vis = \(Array\.isArray[^\n]*/)[0]}
+    return vis;`)
+  const ls = (v) => ({ getItem: () => JSON.stringify({ v }) })
+  assert.deepEqual(vis(ls(['gradient', 'bracelets', 'necklaces', 'hair', 'gifts', 'rings'])), ['gradient', 'bracelets', 'necklaces', 'gifts'])
+  assert.deepEqual(vis({ getItem: () => null }), ['bracelets', 'necklaces', 'gifts', 'gradient'])
+})
+
+// ---------- Komuta D-002 / D-001 wording ----------
+test('D-002: "Gradient" is not a visible word on the static pages (internal keys, ids, hashes and image paths stay)', () => {
+  for (const p of PAGES) {
+    const v = visible(read('../' + p)).replace(/(?:radial|linear)-gradient/g, '').replace(/\/img\/gradient\//g, '/img/x/')
+      .replace(/(?:id|href|src|srcset|data-[a-z-]+|aria-controls|class)="[^"]*"/g, '')
+    assert.doesNotMatch(v, /gradient/i, p)
+  }
+  assert.match(HTML, /<title>Karmi Laven — Bracelets &amp; Necklaces · Colour, worn softly<\/title>/)
+  assert.equal(core.SF_TITLE.gradient, 'Beaded')
+  assert.doesNotMatch(SF, /'The Gradient <em>Edit<\/em>'|See The Gradient Edit|stack it into the gradient/)
+})
+
+test('D-001: no "small studio" / "established retailer" claims; the factual line instead', () => {
+  for (const p of PAGES) assert.doesNotMatch(read('../' + p), /small (?:uk )?(?:jewellery )?studio|established (?:uk )?retailer/i, p)
+  assert.doesNotMatch(SF, /small (?:uk )?(?:jewellery )?studio|established (?:uk )?retailer/i)
+  assert.match(read('../contact.html'), /Karmi Laven is from Melbe Home, with shops in Watford and Guildford\./)
+  assert.match(HTML, /Karmi Laven is a UK brand with shops in Watford and Guildford, part of <b>Melbe Home UK Ltd<\/b>\./)
+})

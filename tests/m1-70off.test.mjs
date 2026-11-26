@@ -74,20 +74,20 @@ test('#2 card (deal-first): "£2.40 each when you buy any 10+ items (70% off) ·
   assert.equal(T.meta, '£2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items')
   assert.equal(T.hero, p.m1PriceHtml(G1))
   assert.ok(HTML.includes('data-kl-m1="hero">' + T.hero + '</span>'), 'static hero first paint = m1Texts().hero')
-  assert.match(T.each, /<b>£2\.40<\/b> each when you buy any 10\+ items \(70% off\) · £8 each for 1–9 items <span class="dl" data-kl="fee1">\+ £3\.99 UK delivery, free over £30<\/span>/)
+  assert.match(T.each, /<b>£2\.40<\/b> each when you buy any 10\+ items \(70% off\) · £8 each for 1–9 items <span class="dl" data-kl="fee1">\+ £3\.99 UK delivery, free on orders of £30 or more<\/span>/)
   assert.ok(HTML.includes('data-kl-m1="each">' + T.each + '</div>'), 'static story line first paint = m1Texts().each')
   assert.equal(T.faqq, 'How does 70% off when you buy any 10+ items work?')
   // group-wide since families went live (23 Nov): never 'every bracelet £8' next to £5 / £13 pieces
-  assert.match(T.faqa, /^Prices are <b>£5, £8 or £13<\/b> per piece depending on the line \(shown on each item\)\. Put <b>any 10 or more items<\/b> in your bag \(any mix\) and you get <b>70% off every item<\/b>: <b>£1\.50, £2\.40 or £3\.90 each<\/b>\. £3\.99 UK delivery, free over £30\./)
+  assert.match(T.faqa, /^Prices are <b>£5, £8 or £13<\/b> per piece depending on the line \(shown on each item\)\. Put <b>any 10 or more items<\/b> in your bag \(any mix\) and you get <b>70% off every item<\/b>: <b>£1\.50, £2\.40 or £3\.90 each<\/b>\. £3\.99 UK delivery, free on orders of £30 or more\./)
   assert.doesNotMatch(T.faqa, /Every bracelet/)
   assert.ok(HTML.includes('data-kl-m1="faqa">' + T.faqa + '</p>'), 'static FAQ first paint = m1Texts().faqa')
   // crawlers / link previews: no Gradient-only "£8 each" price claim in meta or JSON-LD (families live)
   const head = [...HTML.matchAll(/<meta (?:name|property)="[^"]+" content="([^"]*)"/g)].map((m) => m[1]).join(' | ')
     + [...HTML.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => m[1]).join(' ')
   assert.doesNotMatch(head, /£8 each|per bracelet|Every bracelet|"lowPrice": "8\.00"/)
-  assert.equal(p.m1TierHint(3), '£2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items · + £3.99 UK delivery, free over £30')
+  assert.equal(p.m1TierHint(3), '£2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items · + £3.99 UK delivery, free on orders of £30 or more')
   // owner 25 Nov 2026: 10 x £2.40 = £24.00 is under £30, so it pays delivery; 13 x £2.40 = £31.20 is free
-  assert.equal(p.m1TierHint(10), '£2.40 each (70% off) · + £3.99 UK delivery, free over £30')
+  assert.equal(p.m1TierHint(10), '£2.40 each (70% off) · + £3.99 UK delivery, free on orders of £30 or more')
   assert.equal(p.m1TierHint(13), '£2.40 each (70% off) · free UK delivery included')
 })
 
@@ -171,13 +171,13 @@ test('#9 K-08 words: no "Diamond" / "Lux Stone" in the served group labels', () 
 
 test('page CTA: card form + the delivery sentence once (the ad line stays out of the page copy)', () => {
   const T = page(M1P).m1Texts()
-  assert.equal(T.cta, 'Mix any shades · £2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items · <span data-kl="ship">£3.99 UK delivery, free over £30</span>')   // deal-first re-pin (owner 24 Nov 2026)
+  assert.equal(T.cta, 'Mix any shades · £2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items · <span data-kl="ship">£3.99 UK delivery, free on orders of £30 or more</span>')   // deal-first re-pin (owner 24 Nov 2026)
   assert.ok(HTML.includes('data-kl-m1="cta">' + T.cta + '</div>'), 'static CTA first paint = m1Texts().cta')
   assert.equal((T.cta.match(/delivery/g) || []).length, 1)
   // ad line (marketing, K&D #8): condition + from-price + delivery in one frame
-  assert.equal(T.ad, 'Buy 10+, get 70% off · from £2.40 each · £3.99 UK delivery, free over £30')   // owner 25 Nov 2026: 10+ alone is not free delivery
+  assert.equal(T.ad, 'Buy 10+, get 70% off · from £2.40 each · £3.99 UK delivery, free on orders of £30 or more')   // owner 25 Nov 2026: 10+ alone is not free delivery
   const S = page(NOPCT).m1Texts()
-  assert.equal(S.cta, 'Mix any shades · £2.40 each when you buy any 10+ items · £8 each for 1–9 items · <span data-kl="ship">£3.99 UK delivery, free over £30</span>')   // deal-first re-pin (owner 24 Nov 2026)
+  assert.equal(S.cta, 'Mix any shades · £2.40 each when you buy any 10+ items · £8 each for 1–9 items · <span data-kl="ship">£3.99 UK delivery, free on orders of £30 or more</span>')   // deal-first re-pin (owner 24 Nov 2026)
   assert.equal(S.ad, null)
 })
 

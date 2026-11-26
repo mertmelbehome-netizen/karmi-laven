@@ -19,7 +19,7 @@ const LAYOUT = HTML.match(/\/\*KL-SF-LAYOUT-START\*\/([\s\S]*?)\/\*KL-SF-LAYOUT-
 const sfLayout = new Function(`${LAYOUT}; return sfLayout;`)()
 const CORE = SF.match(/\/\*KL-SF-CORE-START\*\/([\s\S]*?)\/\*KL-SF-CORE-END\*\//)[1]
 const core = new Function(`${CORE}; return { SF_TITLE, SF_CHIP, sfFamCard };`)()
-const DELIVERY = /£3\.99 UK delivery, free over £30/   // owner 25 Nov 2026 (was £1.49, free with any 10+ items)
+const DELIVERY = /£3\.99 UK delivery, free on orders of £30 or more/   // owner 25 Nov 2026 (was £1.49, free with any 10+ items)
 
 // ---------- a tiny DOM (enough for querySelector with tag/.class/#id compounds and descendant combinators) ----------
 class El {
@@ -150,8 +150,8 @@ test('F2: chip bar sticky top:0 and <= 56 px; colour bar sticks under it (deskto
 })
 
 test('F4/F6: short chip labels, panel titles and tab roles unchanged', () => {
-  assert.deepEqual(core.SF_CHIP, { gradient: 'Gradient', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' })
-  assert.equal(core.SF_TITLE.gradient, 'The Gradient Edit')
+  assert.deepEqual(core.SF_CHIP, { gradient: 'Beaded', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' })
+  assert.equal(core.SF_TITLE.gradient, 'Beaded')
   assert.match(LAYOUT, /role="tab" type="button" id="kltab-' \+ t \+ '"[^\n]*aria-selected[^\n]*SFL_CHIP\[t\]/)
   assert.deepEqual(new Function(`${LAYOUT}; return SFL_CHIP;`)(), core.SF_CHIP, 'pre-paint chip labels = storefront.js labels')
   assert.match(SF, /\['ArrowRight', 'ArrowLeft', 'Home', 'End'\]/)
@@ -160,16 +160,16 @@ test('F4/F6: short chip labels, panel titles and tab roles unchanged', () => {
 test('CMA209: every priced card (Gradient + family) and the bag keep the delivery fee with the free-over-£30 condition', () => {
   // Gradient card template: the delivery line sits right under the price
   assert.match(HTML, /<div class="pr">\$\{m1On\(\)\?m1PriceHtml\(d\.barcode\):pt\}<\/div>\s*<div class="fee" data-kl="cardship">\$\{cardShipText\(\)\}<\/div>/)
-  assert.match(HTML, /function cardShipText\(\)\{[^\n]*'\+ '\+gbpP\(SHIP\.feeP\)\+' UK delivery'\+\(SHIP\.freeQty\?' · free on orders of '\+gbpShort\(SHIP\.freeP\)\+'\+ or '\+SHIP\.freeQty\+'\+ items':', free over '\+gbpShort\(SHIP\.freeP\)\)/)
+  assert.match(HTML, /function cardShipText\(\)\{[^\n]*'\+ '\+gbpP\(SHIP\.feeP\)\+' UK delivery'\+\(SHIP\.freeQty\?' · free on orders of '\+gbpShort\(SHIP\.freeP\)\+'\+ or '\+SHIP\.freeQty\+'\+ items':', free on orders of '\+gbpShort\(SHIP\.freeP\)\+' or more'\)/)
   // family card: price + delivery line together, for sellable and single states
   const c = { barcode: '1', name: 'Rose', line: 'Bead Necklace', swatch: '#fff', photo: '/x.jpg' }
-  const ship = '+ £3.99 UK delivery, free over £30'
+  const ship = '+ £3.99 UK delivery, free on orders of £30 or more'
   for (const st of ['sellable', 'single']) {
     const h = core.sfFamCard(c, st, { line: { p: 500, html: '£5.00' }, badge: null, ship })
-    assert.match(h, /<div class="pr">£5\.00<\/div><div class="fee" data-kl="cardship">\+ £3\.99 UK delivery, free over £30<\/div>/, st)
+    assert.match(h, /<div class="pr">£5\.00<\/div><div class="fee" data-kl="cardship">\+ £3\.99 UK delivery, free on orders of £30 or more<\/div>/, st)
   }
   // bag drawer default line
-  assert.match(HTML, /id="cartShip"[^>]*>£3\.99 UK delivery, free over £30</)
+  assert.match(HTML, /id="cartShip"[^>]*>£3\.99 UK delivery, free on orders of £30 or more</)
   // the layout move never takes the delivery line off the page, and "free" never shows without the fee
   const doc = pageDoc(); sfLayout(doc, tabbar())
   const lines = [...doc.body.walk()].filter((e) => ['ship', 'cardship'].includes(e.attrs['data-kl']))
@@ -183,7 +183,7 @@ test('CMA209: every fee1 delivery span (card each-line, sticky bar, family stick
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
   const spans = [...html.matchAll(/data-kl="fee1">([^<]*)</g)].map((m) => m[1])
   assert.ok(spans.length >= 2)
-  for (const s of spans.filter((x) => !x.startsWith("'+"))) assert.match(s, /£3\.99 UK delivery, free over £30/, s)   // static spans; JS-built ones use cardShipText() (asserted below)
+  for (const s of spans.filter((x) => !x.startsWith("'+"))) assert.match(s, /£3\.99 UK delivery, free on orders of £30 or more/, s)   // static spans; JS-built ones use cardShipText() (asserted below)
   assert.match(html, /const fee=cardShipText\(\);/)
   assert.match(html, /\[data-kl="fee1"\]'\)\.forEach\(e=>\{e\.textContent=cardShipText\(\);/)
   const sf = readFileSync(new URL('../js/storefront.js', import.meta.url), 'utf8')
@@ -332,7 +332,7 @@ test('return-visit CLS: the Gradient grid paints the remembered sold-out set; a 
 
 test('pre-paint: the layout runs right after the hero and is finished right after the Gradient panel (no later move)', () => {
   assert.match(HTML, /<\/header>\r?\n<script>[\s\S]*?\/\*KL-SF-LAYOUT-START\*\//)
-  assert.match(HTML, /<\/main>\r?\n<script>[^\n]*\r?\ntry\{ if\(window\.__klSfPre&&window\.klSfL\)\{ klSfL\.sfLayout\(document, null, klSfL\.vis\); klSfL\.sfBundleChip\(document\); klSfL\.sfGradSubs\(document\); \} \}catch\(e\)\{\}<\/script>/)
+  assert.match(HTML, /<\/main>\r?\n<script>[^\n]*\r?\ntry\{ if\(window\.__klSfPre&&window\.klSfL\)\{ klSfL\.sfLayout\(document, null, klSfL\.vis\); klSfL\.sfBundleChip\(document\); klSfL\.sfGradSubs\(document\); klSfL\.sfPreTab\(document, klSfL\.vis\); \} \}catch\(e\)\{\}<\/script>/)
   // part 1 sees only the page up to the hero; part 2 the whole first screen: same result as one call
   const doc = pageDoc()
   const pal = doc.querySelector('#palette'), fam = doc.querySelector('#klFam'), tw = doc.querySelector('.trustband').parentNode, sb = doc.querySelector('.swatchbar')

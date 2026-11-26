@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Karmi Laven — The Gradient Edit</title>
+<title>Karmi Laven — Bracelets &amp; Necklaces · Colour, worn softly</title>
 <link href="/fonts/fonts.css" rel="stylesheet">
 <!-- families view BEFORE first paint (CLS fix, morning_review/18_cls_prepaint): storefront.css is scoped to html.kl-v2 /
      kl-* elements, so it does nothing on the old page; the class is set here (default ON, production runs families ON;
@@ -30,6 +30,8 @@ body::before{content:""; position:fixed; inset:0; z-index:0; pointer-events:none
 
 .announce{position:relative; z-index:2; text-align:center; font-size:12px; letter-spacing:.24em;
   text-transform:uppercase; color:var(--soft); padding:11px 14px; border-bottom:1px solid var(--hair)}
+/* phone: ONE line (rules v2 R2'): the dispatch part is in the product view, bag and FAQ; the bar keeps fee + threshold */
+@media(max-width:620px){.announce, html.kl-v2 .announce{letter-spacing:.02em; text-transform:none} .announce .an-ship{display:none}}
 
 nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
 .logo{font-family:'Herr Von Muellerhoff',cursive; font-weight:400; font-size:clamp(58px,9vw,96px); line-height:.8; color:var(--ink); letter-spacing:.005em}
@@ -297,13 +299,20 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 .modal .mbag{font-size:12.5px; color:var(--accent); margin:0 0 10px}
 .modal .mstock{font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--soft); margin-bottom:20px}
 .modal .mdesc{font-size:14px; color:var(--soft); line-height:1.7; margin-bottom:22px; font-weight:300}
-.modal .madd{font-family:'Jost'; font-weight:400; font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--bg);
+.modal .madd{font-family:'Jost'; font-weight:400; font-size:13px; letter-spacing:.18em; text-transform:uppercase; color:var(--bg);
   background:var(--ink); border:1px solid var(--ink); padding:15px 0; cursor:pointer; transition:.3s}
 .modal .madd:hover{opacity:.88}
 .modal .mbundle{margin-top:11px; font-family:'Jost'; font-weight:400; font-size:12px; letter-spacing:.16em; text-transform:uppercase;
   color:var(--ink); background:none; border:1px solid var(--hair); padding:13px 0; cursor:pointer; transition:.3s}
 .modal .mbundle:hover{border-color:var(--ink)}
-@media(max-width:620px){.modal{grid-template-columns:1fr; top:50%; max-height:92vh; overflow:auto} .modal .mbody{padding:26px 22px 30px}}
+.modal .madd-bar{display:flex; flex-direction:column}
+.modal .madd-bar .madd{width:100%}
+.modal .mret{align-self:center; display:inline-flex; align-items:center; min-height:44px; font-size:13px; color:var(--ink); text-decoration:underline; text-underline-offset:3px}
+@media(max-width:620px){.modal{grid-template-columns:1fr; top:50%; max-height:92vh; overflow:auto} .modal .mbody{padding:26px 22px 30px}
+  /* R8 (rules v2, plan item 1): Add to bag on screen when the product view opens at 375x812 / 390x844: the photo box keeps
+     4:5 but is capped at 45% of the viewport height, and the add button + returns link stay pinned to the modal's bottom */
+  .modal .mimg{height:45vh; width:auto; max-width:100%; aspect-ratio:4/5; justify-self:center}
+  .modal .madd-bar{position:sticky; bottom:0; z-index:3; background:var(--paper); margin:0 -22px; padding:10px 22px 2px; box-shadow:0 -10px 14px -12px rgba(28,25,22,.35)}}
 
 /* PRODUCT GALLERY (24 Nov, shipped dormant): only a product with 2+ QC-passed photos (cards.json / DATA photos[]) gets
    a carousel; one photo = the markup as before. Native scroll-snap, no library; dots / thumbs / arrow keys: klCar* below */
@@ -434,6 +443,8 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-bottom:calc(var(--bar-h,84px) + 12px)}
 @media(min-width:841px){.stickybar{padding-left:max(14px,calc(50vw - 560px)); padding-right:max(14px,calc(50vw - 560px))}}
 @media(max-width:840px){.stickybar{display:flex} body{padding-bottom:var(--bar-h,84px)} html{scroll-padding-bottom:calc(var(--bar-h,84px) + 12px)}}
+/* phone: the button keeps its label on one line; the price + delivery text wraps beside it (fee + threshold kept in full) */
+@media(max-width:840px){.stickybar .sp{flex:1 1 0; min-width:0} .stickybar .sbtn{flex:0 0 auto; max-width:48%; padding-left:12px; padding-right:12px}}
 
 /* toast */
 .toast{position:fixed; z-index:95; bottom:84px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
@@ -510,21 +521,21 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 .hide{display:none}
 </style>
 <link href="/css/a11y.css?v=a11y1" rel="stylesheet">
-<meta name="description" content="Karmi Laven bracelets and necklaces — £1.50, £2.40 or £3.90 each when you buy any 10+ items (70% off every item, any mix); £5, £8 or £13 each for 1–9 items. Ships within 1–2 business days; UK delivery usually 2–5 business days after dispatch. £3.99 UK delivery, free over £30.">
+<meta name="description" content="Karmi Laven bracelets and necklaces — £1.50, £2.40 or £3.90 each when you buy any 10+ items (70% off every item, any mix); £5, £8 or £13 each for 1–9 items. Ships within 1–2 business days; UK delivery usually 2–5 business days after dispatch. £3.99 UK delivery, free on orders of £30 or more.">
 <link rel="canonical" href="https://www.karmilaven.com/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Karmi Laven">
 <meta property="og:url" content="https://www.karmilaven.com/">
-<meta property="og:title" content="Karmi Laven — Bracelets &amp; Necklaces · The Gradient Edit £2.40 each when you buy any 10+ items">
-<meta property="og:description" content="Faceted bead shades — find your colour. £3.99 UK delivery, free over £30.">
+<meta property="og:title" content="Karmi Laven — Bracelets &amp; Necklaces · Colour, worn softly · from £1.50 each when you buy any 10+ items">
+<meta property="og:description" content="Faceted bead shades — find your colour. £3.99 UK delivery, free on orders of £30 or more.">
 <meta property="og:image" content="https://www.karmilaven.com/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Karmi Laven: colour, worn softly. Bracelets and necklaces.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@karmilaven">
-<meta name="twitter:title" content="Karmi Laven — Bracelets &amp; Necklaces · The Gradient Edit £2.40 each when you buy any 10+ items">
-<meta name="twitter:description" content="Faceted bead shades. Find your colour. £3.99 UK delivery, free over £30.">
+<meta name="twitter:title" content="Karmi Laven — Bracelets &amp; Necklaces · Colour, worn softly · from £1.50 each when you buy any 10+ items">
+<meta name="twitter:description" content="Faceted bead shades. Find your colour. £3.99 UK delivery, free on orders of £30 or more.">
 <meta name="twitter:image" content="https://www.karmilaven.com/og-image.jpg">
 </head>
 <body>
@@ -535,7 +546,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
     <button class="cb-btn accept" onclick="cookieChoice(true)">Accept</button>
   </div>
 </div>
-<div class="announce">Ships within 1–2 business days · <span data-kl="ship">£3.99 UK delivery, free over £30</span></div>
+<div class="announce"><span class="an-ship">Ships within 1–2 business days · </span><span data-kl="bar">£3.99 UK delivery · free on orders of £30 or more</span></div>
 
 <nav>
   <div class="logo">Karmi Laven</div>
@@ -545,25 +556,25 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 
 <header class="hero wrap">
   <div class="hero-copy">
-    <div class="k fadein d1">The Gradient Edit</div>
+    <div class="k fadein d1">Colour, worn softly</div>
     <h1 class="fadein d1">Colour,<br> worn <em>softly</em>.</h1>
     <p class="fadein d2" data-kl-m1="herop">Faceted beads on a gold-tone chain with a single charm. Wear one, or stack a few.</p>
     <!-- families view hero price (25_hero_price): headline 10+ price + its condition + the single prices + delivery in ONE
          block (CMA/DMCC, ASA). Text = sfHeroPrice(ladders.json, every group); runtime: the served table + the groups on sale
          (sfHeroPriceApply). tests/hero-price.test.mjs keeps this static text = the table. Hidden on the old page (css). -->
-    <div class="kl-hp" id="klHeroPrice"><div class="kl-hp-l1"><b class="kl-hp-big">£2.40<small> each</small></b> <span class="kl-hp-cond">when you buy any 10+ items</span></div><div class="kl-hp-single">Single piece £8</div><div class="kl-hp-dlv" data-kl="ship">£3.99 UK delivery, free over £30</div></div>
+    <div class="kl-hp" id="klHeroPrice"><div class="kl-hp-l1"><span class="kl-hp-from">from</span> <b class="kl-hp-big">£1.50<small> each</small></b> <span class="kl-hp-cond">when you buy any 10+ items</span></div><div class="kl-hp-single">Single pieces £5 / £8 / £13</div><div class="kl-hp-dlv" data-kl="ship">£3.99 UK delivery, free on orders of £30 or more</div></div>
     <div class="stars fadein d2"><span class="num">Part of Melbe Home · with shops in Watford &amp; Guildford</span></div>
     <div class="cta fadein d3">
       <button class="btn" onclick="openBundle()">Build your bundle</button>
       <button class="btn ghost" onclick="document.getElementById('palette').scrollIntoView({behavior:(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)?'auto':'smooth'})">Shop by colour</button>
     </div>
     <div class="launch fadein d3"><span>Online price</span><span class="p" data-kl-m1="hero"><span class="m1d"><b class="m1big">£2.40</b> each <span class="m1c">when you buy any 10+ items<span class="m1pct"> (70% off)</span></span></span><span class="m1sep"> · </span><span class="m1one">£8 each for 1–9 items</span></span><span class="lbl">Ships within 1–2 business days</span></div>
-    <div class="launchfee fadein d3" data-kl="cardship">+ £3.99 UK delivery, free over £30</div>
+    <div class="launchfee fadein d3" data-kl="cardship">+ £3.99 UK delivery, free on orders of £30 or more</div>
     <div class="spectrum fadein d4" id="spectrum"></div>
   </div>
   <div class="hero-img fadein d2">
-    <img id="heroImg" src="/img/gradient/1268.jpg" fetchpriority="high" decoding="async" alt="Karmi Laven gradient bracelet, worn">
-    <div class="cap"><div class="n" id="heroName">Ice Blue</div><div class="s">The Gradient Edit</div></div>
+    <img id="heroImg" src="/img/gradient/1268.jpg" fetchpriority="high" decoding="async" alt="Karmi Laven beaded bracelet, worn">
+    <div class="cap"><div class="n" id="heroName">Ice Blue</div><div class="s">Colour, worn softly</div></div>
   </div>
 </header>
 <script>
@@ -576,11 +587,18 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
    evaluates the KL-SF-LAYOUT block as-is. ---- */
 (function(){
 /*KL-SF-LAYOUT-START*/
-var SFL_TABS = ['gradient', 'bracelets', 'necklaces', 'hair', 'gifts', 'rings'];
-var SFL_CHIP = { gradient: 'Gradient', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };   // = storefront.js SF_CHIP (test-checked)
+var SFL_TABS = ['bracelets', 'necklaces', 'gifts', 'hair', 'rings', 'gradient'];   // owner 26 Nov 2026: categories first, the Gradient Edit last (chip 'Beaded'); = storefront.js SF_TABS
+var SFL_CHIP = { gradient: 'Beaded', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };   // = storefront.js SF_CHIP (test-checked)
 /** The chip bar (storefront.js binds it). vis = tabs shown (the Gradient Edit always), n = counts, sel = selected tab. */
+/** Landing tab (owner 26 Nov 2026): Bracelets (All) whenever its chip is shown, else the Gradient Edit (always shown).
+ *  h = the hash tab asked for ('' = none); a hidden or unknown tab falls back to the landing tab. */
+function sfDefTab(vis, h) {
+  vis = vis || []; h = String(h || '').split('-')[0];
+  if (SFL_TABS.indexOf(h) >= 0 && (h === 'gradient' || vis.indexOf(h) >= 0)) return h;
+  return vis.indexOf('bracelets') >= 0 ? 'bracelets' : 'gradient';
+}
 function sfBar(doc, vis, n, sel) {
-  vis = vis || ['gradient']; n = n || {}; sel = String(sel || '').split('-')[0]; if (SFL_TABS.indexOf(sel) < 0 || (sel !== 'gradient' && vis.indexOf(sel) < 0)) sel = 'gradient';
+  vis = vis || ['gradient']; n = n || {}; sel = sfDefTab(vis, sel);
   var nav = doc.createElement('nav'); nav.className = 'kl-tabbar'; nav.setAttribute('aria-label', 'Shop by category');
   nav.innerHTML = '<div class="kl-tabs" role="tablist" aria-label="Categories">' + SFL_TABS.map(function (t) {
     var v = t === 'gradient' || vis.indexOf(t) >= 0;
@@ -589,7 +607,7 @@ function sfBar(doc, vis, n, sel) {
   return nav;
 }
 /** Moves, never deletes: chip bar directly under the logo/Bag row (before the hero); hero keeps H1 + one short line;
- *  the price + delivery line ("+ £3.99 UK delivery, free over £30"), the Christmas notice, the Melbe Home
+ *  the price + delivery line ("+ £3.99 UK delivery, free on orders of £30 or more"), the Christmas notice, the Melbe Home
  *  line, the trust strip and the company/VAT line go into one block right after the product grids. Idempotent and
  *  resumable: called while the page is still being parsed, it does what the parsed part allows (a detached #klInfo
  *  collects the moved nodes until #palette exists). Every move is recorded so sfUnlayout can put it back. */
@@ -618,6 +636,16 @@ function sfLayout(doc, bar, vis) {
   if (at && at.parentNode && !info.parentNode) at.parentNode.insertBefore(info, at.nextSibling);
   return info;
 }
+/** Pre-paint (part 2, after #palette is parsed): when the landing / hash tab is not the Gradient Edit, the Gradient grid
+ *  and its colour bar are not painted (storefront.js opens that tab's panel); sfUnlayout shows them again. */
+function sfPreTab(doc, vis) {
+  var w = doc.defaultView || (typeof window !== 'undefined' ? window : {}), t = sfDefTab(vis, String((w.location || {}).hash || '').replace(/^#/, ''));
+  var de = doc.documentElement; if (de && de.setAttribute) de.setAttribute('data-kl-tab', t);
+  if (t === 'gradient') return t;
+  var pal = doc.getElementById('palette'), sb = doc.querySelector('.swatchbar');
+  if (pal) pal.hidden = true; if (sb) sb.hidden = true;
+  return t;
+}
 /** Families OFF after a pre-paint layout (server says OFF, or /api/stock failed): today's old page, every node back. */
 function sfUnlayout(doc) {
   var q = function (s) { return doc.querySelector(s); };
@@ -640,7 +668,9 @@ function sfUnlayout(doc) {
     p.textContent = p.getAttribute('data-kl-p0'); p.removeAttribute('data-kl-p0');
     if (p.hasAttribute('data-kl-p0m1')) { p.setAttribute('data-kl-m1', p.getAttribute('data-kl-p0m1')); p.removeAttribute('data-kl-p0m1'); }
   }
+  var pal = q('#palette'), sb = q('.swatchbar'); if (pal) pal.hidden = false; if (sb) sb.hidden = false;
   var de = doc.documentElement; if (de && de.classList) de.classList.remove('kl-v2');
+  if (de && de.removeAttribute) de.removeAttribute('data-kl-tab');
 }
 /** mobile: the bundle builder sits first in the colour chip row (V-01); storefront.js keeps it */
 function sfBundleChip(doc) {
@@ -652,13 +682,13 @@ function sfBundleChip(doc) {
 /** The Gradient Edit's two styles as sub-chips, first in the colour chip row (after the bundle chip): no extra row, so
  *  the phone first screen and CLS are unchanged. Labels = storefront.js SF_SUBS.gradient (test-checked): never
  *  Lux / crystal. gs = last visit's sub-counts (storefront.js renderTabs), {} = none on sale; storefront.js keeps them. */
-var SFL_GSUBS = [['all', 'All'], ['classic', 'Gradient'], ['cobra', 'Gradient Cobra']];
+var SFL_GSUBS = [['all', 'All'], ['classic', 'Beaded'], ['cobra', 'Beaded Cobra']];
 function sfGradSubs(doc, gs) {
   var sbi = doc.getElementById('swatchbar'); if (!sbi || doc.getElementById('klGSubs')) return;
   var sel = String(((doc.defaultView || (typeof window !== 'undefined' ? window : {})).location || {}).hash || '').replace(/^#/, '');
   sel = sel.indexOf('gradient-') === 0 ? sel.slice(9) : 'all';
   var row = doc.createElement('div'); row.className = 'kl-subs kl-gsubs'; row.id = 'klGSubs';
-  row.setAttribute('role', 'tablist'); row.setAttribute('aria-label', 'Gradient styles');
+  row.setAttribute('role', 'tablist'); row.setAttribute('aria-label', 'Beaded bracelet styles');
   var on = function (k) { return !gs || k === 'all' || gs[k] > 0; }, nv = SFL_GSUBS.filter(function (x) { return x[0] !== 'all' && on(x[0]); }).length;
   if (nv < 2) { row.hidden = true; sel = 'all'; }
   if (!on(sel)) sel = 'all';
@@ -723,8 +753,9 @@ function sfMetaCats(doc, hair) {
 /*KL-SF-LAYOUT-END*/
   // the chips last shown (storefront.js renderTabs remembers them): the pre-paint bar matches what the visitor will see
   var m = {}; try { m = JSON.parse(localStorage.getItem('kl_sf_tabs') || '{}') || {}; } catch (e) {}
-  var vis = Array.isArray(m.v) ? m.v.filter(function (t) { return SFL_TABS.indexOf(t) >= 0; }) : ['gradient', 'bracelets', 'necklaces', 'gifts'];   // first visit: the chips production shows today (Gifts W49-A2 included; a chip that turns out hidden only disappears, nothing after it moves)
-  window.klSfL = { sfBar: sfBar, sfLayout: sfLayout, sfUnlayout: sfUnlayout, sfBundleChip: sfBundleChip, sfGradSubs: function (d) { sfGradSubs(d, m.gs); }, sfHeroLine: sfHeroLine, sfHeroPrice: sfHeroPrice, sfHeroPriceApply: sfHeroPriceApply, sfMetaCats: sfMetaCats, vis: vis };
+  // Hair / Rings never from memory: their chips show only once the live answer has a sellable card (no empty chip while loading)
+  var vis = (Array.isArray(m.v) ? m.v.filter(function (t) { return SFL_TABS.indexOf(t) >= 0; }) : ['bracelets', 'necklaces', 'gifts', 'gradient']).filter(function (t) { return t !== 'hair' && t !== 'rings'; });   // first visit: the chips production shows today (Gifts W49-A2 included; a chip that turns out hidden only disappears, nothing after it moves)
+  window.klSfL = { sfBar: sfBar, sfLayout: sfLayout, sfUnlayout: sfUnlayout, sfBundleChip: sfBundleChip, sfGradSubs: function (d) { sfGradSubs(d, m.gs); }, sfHeroLine: sfHeroLine, sfDefTab: sfDefTab, sfPreTab: sfPreTab, sfHeroPrice: sfHeroPrice, sfHeroPriceApply: sfHeroPriceApply, sfMetaCats: sfMetaCats, vis: vis };
   if (window.__klSfPre) { try { sfLayout(document, sfBar(document, vis, m.n, location.hash.slice(1)), vis); } catch (e) {} }
 })();
 </script>
@@ -751,7 +782,7 @@ function sfMetaCats(doc, hair) {
 
 <main class="wrap collection" id="palette">
   <div class="bundlecta">
-    <div><div class="t">Build your <em>gradient stack</em></div><div class="s" data-kl-m1="cta">Mix any shades · £2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items · <span data-kl="ship">£3.99 UK delivery, free over £30</span></div></div>
+    <div><div class="t">Build your <em>colour stack</em></div><div class="s" data-kl-m1="cta">Mix any shades · £2.40 each when you buy any 10+ items (70% off) · £8 each for 1–9 items · <span data-kl="ship">£3.99 UK delivery, free on orders of £30 or more</span></div></div>
     <button class="btn" onclick="openBundle()">Build your bundle</button>
   </div>
   <div class="bundletrust">Backed by <b>Melbe Home</b> · shops in Watford &amp; Guildford · secure Stripe checkout · 14-day returns</div>
@@ -762,7 +793,7 @@ function sfMetaCats(doc, hair) {
   <div class="grid" id="grid"></div>
 </main>
 <script>/* families view, pre-paint part 2 (see above): trust + company/VAT line into #klInfo, #klInfo after the grid, bundle chip */
-try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vis); klSfL.sfBundleChip(document); klSfL.sfGradSubs(document); } }catch(e){}</script>
+try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vis); klSfL.sfBundleChip(document); klSfL.sfGradSubs(document); klSfL.sfPreTab(document, klSfL.vis); } }catch(e){}</script>
 
 <section class="story">
   <div class="lg">Karmi Laven</div>
@@ -770,7 +801,7 @@ try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vi
   <div class="row">
     <div class="it"><b>15</b> shades</div>
     <div class="it"><b>4mm</b> faceted beads</div>
-    <div class="it" data-kl-m1="each"><b>£2.40</b> each when you buy any 10+ items (70% off) · £8 each for 1–9 items <span class="dl" data-kl="fee1">+ £3.99 UK delivery, free over £30</span></div>
+    <div class="it" data-kl-m1="each"><b>£2.40</b> each when you buy any 10+ items (70% off) · £8 each for 1–9 items <span class="dl" data-kl="fee1">+ £3.99 UK delivery, free on orders of £30 or more</span></div>
   </div>
 </section>
 
@@ -779,7 +810,7 @@ try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vi
   <details class="faqitem"><summary>When will my order arrive?</summary><p>Orders ship within 1–2 business days and arrive in 2–5 business days via Royal Mail. You're charged securely at checkout.</p></details>
   <details class="faqitem"><summary>What size are they?</summary><p data-kl-m1="faqsize">Each bracelet sits on a fine gold-tone chain that fastens with a clasp and a loop extender chain, comfortable from roughly 14–19cm.</p></details>
   <details class="faqitem"><summary>What are they made of?</summary><p data-kl-m1="faqmade">4mm faceted beads on a gold-tone chain with a single delicate charm.</p></details>
-  <details class="faqitem"><summary>Shipping &amp; delivery?</summary><p><span data-kl="ship">£3.99 UK delivery, free over £30</span>. Delivery 2–5 business days after dispatch.</p></details>
+  <details class="faqitem"><summary>Shipping &amp; delivery?</summary><p><span data-kl="ship">£3.99 UK delivery, free on orders of £30 or more</span>. Delivery 2–5 business days after dispatch.</p></details>
 </section>
 
 <section class="reviews wrap hide" id="reviews">
@@ -803,7 +834,7 @@ try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vi
 
       <div class="faq">
         <p class="faq-q">Are you online only?</p>
-        <p class="faq-a">No — Karmi Laven is part of <b>Melbe Home UK Ltd</b>, an established UK retailer with physical shops in Watford and Guildford. karmilaven.com is our online home for the soft gradient bracelet collection; the same brand, the same pieces, online and in store.</p>
+        <p class="faq-a">No — Karmi Laven is a UK brand with shops in Watford and Guildford, part of <b>Melbe Home UK Ltd</b>. karmilaven.com is our online home for bracelets and necklaces; the same brand, the same pieces, online and in store.</p>
       </div>
 
       <div class="faq">
@@ -818,12 +849,12 @@ try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vi
 
       <div class="faq">
         <p class="faq-q" data-kl-m1="faqq">How does 70% off when you buy any 10+ items work?</p>
-        <p class="faq-a" data-kl-m1="faqa">Prices are <b>£5, £8 or £13</b> per piece depending on the line (shown on each item). Put <b>any 10 or more items</b> in your bag (any mix) and you get <b>70% off every item</b>: <b>£1.50, £2.40 or £3.90 each</b>. £3.99 UK delivery, free over £30. The 10+ price is applied automatically in your bag; promo codes can’t be added to it.</p>
+        <p class="faq-a" data-kl-m1="faqa">Prices are <b>£5, £8 or £13</b> per piece depending on the line (shown on each item). Put <b>any 10 or more items</b> in your bag (any mix) and you get <b>70% off every item</b>: <b>£1.50, £2.40 or £3.90 each</b>. £3.99 UK delivery, free on orders of £30 or more. The 10+ price is applied automatically in your bag; promo codes can’t be added to it.</p>
       </div>
 
       <div class="faq">
         <p class="faq-q">When will my order arrive?</p>
-        <p class="faq-a">We ship from our Watford shop within 1–2 business days. Standard UK delivery takes 2–5 days. <b data-kl="ship">£3.99 UK delivery, free over £30</b>.</p>
+        <p class="faq-a">We ship from our Watford shop within 1–2 business days. Standard UK delivery takes 2–5 days. <b data-kl="ship">£3.99 UK delivery, free on orders of £30 or more</b>.</p>
       </div>
 
       <div class="faq">
@@ -855,7 +886,7 @@ try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vi
     <a href="https://www.instagram.com/karmilaven/" target="_blank" rel="noopener">Instagram</a>
   </div>
   <div class="legal">Karmi Laven is operated by <b>Melbe Home UK Ltd</b>, registered in England and Wales, company number 15549022. Registered office: 8 Turner Court, High Street, Berkhamsted, HP4 3ZE. · VAT 513559785 · hello@karmilaven.com · We reply within 1 business day.</div>
-  <div class="fbot">© 2026 Karmi Laven · <a href="/terms.html">Terms</a> · <span data-kl="ship">£3.99 UK delivery, free over £30</span> · <a href="/">karmilaven.com</a></div>
+  <div class="fbot">© 2026 Karmi Laven · <a href="/terms.html">Terms</a> · <span data-kl="ship">£3.99 UK delivery, free on orders of £30 or more</span> · <a href="/">karmilaven.com</a></div>
 </footer>
 
 <div class="ovl" id="ovl"></div>
@@ -864,13 +895,13 @@ try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vi
   <div class="mimg"><img id="mImg" alt="product"></div>
   <div class="mbody">
     <button class="mclose" onclick="closeModal()" aria-label="Close">✕</button>
-    <div class="meyebrow"><span class="d" id="mDot"></span>Karmi Laven · The Gradient Edit</div>
+    <div class="meyebrow"><span class="d" id="mDot"></span>Karmi Laven · Colour, worn softly</div>
     <div class="mname" id="mName"></div>
     <div class="mprice" id="mPrice"></div>
     <div class="mstock" id="mStock"></div>
-    <div class="mdesc" data-kl-m1="mdesc">A single thread of 4mm faceted beads on a gold-tone chain with a delicate charm. Wear it alone, or stack it into the gradient.</div>
+    <div class="mdesc" data-kl-m1="mdesc">A single thread of 4mm faceted beads on a gold-tone chain with a delicate charm. Wear it alone, or stack a few shades.</div>
     <div class="mbag" id="mBag" aria-live="polite"></div>
-    <button class="madd" id="mAdd" data-kl-m1="madd">Add to bag</button>
+    <div class="madd-bar"><button class="madd" id="mAdd" data-kl-m1="madd">Add to bag</button><a class="mret" href="/shipping-returns.html#returns">14-day returns</a></div>
     <button class="mbundle" onclick="closeModal();openBundle(window._mbc)">Build a bundle — mix any shades</button>
   </div>
 </div>
@@ -878,7 +909,7 @@ try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vi
 <aside class="bundle" id="bundle">
   <div class="bundle-h">
     <button class="x" onclick="closeBundle()" aria-label="Close">✕</button>
-    <div class="e">The Gradient Edit</div>
+    <div class="e">Colour, worn softly</div>
     <h3>Build your bundle</h3>
     <div class="sub">Pick how many, then choose your shades. Mix any colours.</div>
   </div>
@@ -898,7 +929,7 @@ try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vi
   <div class="cart-items" id="cartItems"></div>
   <div class="cart-foot">
     <div class="shipbar"><i id="shipFill"></i></div>
-    <div class="cart-ship" id="cartShip" data-kl-progress aria-live="polite">£3.99 UK delivery, free over £30</div>
+    <div class="cart-ship" id="cartShip" data-kl-progress aria-live="polite">£3.99 UK delivery, free on orders of £30 or more</div>
     <div class="cart-m1" id="cartM1" aria-live="polite" hidden></div>
     <div class="cart-sub"><span>Subtotal</span><span id="cartSub">£0.00</span></div>
     <div class="cart-shipline" id="cartShipLine"><span>UK delivery</span><span id="cartShipVal">£3.99</span></div>
@@ -913,7 +944,7 @@ try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vi
 </aside>
 
 <div class="stickybar" id="stickybar">
-  <div class="sp" id="stickyInfo" aria-live="polite"><b>£2.40</b> each when you buy any 10+ items<span class="dl one">£8 each for 1–9 items</span><span class="dl" data-kl="fee1">+ £3.99 UK delivery, free over £30</span></div>
+  <div class="sp" id="stickyInfo" aria-live="polite"><b>£2.40</b> each when you buy any 10+ items<span class="dl one">£8 each for 1–9 items</span><span class="dl" data-kl="fee1">+ £3.99 UK delivery, free on orders of £30 or more</span></div>
   <button class="sbtn" id="stickyBtn" onclick="openBundle()">Build your bundle</button>
   <button class="sbtn" id="stickyCart" onclick="openCart()" style="display:none;background:var(--accent);color:#fff;max-width:160px">View bag &middot; <span id="stickyN">0</span></button>
 </div>
@@ -1278,7 +1309,7 @@ function cartTotal(lines){ if(typeof m1On==='function'&&m1On()) return m1CartTot
 /*KL-DELIVERY-START*/ // DISPLAY ONLY (CMA209 §5.14, §5.17 route 2, §5.18, §5.21): the delivery-inclusive rolling total and the
 // delivery texts. The server charges (api/_pricing.js shippingFeeP); these numbers come from /api/stock ladders.shipping at
 // runtime; the literals below are the fallback = ladders.json today (tests/delivery.test.mjs keeps them equal).
-const SHIP={freeP:3000, feeP:399, freeQty:null};   // £3.99 UK delivery, free over £30 on the basket paid (owner 25 Nov 2026; = ladders.json shipping; tests/static-strings.test.mjs)
+const SHIP={freeP:3000, feeP:399, freeQty:null};   // £3.99 UK delivery, free on orders of £30 or more on the basket paid (owner 25 Nov 2026; = ladders.json shipping; tests/static-strings.test.mjs)
 function applyLadderShipping(l){
   const s=l&&l.shipping; if(!s) return false;
   const f=Number(s.free_threshold_pence), fee=Number(s.below_threshold_fee_pence), q=s.free_at_qty;
@@ -1296,7 +1327,7 @@ function deliveryFor(subP, units){
 }
 function gbpP(p){ return '£'+(p/100).toFixed(2); }
 function gbpShort(p){ return p%100===0 ? '£'+(p/100) : gbpP(p); }
-function shipSentence(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with any '+SHIP.freeQty+'+ items'+klRingsShipNote():''); return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery, '+(SHIP.freeQty?'free on orders of '+gbpShort(SHIP.freeP)+'+ (or '+SHIP.freeQty+'+ items)':'free over '+gbpShort(SHIP.freeP)); }
+function shipSentence(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with any '+SHIP.freeQty+'+ items'+klRingsShipNote():''); return SHIP.feeP===0 ? 'Free UK delivery' : gbpP(SHIP.feeP)+' UK delivery, '+(SHIP.freeQty?'free on orders of '+gbpShort(SHIP.freeP)+'+ (or '+SHIP.freeQty+'+ items)':'free on orders of '+gbpShort(SHIP.freeP)+' or more'); }
 // K&D E1b/E1c (K-069) + K-070/K-071 (Mert, 24 Nov 2026): rings never count toward the 10+ PRICE (70%), so while a flat group
 // (rings) is ON every 10+ / 10-or-more / any-mix PRICE claim says 'non-ring items' (inserted before ' item(s)' where the
 // condition is generated: tier text, FAQ, bag, progress, hero, meta). Rings DO count toward free delivery, so every
@@ -1304,7 +1335,9 @@ function shipSentence(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK d
 // OFF = '' = every text byte-for-byte as before (tests/rings-e1c.test.mjs).
 function klRingsNote(){ try{ return (typeof m1FlatKeys==='function' && m1FlatKeys().length) ? ' non-ring' : ''; }catch(e){ return ''; } }
 function klRingsShipNote(){ try{ return (typeof m1FlatKeys==='function' && m1FlatKeys().length) ? ' (rings included)' : ''; }catch(e){ return ''; } }
-function cardShipText(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with any '+SHIP.freeQty+'+ items'+klRingsShipNote():''); return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free on orders of '+gbpShort(SHIP.freeP)+'+ or '+SHIP.freeQty+'+ items':', free over '+gbpShort(SHIP.freeP)); }
+// announcement bar (rules v2 R2', K&D 26 Nov 2026): fee + free threshold in ONE sentence, '£30 or more' (the engine frees at subtotal >= threshold)
+function barSentence(){ return (SHIP.freeP!==null&&!SHIP.freeQty&&SHIP.feeP>0) ? gbpP(SHIP.feeP)+' UK delivery · free on orders of '+gbpShort(SHIP.freeP)+' or more' : shipSentence(); }
+function cardShipText(){ if(SHIP.freeP===null) return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free with any '+SHIP.freeQty+'+ items'+klRingsShipNote():''); return SHIP.feeP===0 ? 'Free UK delivery' : '+ '+gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?' · free on orders of '+gbpShort(SHIP.freeP)+'+ or '+SHIP.freeQty+'+ items':', free on orders of '+gbpShort(SHIP.freeP)+' or more'); }
 function rollingText(subP, units){
   if(!(units>0)) return '';
   const d=deliveryFor(subP,units);
@@ -1374,7 +1407,7 @@ function m1RingTexts(g){ const f=m1Flat(g||m1FlatKeys()[0]); if(!f) return null;
   return { price: gbpShort(f.each*f.min_qty)+' for any '+f.min_qty+' '+us+' · '+gbpShort(f.each)+' each · minimum '+f.min_qty,
     priceHtml: '<span class="m1s"><span class="m1p">'+gbpShort(f.each*f.min_qty)+'</span> for any '+f.min_qty+' '+us+'</span><span class="m1t"> · '+gbpShort(f.each)+' each · minimum '+f.min_qty+'</span>',
     // K-070/K-071 (Mert, 24 Nov 2026): rings count toward free delivery (not toward 70%); blind pick within the ring type
-    ship: SHIP.feeP===0?'Free UK delivery':'+ '+gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?'; free with any '+SHIP.freeQty+'+ items ('+us+' included)':(SHIP.freeP!==null?', free over '+gbpShort(SHIP.freeP):'')),
+    ship: SHIP.feeP===0?'Free UK delivery':'+ '+gbpP(SHIP.feeP)+' UK delivery'+(SHIP.freeQty?'; free with any '+SHIP.freeQty+'+ items ('+us+' included)':(SHIP.freeP!==null?', free on orders of '+gbpShort(SHIP.freeP)+' or more':'')),
     design: 'We pick — every '+u+' is different, designs vary',
     short: function(add){ return 'Add '+add+' more '+u+(add===1?'':'s')+' to check out (minimum '+f.min_qty+')'; },
     group: f.label+' (min '+f.min_qty+')',
@@ -1398,7 +1431,7 @@ function m1Example(lines, g){ for(let i=lines.length-1;i>=0;i--){ const c=lines[
 function m1Lines(lines){
   const s=m1Summary(lines), out={progress:null, applied:null, promo:null};
   if(!s.units) return out;
-  // spend threshold (owner 25 Nov 2026: free over £30 on the basket the customer pays) = engine groupProgress() gap line;
+  // spend threshold (owner 25 Nov 2026: free on orders of £30 or more on the basket the customer pays) = engine groupProgress() gap line;
   // the basis leaves out flat-group units that do not count toward free delivery (= server shipBasis)
   const spGap=(SHIP.freeP!==null&&s.shipping_pence>0)?SHIP.freeP-(s.charged_pence-s.groups.reduce((a,g)=>{ const f=m1Flat(g.group); return a+(f&&f.counts_to_free_shipping!==true?g.qty*g.each_charged:0); },0)):null;
   let freeToo=false;
@@ -1479,7 +1512,7 @@ function m1Texts(){
     herop: 'Faceted beads on a gold-tone chain with a single charm. Wear one, or stack a few.',
     faqsize: 'Each bracelet sits on a fine gold-tone chain that fastens with a clasp and a loop extender chain, comfortable from roughly 14–19cm.',
     faqmade: '4mm faceted beads on a gold-tone chain with a single delicate charm.',
-    mdesc: 'A single thread of 4mm faceted beads on a gold-tone chain with a delicate charm. Wear it alone, or stack it into the gradient.',
+    mdesc: 'A single thread of 4mm faceted beads on a gold-tone chain with a delicate charm. Wear it alone, or stack a few shades.',
     // the ad line (T.ad) is for ads/marketing only; on the page the CTA keeps the card form + the delivery sentence once
     cta: 'Mix any shades · '+m1DealText(gr)+' · <span data-kl="ship">'+shipSentence()+'</span>',
     each: '<b>'+e+'</b> each '+m1Deal(gr).cond+' · '+m1Deal(gr).one+' <span class="dl" data-kl="fee1">'+fee+'</span>',
@@ -1509,7 +1542,7 @@ function countText(n){ if(m1On()){ const T=m1Texts(); if(T) return T.count(n); }
 // active tab (js/storefront.js window.klTabGroups); unknown yet / families off = the landing tab (Gradient) group.
 // [] = nothing on the tab takes part in the 10+ price (e.g. Rings) = no block.
 function klHeroPriceApply(){ try{ const t=m1T(), K=window.klSfL; if(!K||!K.sfHeroPriceApply) return;
-  let keys=typeof window.klTabGroups==='function'?window.klTabGroups():null; if(!keys&&t) keys=[t.gradient_group];
+  let keys=typeof window.klTabGroups==='function'?window.klTabGroups():null; if(!keys&&window.__klSfPre&&document.documentElement.getAttribute('data-kl-tab')!=='gradient') return; if(!keys&&t) keys=[t.gradient_group];
   K.sfHeroPriceApply(document, t, keys, klRingsNote()); }catch(e){} }
 window.klHeroPriceApply=klHeroPriceApply;
 function m1ApplyPage(){
@@ -1555,7 +1588,7 @@ function m1Foot(){
   else if(L.delivery) band.textContent=L.delivery;   // spend threshold (owner 25 Nov 2026): 'Add £x for free delivery'
   else band.textContent=R&&SHIP.freeQty&&SHIP.feeP?'Free UK delivery with any '+SHIP.freeQty+'+ items'+sn+' · otherwise '+gbpP(SHIP.feeP):shipSentence();
   // bar under the band: toward the 10+ price while the band shows that line; otherwise toward free delivery (owner 25 Nov 2026:
-  // free over £30 on the basket paid), so a full bar never sits next to 'Add £x for free delivery'
+  // free on orders of £30 or more on the basket paid), so a full bar never sits next to 'Add £x for free delivery'
   document.getElementById('shipFill').style.width=(!L.progress&&SHIP.freeP!==null ? (dlv.free?100:Math.min(100, s.charged_pence/SHIP.freeP*100)) : Math.min(100, (R?s.tier_units:q)/s.tier_from*100))+'%';
   const box=document.getElementById('cartM1'), t=m1T(), gr=t.groups[t.gradient_group];
   if(L.applied){ box.innerHTML='<span class="m1on">✓ '+L.applied+'</span><span class="m1promo">'+L.promo+'</span>'; box.hidden=false; }
@@ -1575,6 +1608,7 @@ function klLadderParam(){ try{ const v=new URLSearchParams(location.search).get(
 function addedLines(bc,n){ const out=cart.map(c=>({bc:c.bc,qty:c.qty})); const f=out.find(c=>c.bc===bc); if(f) f.qty+=n; else out.push({bc,qty:n}); return out; }
 function applyShipTexts(){
   document.querySelectorAll('[data-kl="ship"]').forEach(e=>{e.textContent=shipSentence();});
+  document.querySelectorAll('[data-kl="bar"]').forEach(e=>{e.textContent=barSentence();});
   document.querySelectorAll('[data-kl="cardship"]').forEach(e=>{e.textContent=cardShipText();});
   document.querySelectorAll('[data-kl="fee1"]').forEach(e=>{e.textContent=cardShipText();});   // CMA209: fee + 10+ condition
   document.querySelectorAll('[data-kl-q]').forEach(e=>{const q=Number(e.getAttribute('data-kl-q')); if(q>0) e.textContent=gbpP(gradTotalP(q));});
@@ -1930,7 +1964,7 @@ var SHOW_REVIEWS = false;
       "@type": "OfferShippingDetails",
       "shippingRate": { "@type": "MonetaryAmount", "value": "3.99", "currency": "GBP" },
       "shippingDestination": { "@type": "DefinedRegion", "addressCountry": "GB" },
-      "description": "£3.99 UK delivery, free over £30"
+      "description": "£3.99 UK delivery, free on orders of £30 or more"
     },
     "seller": {
       "@type": "Organization",

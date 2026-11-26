@@ -117,12 +117,16 @@ const sha = (o) => createHash('sha256').update(JSON.stringify(o)).digest('hex')
 // price second): only the price texts changed (texts.hero/meta/cta/each/count, hint 0-9, price[], meta/og/twitter/JSON-LD);
 // bag lines, progress, foot and hero block byte-identical to origin/master 2bc5018 (diffed record(OFF) before re-pinning)
 // sha256 of record(OFF) / record(null) taken on origin/master 9ed2989 (#77 meta, before this change): rings OFF = not one byte different
-// re-pinned 25 Nov 2026 ON PURPOSE (owner: £3.99 UK delivery, free over £30 on the basket paid, no item-count free delivery):
+// re-pinned 25 Nov 2026 ON PURPOSE (owner: £3.99 UK delivery, free on orders of £30 or more on the basket paid, no item-count free delivery):
 // diffed record(OFF) against origin/master e46d673 with the same ladders.json: only delivery texts moved (ship sentence,
 // tier hints 10-12, ad, cta/each/faqa delivery part, meta/JSON-LD sentence, bag spend nudge "Add £x for free delivery",
 // unlock totals "+ £3.99 delivery", cartShipVal note); prices, carts, hero block unchanged
-const PIN_OFF = '24cc2317f85fa247f87c252604aa4b96165c2ed7bbd47c4531f59c2b5ef56c84'
-const PIN_FALLBACK = '24cc2317f85fa247f87c252604aa4b96165c2ed7bbd47c4531f59c2b5ef56c84'   // M1_FALLBACK = publicLadders(ladders.json)
+// re-pinned 26 Nov 2026 ON PURPOSE (feat/site-basics-1: rules v2 R2' one wording, owner/Komuta D-002 slogan): diffed
+// record(OFF) against origin/master b23e75b: only 'free over £30' -> 'free on orders of £30 or more' (every delivery text),
+// mdesc 'stack it into the gradient.' -> 'stack a few shades.' and og/twitter title ('The Gradient Edit £2.40 ...' ->
+// 'Colour, worn softly · from £1.50 each when you buy any 10+ items'); prices, carts, bag lines, hero block unchanged
+const PIN_OFF = '12f04451bac409510b87ea35b820104919d9ee9efacca22568bdbcd92d7a2c5e'
+const PIN_FALLBACK = '12f04451bac409510b87ea35b820104919d9ee9efacca22568bdbcd92d7a2c5e'   // M1_FALLBACK = publicLadders(ladders.json)
 
 test('rings OFF (ladders.json today + first paint): every page text byte-for-byte = master (sha pin)', () => {
   assert.equal(RAW.flat_groups.R.enabled, false)
@@ -133,7 +137,7 @@ test('rings OFF (ladders.json today + first paint): every page text byte-for-byt
 
 test('rings ON with the LIVE delivery (owner 25 Nov 2026): no item-count delivery claim; every 10+ price claim says "non-ring"', () => {
   const r = record(ON_LIVE), all = flat(r).map((s) => s.replace(/<[^>]*>/g, ''))
-  assert.deepEqual(r.ship, ['£3.99 UK delivery, free over £30', '+ £3.99 UK delivery, free over £30'])
+  assert.deepEqual(r.ship, ['£3.99 UK delivery, free on orders of £30 or more', '+ £3.99 UK delivery, free on orders of £30 or more'])
   for (const s of all) {
     assert.doesNotMatch(s, /free with any|rings included|£1\.49/, s)
     for (const m of s.matchAll(/\b10(\+| or more)(?! prices?\b)(.{0,24})/g)) assert.match(m[2], /^ non-ring items?\b/, m[0] + ' in ' + s)
@@ -175,7 +179,7 @@ test('rings ON: every 10+ / 10 or more / any mix claim says "non-ring items" (pr
   assert.equal(nine[4][0], 'Now £8 each · 70% off every non-ring item when your bag has 10+ non-ring items (£2.40 each)')
   assert.match(r.bags[10].lines.progress, /^Add 1 more non-ring item for 70% off every non-ring item/)
   assert.match(r.bags[11].lines.progress, /^Add 4 more non-ring items /)
-  assert.match(r.meta[0], /£3\.90 each when you buy any 10\+ non-ring items \(70% off every item, any mix\); £5, £8 or £13 each for 1–9 non-ring items\. .* £3\.99 UK delivery, free over £30\.$/)   // static meta sentence (owner 25 Nov 2026)
+  assert.match(r.meta[0], /£3\.90 each when you buy any 10\+ non-ring items \(70% off every item, any mix\); £5, £8 or £13 each for 1–9 non-ring items\. .* £3\.99 UK delivery, free on orders of £30 or more\.$/)   // static meta sentence (owner 25 Nov 2026)
   // 5 rings + 3 items: counted rings, delivery line of its own; 9 B + 3 rings = 12 items: delivery free
   assert.equal(r.bags[10].foot[1][1], '<span class="free">FREE ✓</span>')
 })
