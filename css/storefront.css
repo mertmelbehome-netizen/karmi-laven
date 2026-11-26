@@ -110,7 +110,7 @@ html.kl-v2 .kl-hp[hidden]{display:none}
   .kl-hp-dlv{display:none}
   /* family tabs (Bracelets / Necklaces / Hair) with their sub-chip row: one-line hero price; every card right below shows its
      single price + the same 10+ condition, so the first full card stays above the sticky bar (V-01, 375x812) */
-  html.kl-v2[data-kl-tab]:not([data-kl-tab="gradient"]) .kl-hp-single{display:none}
+  /* 26 Nov (K&D R1b): the single price stays in the hero block next to the deal price on every tab (14 px, one line) */
   html.kl-v2[data-kl-tab]:not([data-kl-tab="gradient"]) #klFam{padding-top:0}
   html.kl-v2[data-kl-tab]:not([data-kl-tab="gradient"]) #klFam .col-head{margin-bottom:0}
   html.kl-v2 #klFam [role=tablist]{margin-bottom:4px}
