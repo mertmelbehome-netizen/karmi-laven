@@ -181,6 +181,9 @@ const BARS = {
   '9 mixed (3A 3B 3C), cheapest 10+ price = A': [[[A, 3], [B, 3], [C, 3]], A],
   '8 mixed (3B 5C), cheapest 10+ price = B': [[[B, 3], [C, 5]], B],
   '9 x C (£13 group)': [[[C, 9]], C],
+  '9 x A (£45: free delivery now, not after the unlock)': [[[A, 9]], A],
+  '7 x B (Gradient)': [[[B, 7]], B],
+  '7 x C (£13 group)': [[[C, 7]], C],
 }
 for (const [name, [lines, pad]] of Object.entries(BARS)) {
   test('K&D 8 bar ' + name + ': main line "Add N more → total £X", X = api/checkout.js at 10 items', async () => {
@@ -192,9 +195,13 @@ for (const [name, [lines, pad]] of Object.entries(BARS)) {
     const sv = await server(full)
     const info = doc.getElementById('stickyInfo')
     assert.ok(units >= 7 && units <= 9 && N >= 1 && N <= 3)
-    assert.equal(info.innerHTML.match(/^<b>(.*?)<\/b>/)[1], 'Add ' + N + ' more → total ' + gbp(sv.items))
-    assert.match(info.innerHTML, /<span class="dl">(free UK delivery ✓|inc. £\d+\.\d\d UK delivery)<\/span>/, 'delivery stays as the second line')
+    const main = info.innerHTML.match(/^<b>(.*?)<\/b>/)[1]
+    assert.equal(main, 'Add ' + N + ' more → ' + gbp(sv.items) + (sv.ship > 0 ? ' + ' + gbp(sv.ship) + ' delivery' : ' with free delivery'))   // amounts = api/checkout.js at 10 items
+    assert.ok(!/total/.test(main))
+    if (sv.ship > 0) assert.ok(!/free/i.test(main), 'no free claim when the unlocked bag pays delivery')
     const s = p.m1Summary(p.getCart())
+    assert.match(info.innerHTML, new RegExp('<span class="dl">Bag ' + gbp(s.charged_pence + s.shipping_pence) + '( inc\. £\d+\.\d\d delivery)?</span>$'), "the bag's own running total stays visible")
+    assert.ok(!/free UK delivery ✓/.test(info.innerHTML), "the current bag's delivery status is not shown in near mode")
     assert.equal(Number(info.dataset.klTotalP), s.charged_pence + s.shipping_pence, 'the measured bag total is unchanged')
   })
 }
@@ -205,8 +212,41 @@ test('K&D 8: outside 7-9 items the bar keeps "Bag £total" (6 items, 10 items)',
     assert.match(doc.getElementById('stickyInfo').innerHTML, /^Bag <b>£\d+\.\d\d<\/b>/, q + ' items')
   }
 })
+test('K&D 8: 9 x £5 = £45 ships free now but the 10-item bag (£15) pays £3.99: the line says so, with no "free"', async () => {
+  const { p, doc } = page()
+  p.setCart([{ bc: A, qty: 9 }]); p.updateBag()
+  const sv = await server([{ bc: A, qty: 10 }])
+  assert.deepEqual([sv.items, sv.ship], [1500, 399])
+  const info = doc.getElementById('stickyInfo').innerHTML
+  assert.equal(info, '<b>Add 1 more → £15.00 + £3.99 delivery</b><span class="dl">Bag £45.00</span>')
+})
 test('K&D 8: the bar number comes from the engine (unlock_total_pence) - no second price calculation in updateBag', () => {
   const src = fnSrc(HTML, 'updateBag')
   assert.match(src, /us\.unlock_total_pence/)
   assert.doesNotMatch(src, /tier_each/)
+})
+
+// ---------- New-drop alerts pop-up never opens mid-shop ----------
+function popup({ cart, drawerOpen = false, lastAddAt = 0, shown = '0' }) {
+  const i = HTML.indexOf('/* EMAIL POPUP'), src = HTML.slice(i, HTML.indexOf('</script>', i))
+  const els = {}, g = (id) => els[id] || (els[id] = mkEl())
+  if (drawerOpen) g('cart').cls.add('open')
+  const store = { klpop_shown: shown }, timers = []
+  const win = { klLastAddAt: lastAddAt, matchMedia: () => ({ matches: false }) }
+  new Function('document', 'window', 'localStorage', 'cart', 'setTimeout', 'clearTimeout',
+    src.replace(/^\/\*[^\n]*\*\/\n/, ''))(
+    { getElementById: g, addEventListener() {}, documentElement: { scrollHeight: 0 }, visibilityState: 'visible' }, win,
+    { getItem: (k) => store[k] ?? null, setItem: (k, v) => { store[k] = String(v) } }, cart, (f) => { timers.push(f); return 1 }, () => {})
+  return { open: () => win.openEmailPopup(), opened: () => g('klpop').cls.has('open'), store }
+}
+test('pop-up: opens as before on an empty-bag first visit (and records the 7-day memory)', () => {
+  const pp = popup({ cart: [] }); pp.open()
+  assert.ok(pp.opened()); assert.notEqual(pp.store.klpop_shown, '0')
+})
+test('pop-up: never opens with items in the bag, just after an add, or with the bag drawer open; the memory is untouched', () => {
+  for (const o of [{ cart: [{ bc: A, qty: 1 }] }, { cart: [], lastAddAt: Date.now() - 3000 }, { cart: [], drawerOpen: true }]) {
+    const pp = popup(o); pp.open()
+    assert.ok(!pp.opened(), JSON.stringify(o)); assert.equal(pp.store.klpop_shown, '0')
+  }
+  assert.match(HTML, /function show\(\)\{ if\(shopping\(\)\) return; if\(busy\(\)\)/, 'a timer that fires mid-shop is dropped, not re-queued')
 })

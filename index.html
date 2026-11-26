@@ -1678,7 +1678,10 @@ function updateBag(){
       const dl='<span class="dl">'+(d.free?'free UK delivery ✓':'inc. '+gbpP(d.feeP)+' UK delivery')+'</span>';
       // K&D 8: 7-9 items (1-3 short of the 10+ price): the MAIN line is 'Add N more → total £X' = this bag at 10 items (engine unlock_total, the pricing the bag itself uses); delivery stays the second line
       const us=m1On()?m1Summary(cart):null, near=us&&!us.tier_unlocked&&us.unlock_total_pence!==null&&us.to_unlock>=1&&us.to_unlock<=3;
-      inf.innerHTML=near ? '<b>Add '+us.to_unlock+' more → total '+gbpP(us.unlock_total_pence)+'</b>'+dl : 'Bag <b>'+gbpP(d.totalP)+'</b>'+dl;
+      // the unlocked bag's delivery is the ENGINE's unlock_shipping_pence (same source as m1Lines); the CURRENT bag's delivery status is never shown as if it applied to it.
+      // Second line = the bag's own running total (§5.18), incl. its delivery only when that is charged.
+      const nearTxt=near?'Add '+us.to_unlock+' more → '+gbpP(us.unlock_total_pence)+(us.unlock_shipping_pence>0?' + '+gbpP(us.unlock_shipping_pence)+' delivery':' with free delivery'):'';
+      inf.innerHTML=near ? '<b>'+nearTxt+'</b><span class="dl">Bag '+gbpP(d.totalP)+(d.feeP>0?' inc. '+gbpP(d.feeP)+' delivery':'')+'</span>' : 'Bag <b>'+gbpP(d.totalP)+'</b>'+dl;
       // measurement hooks for the CMA209 check (total = items + delivery), no visual change
       inf.setAttribute('data-kl-total',''); inf.dataset.klItemsP=subP; inf.dataset.klShipP=d.feeP; inf.dataset.klTotalP=d.totalP; }
     else { inf.removeAttribute('data-kl-total'); }
@@ -1737,7 +1740,7 @@ function showAddBar(){
   a.classList.add('show'); clearTimeout(addBarT); addBarT=setTimeout(hideAddBar,2500);
 }
 function viewBagFromAddBar(){ clearTimeout(addBarT); hideAddBar(); openCart(); }
-function addedFeedback(bc){ markAdded(bc); showAddBar(); }
+function addedFeedback(bc){ window.klLastAddAt=Date.now(); markAdded(bc); showAddBar(); }
 /* scrollIntoView({block:'nearest'}) does nothing when the message is already "in view" but sits behind the fixed
    bag band, so measure the band and lift the message by the overlap (8px gap). Pure part: px to scroll down, never so
    far that the message's top leaves the screen; 0 = no overlap. Display only: no focus / aria-live change. */
@@ -1896,7 +1899,11 @@ applyShipTexts(); render(DATA); updateBag(); renderCart(); firePurchaseIfSuccess
   var KEY='klpop_shown', INTERVAL=7*24*3600*1000;
   function canShow(){ try{ var t=parseInt(localStorage.getItem(KEY)||'0'); return Date.now()-t>INTERVAL; }catch(e){return true;} }
   function markShown(){ try{ localStorage.setItem(KEY,Date.now()); }catch(e){} }
+  // basket-1: never mid-shop. Skipped (not queued, and the 7-day memory is left untouched) while the bag has items, within 10 s of an add, or while the bag drawer is open.
+  function shopping(){ var c=document.getElementById('cart'), n=0; try{ n=(typeof cart!=='undefined'&&cart&&cart.length)|0; }catch(e){}
+    return n>0 || !!(c && c.classList.contains('open')) || (Date.now()-(window.klLastAddAt||0)<10000); }
   window.openEmailPopup=function(){
+    if(shopping()) return;
     if(!canShow()) return;
     markShown();
     document.getElementById('klpopOvl').classList.add('open');
@@ -1939,7 +1946,7 @@ applyShipTexts(); render(DATA); updateBag(); renderCart(); firePurchaseIfSuccess
   // Also wait while the cookie banner is showing, so the two never stack (K&D N3, 23 Nov).
   function busy(){ var o=document.getElementById('ovl'), cb=document.getElementById('cookie-banner');
     return !!((o && o.classList.contains('open')) || (cb && cb.classList.contains('visible'))); }
-  function show(){ if(busy()){ setTimeout(show, 4000); return; } openEmailPopup(); }
+  function show(){ if(shopping()) return; if(busy()){ setTimeout(show, 4000); return; } openEmailPopup(); }
   function fire(){ if(fired || !canShow()) return; fired=true; setTimeout(show, 500); }
   // Desktop: exit-intent (pointer leaves through the top edge) or tab hidden.
   document.addEventListener('mouseleave',function(e){ if(e.clientY<=0) fire(); });
