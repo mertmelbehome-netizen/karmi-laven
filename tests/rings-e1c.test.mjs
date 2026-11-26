@@ -127,8 +127,10 @@ const sha = (o) => createHash('sha256').update(JSON.stringify(o)).digest('hex')
 // 'Colour, worn softly · from £1.50 each when you buy any 10+ items'); prices, carts, bag lines, hero block unchanged
 // re-pinned again 26 Nov 2026 ON PURPOSE (K&D #101 no was/now in the bag): diffed record(OFF) against 25a0531: only the 10+
 // applied line moved ('Instant 70% off applied: £2.40 each instead of £8' -> '10+ price applied: £2.40 each (70% off)')
-const PIN_OFF = 'faf231060dc75ec4d75ab9b6d589020a740022fe4bd8c4cc77105f001013fcc4'
-const PIN_FALLBACK = 'faf231060dc75ec4d75ab9b6d589020a740022fe4bd8c4cc77105f001013fcc4'   // M1_FALLBACK = publicLadders(ladders.json)
+// re-pinned 26 Nov 2026 ON PURPOSE (U5 bag hint uses the line's own group price, K&D/O&W wording): diffed record(OFF) against origin/master 3890629:
+// only the cartM1 hint moved ('Now £8 each · 70% off ... (£2.40 each)' -> '£{own single} each for 1–9 items · 70% off ... (£{own 10+} each)', per group in the bag); everything else byte-identical
+const PIN_OFF = '7f90b2531248f491c18ef56dbcd726b1ce43ce6b8987778b3850b95bdddfc86b'
+const PIN_FALLBACK = '7f90b2531248f491c18ef56dbcd726b1ce43ce6b8987778b3850b95bdddfc86b'   // M1_FALLBACK = publicLadders(ladders.json)
 
 test('rings OFF (ladders.json today + first paint): every page text byte-for-byte = master (sha pin)', () => {
   assert.equal(RAW.flat_groups.R.enabled, false)
@@ -178,7 +180,7 @@ test('rings ON: every 10+ / 10 or more / any mix claim says "non-ring items" (pr
   assert.match(r.hero[1], /<span class="kl-hp-cond">for any 10\+ non-ring items<\/span>/)
   const nine = r.bags[3].foot   // 9 B, no ring in the bag: the bag still says rings don't count
   assert.equal(nine[1][1], '<span class="note">£1.49 UK delivery · free with any 10+ items (rings included)</span>')
-  assert.equal(nine[4][0], 'Now £8 each · 70% off every non-ring item when your bag has 10+ non-ring items (£2.40 each)')
+  assert.equal(nine[4][0], '£8 each for 1–9 items · 70% off every non-ring item when your bag has 10+ non-ring items (£2.40 each)')
   assert.match(r.bags[10].lines.progress, /^Add 1 more non-ring item for 70% off every non-ring item/)
   assert.match(r.bags[11].lines.progress, /^Add 4 more non-ring items /)
   assert.match(r.meta[0], /£3\.90 each when you buy any 10\+ non-ring items \(70% off every item, any mix\); £5, £8 or £13 each for 1–9 non-ring items\. .* £3\.99 UK delivery, free on orders of £30 or more\.$/)   // static meta sentence (owner 25 Nov 2026)
