@@ -454,6 +454,24 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
   background:var(--ink); color:var(--bg); font-family:'Jost'; font-size:12px; letter-spacing:.1em; text-transform:uppercase;
   padding:13px 26px; transition:.35s; pointer-events:none}
 .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+/* basket-1 (K&D 4): adding never opens the bag. A small bar sits just above the sticky bag bar (bottom = the measured --bar-h),
+   the wrapper lets taps through (pointer-events:none), only 'View' takes taps, so the next card's Add button and the sticky bar's
+   main action stay reachable. aria-live polite; fades out after ~2.5 s; no movement with prefers-reduced-motion. */
+.addbar{position:fixed; z-index:56; left:12px; right:12px; bottom:calc(var(--bar-h,84px) + 8px); display:flex; justify-content:center;
+  pointer-events:none; opacity:0; transform:translateY(8px); transition:opacity .2s, transform .2s}
+.addbar.show{opacity:1; transform:none}
+.addbar .ab{display:inline-flex; align-items:center; gap:10px; max-width:100%; background:var(--ink); color:var(--bg); font-family:'Jost'; font-size:13px;
+  letter-spacing:.04em; line-height:1.2; padding:0 6px 0 14px; min-height:44px; border-radius:22px; box-shadow:0 6px 18px -8px rgba(28,25,22,.55)}
+.addbar .ab-view{pointer-events:auto; min-width:44px; min-height:44px; padding:0 14px; border:none; background:none; color:var(--bg); font:inherit;
+  font-weight:600; text-decoration:underline; text-underline-offset:3px; cursor:pointer}
+.addbar .ab-view:focus-visible{outline:2px solid var(--bg); outline-offset:-4px; border-radius:22px}
+@media(min-width:841px){.addbar{bottom:24px; left:auto; right:24px}}
+@media (prefers-reduced-motion: reduce){.addbar{transition:none; transform:none}}
+/* U3: the tapped card's button says 'Added ✓' for ~1.5 s (no scroll, no re-render) */
+.cbody .add.is-added, .cbody .add.is-added:hover{background:var(--ink); color:var(--bg); border-color:var(--ink)}
+/* K&D 5: the bag's item list keeps room for 2 rows (>= 3 lines each) at 375x812; the footer (which scrolls on its own) gives the room back */
+.cart .cart-items{flex:1 0 min(260px,36vh); flex-basis:min(260px,36dvh); min-height:min(260px,36vh) !important; min-height:min(260px,36dvh) !important}   /* flex-shrink 0 + basis + !important: nothing (footer height, dvh fallback) can squeeze the list */
+.cart .cart-foot{flex:0 1 auto; min-height:0; max-height:calc(100vh - 90px - min(260px,36vh)); max-height:calc(100dvh - 90px - min(260px,36dvh))}
 
 @keyframes rise{to{opacity:1; transform:none}}
 .fadein{opacity:0; animation:rise 1s forwards}
@@ -522,6 +540,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 }
 /* LIVE STOCK — sold-out state */
 .card.sold-out{display:none !important}
+.col-head[hidden]{display:none}
 .card.sold-out .add{display:none}
 .card.sold-out .ship24{color:var(--soft)}
 .sold-out-badge{position:absolute;top:13px;left:13px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;
@@ -959,6 +978,7 @@ try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vi
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="addbar" id="addBar" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script>
 const DATA=[{"barcode": "1074", "type": "Lux Bracelet", "color_en": "Champagne", "swatch": "#e7d7b4", "qty": 7, "added": "2026-06-12", "img": "/img/gradient/1074.jpg", "stock": {"WAT": 17}, "total": 17},{"barcode": "1111", "type": "Lux Cobra Bracelet", "color_en": "Champagne", "swatch": "#e7d7b4", "qty": 6, "added": "2026-06-12", "img": "/img/gradient/1111.jpg", "stock": {"WAT": 18}, "total": 18},{"barcode": "1112", "type": "Lux Cobra Bracelet", "color_en": "Lotus Pink", "swatch": "#e7afc0", "qty": 6, "added": "2026-06-12", "img": "/img/gradient/1112.jpg", "stock": {"WAT": 18}, "total": 18},{"barcode": "1103", "type": "Lux Cobra Bracelet", "color_en": "Lotus Pink", "swatch": "#e7afc0", "qty": 5, "added": "2026-06-12", "img": "/img/gradient/1103.jpg", "stock": {"WAT": 7}, "total": 7},{"barcode": "1082", "type": "Lux Bracelet", "color_en": "Baby Green", "swatch": "#bfe2b4", "qty": 5, "added": "2026-06-12", "img": "/img/gradient/1082.jpg", "stock": {"WAT": 19}, "total": 19},{"barcode": "1061", "type": "Lux Bracelet", "color_en": "Ice Blue", "swatch": "#bfe1ec", "qty": 5, "added": "2026-06-12", "img": "/img/gradient/1061.jpg", "stock": {"WAT": 19}, "total": 19},{"barcode": "0470", "type": "Lux Bracelet", "color_en": "Pastel Green", "swatch": "#c4e1b9", "qty": 5, "added": "2026-04-29", "img": "/img/gradient/0470.jpg", "stock": {"WAT": 19}, "total": 19},{"barcode": "0381", "type": "Lux Bracelet", "color_en": "Emerald Green", "swatch": "#6fb070", "qty": 5, "added": "2026-04-28", "img": "/img/gradient/0381.jpg", "stock": {"WAT": 3}, "total": 3},{"barcode": "1088", "type": "Lux Cobra Bracelet", "color_en": "Sheer Mint", "swatch": "#cfe7c3", "qty": 5, "added": "2026-06-12", "img": "/img/gradient/1088.jpg", "stock": {"WAT": 7}, "total": 7},{"barcode": "1057", "type": "Lux Bracelet", "color_en": "Rosewater", "swatch": "#f1cdd3", "qty": 5, "added": "2026-06-12", "img": "/img/gradient/1057.jpg", "stock": {"WAT": 19}, "total": 19},{"barcode": "1113", "type": "Lux Cobra Bracelet", "color_en": "Jade", "swatch": "#a9d6c0", "qty": 4, "added": "2026-06-12", "img": "/img/gradient/1113.jpg", "stock": {"WAT": 20}, "total": 20},{"barcode": "1077", "type": "Lux Bracelet", "color_en": "Dusty Rose", "swatch": "#dca9a7", "qty": 4, "added": "2026-06-12", "img": "/img/gradient/1077.jpg", "stock": {"WAT": 8}, "total": 8},{"barcode": "1055", "type": "Lux Bracelet", "color_en": "Sky Blue", "swatch": "#bbd8ef", "qty": 4, "added": "2026-06-12", "img": "/img/gradient/1055.jpg", "stock": {"WAT": 20}, "total": 20},{"barcode": "1049", "type": "Lux Bracelet", "color_en": "Champagne", "swatch": "#e7d7b4", "qty": 4, "added": "2026-06-12", "img": "/img/gradient/1049.jpg", "stock": {"WAT": 8}, "total": 8},{"barcode": "1062", "type": "Lux Bracelet", "color_en": "Baby Pink", "swatch": "#f3cbd7", "qty": 3, "added": "2026-06-12", "img": "/img/gradient/1062.jpg", "stock": {"WAT": 21}, "total": 21},{"barcode": "1045", "type": "Lux Bracelet", "color_en": "Clear", "swatch": "#e8ecee", "qty": 1, "added": "2026-06-27", "img": "/img/gradient/1045.jpg"},{"barcode": "1070", "type": "Lux Bracelet", "color_en": "Clear", "swatch": "#e8ecee", "qty": 1, "added": "2026-06-27", "img": "/img/gradient/1070.jpg"},{"barcode": "1059", "type": "Lux Bracelet", "color_en": "Baby Pink", "swatch": "#f3c9d4", "qty": 1, "added": "2026-06-27", "img": "/img/gradient/1059.jpg"},{"barcode": "1068", "type": "Lux Bracelet", "color_en": "Dusty Rose", "swatch": "#d8a7a7", "qty": 1, "added": "2026-06-27", "img": "/img/gradient/1068.jpg"},{"barcode": "1069", "type": "Lux Bracelet", "color_en": "Light Champagne", "swatch": "#ecdcc0", "qty": 1, "added": "2026-06-27", "img": "/img/gradient/1069.jpg"},{"barcode": "1084", "type": "Lux Cobra Bracelet", "color_en": "Dusty Rose", "swatch": "#d8a7a7", "qty": 1, "added": "2026-06-27", "img": "/img/gradient/1084.jpg"},{"barcode": "1091", "type": "Lux Cobra Bracelet", "color_en": "Sea Blue", "swatch": "#8cc6da", "qty": 1, "added": "2026-06-27", "img": "/img/gradient/1091.jpg"},{"barcode": "1104", "type": "Lux Cobra Bracelet", "color_en": "Teal", "swatch": "#3fb6ad", "qty": 1, "added": "2026-06-27", "img": "/img/gradient/1104.jpg"},{"barcode": "1108", "type": "Lux Cobra Bracelet", "color_en": "Multi", "swatch": "#c9b8d6", "qty": 1, "added": "2026-06-27", "img": "/img/gradient/1108.jpg"},{"barcode": "1110", "type": "Lux Cobra Bracelet", "color_en": "Teal", "swatch": "#3fb6ad", "qty": 1, "added": "2026-06-27", "img": "/img/gradient/1110.jpg"},{"barcode": "1265", "type": "Lux Cobra Bracelet", "color_en": "Rosewater", "swatch": "#f1cdd3", "qty": 1, "added": "2026-07-12", "img": "/img/gradient/1265.jpg"},{"barcode": "1266", "type": "Lux Cobra Bracelet", "color_en": "Clear", "swatch": "#e8ecee", "qty": 1, "added": "2026-07-12", "img": "/img/tone/1266.svg"},{"barcode": "1267", "type": "Lux Cobra Bracelet", "color_en": "Baby Pink", "swatch": "#f3cbd7", "qty": 1, "added": "2026-07-12", "img": "/img/tone/1267.svg"},{"barcode": "1268", "type": "Lux Cobra Bracelet", "color_en": "Ice Blue", "swatch": "#bfe1ec", "qty": 1, "added": "2026-07-12", "img": "/img/gradient/1268.jpg"},{"barcode": "1269", "type": "Lux Cobra Bracelet", "color_en": "Neon Pink", "swatch": "#ff7fb0", "qty": 1, "added": "2026-07-12", "img": "/img/tone/1269.svg"},{"barcode": "1271", "type": "Lux Cobra Bracelet", "color_en": "Orchid Pink", "swatch": "#d792c4", "qty": 1, "added": "2026-07-12", "img": "/img/tone/1271.svg"},{"barcode": "1272", "type": "Lux Cobra Bracelet", "color_en": "Salmon Pink", "swatch": "#f6a488", "qty": 1, "added": "2026-07-12", "img": "/img/tone/1272.svg"},{"barcode": "1302", "type": "Lux Bracelet", "color_en": "Light Champagne", "swatch": "#ecdcc0", "qty": 1, "added": "2026-07-12", "img": "/img/tone/1302.svg"},{"barcode": "1304", "type": "Lux Bracelet", "color_en": "Baby Green", "swatch": "#bfe2b4", "qty": 1, "added": "2026-07-12", "img": "/img/gradient/1304.jpg"},{"barcode": "1306", "type": "Lux Bracelet", "color_en": "Teal", "swatch": "#3fb6ad", "qty": 1, "added": "2026-07-12", "img": "/img/gradient/1306.jpg"},{"barcode": "1307", "type": "Lux Bracelet", "color_en": "Clear", "swatch": "#e8ecee", "qty": 1, "added": "2026-07-12", "img": "/img/gradient/1307.jpg"},{"barcode": "1308", "type": "Lux Bracelet", "color_en": "Azure Blue", "swatch": "#6fa8dc", "qty": 1, "added": "2026-07-12", "img": "/img/gradient/1308.jpg"},{"barcode": "1310", "type": "Lux Bracelet", "color_en": "Light Champagne", "swatch": "#ecdcc0", "qty": 1, "added": "2026-07-12", "img": "/img/tone/1310.svg"}], PRICE=2.99;
@@ -1602,7 +1622,7 @@ function m1Foot(){
     : (SHIP.freeQty?'<span class="note">'+gbpP(SHIP.feeP)+' UK delivery · free with any '+SHIP.freeQty+'+ items'+sn+'</span>':SHIP.freeP!==null?'<span class="note">'+shipSentence()+'</span>':gbpP(SHIP.feeP));
   document.getElementById('cartTotal').textContent=q?gbpP(dlv.totalP):'—';
   const band=document.getElementById('cartShip');
-  if(L.progress) band.innerHTML='<b>'+L.progress+'</b>'+(L.delivery?' · '+L.delivery:'')+' <button class="nudge-add" type="button" onclick="nudgeAddOne()">＋ Add</button>';
+  if(L.progress) band.innerHTML='<b>'+L.progress+'</b>'+(L.delivery?' · '+L.delivery:'')+' <button class="nudge-add" type="button" onclick="nudgeAddOne()">Add to bag</button>';
   else if(dlv.free) band.innerHTML='✓ <b>Free UK delivery</b>';
   else if(L.delivery) band.textContent=L.delivery;   // spend threshold (owner 25 Nov 2026): 'Add £x for free delivery'
   else band.textContent=R&&SHIP.freeQty&&SHIP.feeP?'Free UK delivery with any '+SHIP.freeQty+'+ items'+sn+' · otherwise '+gbpP(SHIP.feeP):shipSentence();
@@ -1656,7 +1676,13 @@ function updateBag(){
   // §5.18 rolling total: delivery-inclusive, on screen on every width from the first item, updated on every change
   if(inf){
     if(hasItems){ const subP=Math.round(subtotal()*100), d=m1On()?m1BagDelivery(m1Summary(cart), q):deliveryFor(subP, q);
-      inf.innerHTML='Bag <b>'+gbpP(d.totalP)+'</b><span class="dl">'+(d.free?'free UK delivery ✓':'inc. '+gbpP(d.feeP)+' UK delivery')+'</span>';
+      const dl='<span class="dl">'+(d.free?'free UK delivery ✓':'inc. '+gbpP(d.feeP)+' UK delivery')+'</span>';
+      // K&D 8: 7-9 items (1-3 short of the 10+ price): the MAIN line is 'Add N more → total £X' = this bag at 10 items (engine unlock_total, the pricing the bag itself uses); delivery stays the second line
+      const us=m1On()?m1Summary(cart):null, near=us&&!us.tier_unlocked&&us.unlock_total_pence!==null&&us.to_unlock>=1&&us.to_unlock<=3;
+      // the unlocked bag's delivery is the ENGINE's unlock_shipping_pence (same source as m1Lines); the CURRENT bag's delivery status is never shown as if it applied to it.
+      // Second line = the bag's own running total (§5.18), incl. its delivery only when that is charged.
+      const nearTxt=near?'Add '+us.to_unlock+' more → '+gbpP(us.unlock_total_pence)+(us.unlock_shipping_pence>0?' + '+gbpP(us.unlock_shipping_pence)+' delivery':' with free delivery'):'';
+      inf.innerHTML=near ? '<b>'+nearTxt+'</b><span class="dl">Bag '+gbpP(d.totalP)+(d.feeP>0?' inc. '+gbpP(d.feeP)+' delivery':'')+'</span>' : 'Bag <b>'+gbpP(d.totalP)+'</b>'+dl;
       // measurement hooks for the CMA209 check (total = items + delivery), no visual change
       inf.setAttribute('data-kl-total',''); inf.dataset.klItemsP=subP; inf.dataset.klShipP=d.feeP; inf.dataset.klTotalP=d.totalP; }
     else { inf.removeAttribute('data-kl-total'); }
@@ -1693,11 +1719,29 @@ function addToCart(bc){
     const m=document.getElementById('lim-'+bc);   // keep it above the sticky bag bar (html scroll-padding-bottom, #39)
     if(m) requestAnimationFrame(()=>showAboveBand(m));
     return; }
-  addToCartSilent(bc); save();updateBag();renderCart();openCart();
+  addToCartSilent(bc); save();updateBag();renderCart();addedFeedback(bc);   // basket-1: no drawer on add (K&D 4); the bag opens from the bag button / 'View'
   track('AddToCart','add_to_cart',{value:unitPrice(bc)||0,currency:'GBP',content_name:BY[bc].color_en,content_ids:[bc],content_type:'product'});
   flTrack('add_to_cart',{product_bc:bc,product_name:BY[bc].color_en,qty:1,value:unitPrice(bc)||0,cart_qty:totalQty(),cart_value:subtotal()});
   kl('Added to Cart',{$value:subtotal(),AddedItemProductName:BY[bc].color_en,AddedItemSKU:bc,ItemNames:cart.map(c=>BY[c.bc].color_en),CheckoutURL:'https://karmilaven.com/'});
 }
+/* basket-1 (K&D 4 + U3): confirmation without opening the bag or moving the page. 'Added ✓' on every button of that colour for ~1.5 s,
+   and the bottom bar 'Added · Bag (N) · View' for ~2.5 s (aria-live polite). No scroll, no focus move. */
+var addBarT=null, addedBtns=[];
+function addedLabel(){ return 'Added ✓'; }
+function markAdded(bc){
+  let list=[]; try{ list=Array.prototype.slice.call(document.querySelectorAll('[data-kl-add][data-bc="'+bc+'"]')); }catch(e){}
+  list.forEach(b=>{ if(b.getAttribute('data-kl-added')==='1') return; b.setAttribute('data-kl-added','1'); b.setAttribute('data-kl-was',b.textContent); b.classList.add('is-added'); b.textContent=addedLabel();
+    setTimeout(()=>{ if(b.getAttribute('data-kl-added')!=='1') return; b.removeAttribute('data-kl-added'); b.classList.remove('is-added');
+      if(b.textContent===addedLabel()) b.textContent=b.getAttribute('data-kl-was')||''; b.removeAttribute('data-kl-was'); },1500); });
+}
+function hideAddBar(){ const a=document.getElementById('addBar'); if(!a) return; a.classList.remove('show'); setTimeout(()=>{ if(!a.classList.contains('show')) a.innerHTML=''; },250); }
+function showAddBar(){
+  const a=document.getElementById('addBar'); if(!a) return;
+  a.innerHTML='<span class="ab"><span>Added · Bag ('+totalQty()+')</span><button type="button" class="ab-view" onclick="viewBagFromAddBar()">View</button></span>';
+  a.classList.add('show'); clearTimeout(addBarT); addBarT=setTimeout(hideAddBar,2500);
+}
+function viewBagFromAddBar(){ clearTimeout(addBarT); hideAddBar(); openCart(); }
+function addedFeedback(bc){ window.klLastAddAt=Date.now(); markAdded(bc); showAddBar(); }
 /* scrollIntoView({block:'nearest'}) does nothing when the message is already "in view" but sits behind the fixed
    bag band, so measure the band and lift the message by the overlap (8px gap). Pure part: px to scroll down, never so
    far that the message's top leaves the screen; 0 = no overlap. Display only: no focus / aria-live change. */
@@ -1765,7 +1809,7 @@ function renderCart(){
     const deal = deliveryFor(Math.round(gPrice*100),goal).free ? `${goal} for £${gPrice.toFixed(2)} + free UK delivery` : `${goal} for £${gPrice.toFixed(2)}`;
     cshEl.innerHTML = `Add ${addN} more → <b>${deal}</b>`
       + (gSave>=0.01 ? ` <span class="nudge-save">save £${gSave.toFixed(2)}</span>` : '')
-      + ` <button class="nudge-add" type="button" onclick="nudgeAddOne()">＋ Add</button>`;
+      + ` <button class="nudge-add" type="button" onclick="nudgeAddOne()">Add to bag</button>`;
     document.getElementById('shipFill').style.width = Math.min(100, lq/goal*100)+'%';
   }
   document.getElementById('cartPre').textContent = `${itemWord(q)}${saved>=0.01?` · multi-buy saves £${saved.toFixed(2)}`:''} · ships within 1–2 business days`;
@@ -1856,7 +1900,11 @@ applyShipTexts(); render(DATA); updateBag(); renderCart(); firePurchaseIfSuccess
   var KEY='klpop_shown', INTERVAL=7*24*3600*1000;
   function canShow(){ try{ var t=parseInt(localStorage.getItem(KEY)||'0'); return Date.now()-t>INTERVAL; }catch(e){return true;} }
   function markShown(){ try{ localStorage.setItem(KEY,Date.now()); }catch(e){} }
+  // basket-1: never mid-shop. Skipped (not queued, and the 7-day memory is left untouched) while the bag has items, within 10 s of an add, or while the bag drawer is open.
+  function shopping(){ var c=document.getElementById('cart'), n=0; try{ n=(typeof cart!=='undefined'&&cart&&cart.length)|0; }catch(e){}
+    return n>0 || !!(c && c.classList.contains('open')) || (Date.now()-(window.klLastAddAt||0)<10000); }
   window.openEmailPopup=function(){
+    if(shopping()) return;
     if(!canShow()) return;
     markShown();
     document.getElementById('klpopOvl').classList.add('open');
@@ -1899,7 +1947,7 @@ applyShipTexts(); render(DATA); updateBag(); renderCart(); firePurchaseIfSuccess
   // Also wait while the cookie banner is showing, so the two never stack (K&D N3, 23 Nov).
   function busy(){ var o=document.getElementById('ovl'), cb=document.getElementById('cookie-banner');
     return !!((o && o.classList.contains('open')) || (cb && cb.classList.contains('visible'))); }
-  function show(){ if(busy()){ setTimeout(show, 4000); return; } openEmailPopup(); }
+  function show(){ if(shopping()) return; if(busy()){ setTimeout(show, 4000); return; } openEmailPopup(); }
   function fire(){ if(fired || !canShow()) return; fired=true; setTimeout(show, 500); }
   // Desktop: exit-intent (pointer leaves through the top edge) or tab hidden.
   document.addEventListener('mouseleave',function(e){ if(e.clientY<=0) fire(); });
@@ -2111,6 +2159,9 @@ window.klSfUndo=function(){
         if(stk){ stk.textContent = (typeof q==='number' && q>0 && q<=LOWMAX) ? ('Only '+q+' left') : ''; }
       }
     });
+    // basket-1: sold-out cards are display:none (no placeholder, no grid gap); with every card sold out the heading goes too
+    var ch=document.querySelector('main > .col-head'), gc=document.querySelectorAll('#grid .card');
+    if(ch && gc.length) ch.hidden=Array.prototype.every.call(gc,function(c){ return c.classList.contains('sold-out'); });
     // swatch bar: strike sold-out colours ONLY if every barcode of that colour is sold
     document.querySelectorAll('#swatchbar .sw').forEach(function(btn){
       var last=btn.childNodes[btn.childNodes.length-1];
