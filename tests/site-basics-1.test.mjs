@@ -73,10 +73,12 @@ test('tabs: Bracelets, Necklaces, Gifts first, the Gradient Edit last as "Beaded
   assert.match(LAYOUT, /id="kltab-' \+ t \+ '" data-tab="' \+ t \+ '"/)
 })
 
-test('landing tab = Bracelets (All) when shown, else the Gradient Edit; deep links win', () => {
+test('landing tab = Bracelets (All), always shown since it holds the Gradient Edit (26 Nov 2026); deep links win', () => {
   assert.equal(lay.sfDefTab(['bracelets', 'necklaces', 'gifts', 'gradient'], ''), 'bracelets')
-  assert.equal(lay.sfDefTab(['necklaces', 'gradient'], ''), 'gradient')
+  assert.equal(lay.sfDefTab(['necklaces', 'gradient'], ''), 'bracelets', 'Bracelets lands even with no family bracelet on sale: its All view holds the Gradient cards')
   assert.equal(lay.sfDefTab(['bracelets', 'gradient'], 'gradient'), 'gradient')
+  assert.equal(lay.sfDefTab(['bracelets', 'gradient'], 'gradient-cobra'), 'gradient')
+  assert.equal(lay.sfDefTab(['bracelets', 'gradient'], 'bracelets-beaded'), 'gradient', 'Bracelets > Beaded = the Gradient Edit view')
   assert.equal(lay.sfDefTab(['bracelets', 'necklaces', 'gradient'], 'necklaces'), 'necklaces')
   assert.equal(lay.sfDefTab(['bracelets', 'gradient'], 'rings'), 'bracelets', 'a hidden tab falls back to the landing tab')
   assert.match(SF, /setTab\(ph \? ph\.tab : landingTab\(\), false, ph \? ph\.sub : 'all'\);/)

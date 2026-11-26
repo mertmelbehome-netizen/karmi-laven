@@ -295,3 +295,15 @@ html.kl-v2 #klFam:not([hidden]){min-height:calc(100vh - var(--kl-tb-h,54px))}
 /* Gifts tab (W49-A2): section headings inside the grid, full row; never above the first cards (storefront.js sfGiftRows) */
 .kl-fam .grid > .kl-gh{grid-column:1/-1; font-family:'Cormorant Garamond',serif; font-weight:400; font-size:24px; letter-spacing:.01em; margin:14px 0 -4px}
 @media(max-width:560px){ .kl-fam .grid > .kl-gh{font-size:20px; margin:8px 0 -6px} }
+/* Gradient Edit inside Bracelets (26 Nov 2026, storefront.js renderTabs). Bracelets > All (html[data-kl-gall]): #klBGrid is
+   the grid and the family grid + the Gradient grid (#grid, moved in) are display:contents, so the Gradient cards continue
+   the family grid's rows (no hole after an odd family count). Bracelets > Beaded (data-kl-tab="gradient"): the Bracelets
+   panel is only its sub-chip row above the colour bar (no second head, no one-screen min height), then the Gradient
+   Edit panel exactly as before. */
+html.kl-v2[data-kl-gall] #klBGrid > .grid{display:contents}
+html.kl-v2[data-kl-tab="gradient"] #klFam{min-height:0; padding-top:10px; padding-bottom:0}
+html.kl-v2[data-kl-tab="gradient"] #klFam .col-head, html.kl-v2[data-kl-tab="gradient"] #klFam .kl-empty{display:none}
+html.kl-v2[data-kl-tab="gradient"] #klFam [role=tablist]{margin-bottom:0}
+@media(max-width:560px){
+  html.kl-v2[data-kl-tab="gradient"] #klFam{padding-top:4px}
+}

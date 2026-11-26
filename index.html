@@ -619,22 +619,25 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
    evaluates the KL-SF-LAYOUT block as-is. ---- */
 (function(){
 /*KL-SF-LAYOUT-START*/
-var SFL_TABS = ['bracelets', 'necklaces', 'gifts', 'hair', 'rings', 'gradient'];   // owner 26 Nov 2026: categories first, the Gradient Edit last (chip 'Beaded'); = storefront.js SF_TABS
+var SFL_TABS = ['bracelets', 'necklaces', 'gifts', 'hair', 'rings', 'gradient'];   // owner 26 Nov 2026: categories first; = storefront.js SF_TABS. 'gradient' = the Gradient Edit view (Bracelets > Beaded), no chip of its own
 var SFL_CHIP = { gradient: 'Beaded', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };   // = storefront.js SF_CHIP (test-checked)
 /** The chip bar (storefront.js binds it). vis = tabs shown (the Gradient Edit always), n = counts, sel = selected tab. */
-/** Landing tab (owner 26 Nov 2026): Bracelets (All) whenever its chip is shown, else the Gradient Edit (always shown).
- *  h = the hash tab asked for ('' = none); a hidden or unknown tab falls back to the landing tab. */
+/** Landing tab (owner 26 Nov 2026): Bracelets (All). Bracelets is always shown since it holds the Gradient Edit (26 Nov
+ *  2026); '#bracelets-beaded' and the old '#gradient...' links = the Gradient Edit view ('gradient', no chip of its own).
+ *  h = the hash asked for ('' = none); a hidden or unknown tab falls back to the landing tab. */
 function sfDefTab(vis, h) {
-  vis = vis || []; h = String(h || '').split('-')[0];
-  if (SFL_TABS.indexOf(h) >= 0 && (h === 'gradient' || vis.indexOf(h) >= 0)) return h;
-  return vis.indexOf('bracelets') >= 0 ? 'bracelets' : 'gradient';
+  vis = vis || []; h = String(h || '').toLowerCase(); if (h === 'bracelets-beaded') return 'gradient';
+  h = h.split('-')[0];
+  if (SFL_TABS.indexOf(h) >= 0 && (h === 'gradient' || h === 'bracelets' || vis.indexOf(h) >= 0)) return h;
+  return 'bracelets';
 }
 function sfBar(doc, vis, n, sel) {
   vis = vis || ['gradient']; n = n || {}; sel = sfDefTab(vis, sel);
   var nav = doc.createElement('nav'); nav.className = 'kl-tabbar'; nav.setAttribute('aria-label', 'Shop by category');
-  nav.innerHTML = '<div class="kl-tabs" role="tablist" aria-label="Categories">' + SFL_TABS.map(function (t) {
-    var v = t === 'gradient' || vis.indexOf(t) >= 0;
-    return '<button role="tab" type="button" id="kltab-' + t + '" data-tab="' + t + '" aria-controls="' + (t === 'gradient' ? 'palette' : 'klFam') + '" aria-selected="' + (t === sel) + '" tabindex="' + (t === sel ? 0 : -1) + '"' + (v ? '' : ' hidden') + '>' + SFL_CHIP[t] + ' <span class="n" data-count="' + t + '">' + (n[t] != null ? String(n[t]).replace(/\D/g, '') : '') + '</span></button>';
+  if (sel === 'gradient') sel = 'bracelets';   // the Gradient Edit view sits under the Bracelets chip (26 Nov 2026)
+  nav.innerHTML = '<div class="kl-tabs" role="tablist" aria-label="Categories">' + SFL_TABS.filter(function (t) { return t !== 'gradient'; }).map(function (t) {
+    var v = t === 'bracelets' || vis.indexOf(t) >= 0;
+    return '<button role="tab" type="button" id="kltab-' + t + '" data-tab="' + t + '" aria-controls="klFam" aria-selected="' + (t === sel) + '" tabindex="' + (t === sel ? 0 : -1) + '"' + (v ? '' : ' hidden') + '>' + SFL_CHIP[t] + ' <span class="n" data-count="' + t + '">' + (n[t] != null ? String(n[t]).replace(/\D/g, '') : '') + '</span></button>';
   }).join('') + '</div>';
   return nav;
 }
@@ -664,7 +667,7 @@ function sfLayout(doc, bar, vis) {
   ['.hero .launch', '.hero .launchfee', '#klXmasHero', '.hero-copy .stars'].forEach(function (s) { move(q(s)); });
   var tb = q('.trustband'), tw = tb && tb.parentNode;
   if (tw && tw !== hero && tw !== info) move(tw);              // trust strip + company/VAT line (tb-legal) together
-  var at = q('#klFam') || q('#palette');
+  var at = q('#palette') || q('#klFam');   // after the LAST grid: #klFam sits above the Gradient panel since 26 Nov 2026
   if (at && at.parentNode && !info.parentNode) at.parentNode.insertBefore(info, at.nextSibling);
   return info;
 }

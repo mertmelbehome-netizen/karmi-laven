@@ -160,8 +160,9 @@ test('progress line from the table (K-05): next step, best step, single-price po
 test('tabs: Gradient Edit always shown, last (owner 26 Nov 2026, chip Beaded); a family tab shows only with >= 1 sellable card (K-01)', () => {
   assert.deepEqual(core.SF_TABS, ['bracelets', 'necklaces', 'gifts', 'hair', 'rings', 'gradient'])   // owner 26 Nov 2026: Bracelets, Necklaces, Gifts, (Hair, Rings when sellable), Beaded
   const cards = [{ tab: 'bracelets', st: 'photo' }, { tab: 'necklaces', st: 'single' }, { tab: 'hair', st: 'cap' }, { tab: 'hair', st: 'soldout' }]
-  assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st), ['necklaces', 'gradient'])
-  assert.deepEqual(core.sfVisibleTabs([], (c) => c.st), ['gradient'])
+  // 26 Nov 2026: Bracelets always shown (it holds the Gradient Edit); 'gradient' = that view, no chip of its own
+  assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st), ['bracelets', 'necklaces', 'gradient'])
+  assert.deepEqual(core.sfVisibleTabs([], (c) => c.st), ['bracelets', 'gradient'])
 })
 
 test('storefront texts: escaped, and no forbidden or fake-urgency wording in the file', () => {

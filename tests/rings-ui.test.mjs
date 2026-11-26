@@ -94,7 +94,7 @@ test('gating: a ring card without a QC photo is never sellable and never in the 
   assert.match(SF, /!\(x\.c\.tab === 'rings' && x\.s === 'photo'\)/)
   const cards = RINGS.map((c) => ({ ...c, st: 'photo' })).concat([{ tab: 'bracelets', st: 'single' }])
   assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st), ['bracelets', 'gradient'])
-  assert.deepEqual(core.sfVisibleTabs([{ tab: 'rings', st: 'single' }], (c) => c.st), ['rings', 'gradient'], 'turn on = photo + R enabled')
+  assert.deepEqual(core.sfVisibleTabs([{ tab: 'rings', st: 'single' }], (c) => c.st), ['bracelets', 'rings', 'gradient'], 'turn on = photo + R enabled (Bracelets always: it holds the Gradient Edit)')
   assert.match(SF, /function famBcs\(\) \{ var r = typeof window\.m1FlatKeys === 'function' && window\.m1FlatKeys\(\)\.length > 0; return FAM\.filter\(function \(c\) \{ return c\.tab !== 'rings' \|\| r; \}\)/)
   // pre-paint chip bar: Rings after Hair, before the Gradient Edit (owner 26 Nov 2026: Beaded last); never painted from memory
   const LAYOUT = HTML.match(/\/\*KL-SF-LAYOUT-START\*\/([\s\S]*?)\/\*KL-SF-LAYOUT-END\*\//)[1]
