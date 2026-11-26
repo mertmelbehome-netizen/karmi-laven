@@ -69,8 +69,9 @@ function pageDoc() {
     const e = new El(tag, attrs); cur.appendChild(e)
     if (!m[4] && !VOID.has(tag)) cur = e
   }
-  // what storefront.js buildShell adds before sfLayout runs: the family panel after the Gradient panel
-  const fam = new El('section', { id: 'klFam', class: 'wrap collection kl-fam' }); const pal = body.querySelector('#palette'); body.insertBefore(fam, pal.nextSibling)
+  // what storefront.js buildShell adds before sfLayout runs: the family panel ABOVE the Gradient panel's colour bar
+  // (26 Nov 2026: Bracelets > All = family grid, then the Gradient cards; Bracelets > Beaded = sub-chip row, colour bar, grid)
+  const fam = new El('section', { id: 'klFam', class: 'wrap collection kl-fam' }); body.insertBefore(fam, body.querySelector('.swatchbar'))
   const doc = {
     documentElement: html, head, body,
     querySelector: (s) => html.querySelector(s), querySelectorAll: (s) => html.querySelectorAll(s),
@@ -150,8 +151,8 @@ test('F2: chip bar sticky top:0 and <= 56 px; colour bar sticks under it (deskto
 })
 
 test('F4/F6: short chip labels, panel titles and tab roles unchanged', () => {
-  assert.deepEqual(core.SF_CHIP, { gradient: 'Beaded', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' })
-  assert.equal(core.SF_TITLE.gradient, 'Beaded')
+  assert.deepEqual(core.SF_CHIP, { gradient: 'Colour, worn softly', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' })
+  assert.equal(core.SF_TITLE.gradient, 'Colour, worn softly')
   assert.match(LAYOUT, /role="tab" type="button" id="kltab-' \+ t \+ '"[^\n]*aria-selected[^\n]*SFL_CHIP\[t\]/)
   assert.deepEqual(new Function(`${LAYOUT}; return SFL_CHIP;`)(), core.SF_CHIP, 'pre-paint chip labels = storefront.js labels')
   assert.match(SF, /\['ArrowRight', 'ArrowLeft', 'Home', 'End'\]/)
@@ -336,7 +337,7 @@ test('pre-paint: the layout runs right after the hero and is finished right afte
   // part 1 sees only the page up to the hero; part 2 the whole first screen: same result as one call
   const doc = pageDoc()
   const pal = doc.querySelector('#palette'), fam = doc.querySelector('#klFam'), tw = doc.querySelector('.trustband').parentNode, sb = doc.querySelector('.swatchbar')
-  const later = [tw, sb, pal, fam]; later.forEach((e) => e._detach())                    // not parsed yet
+  const later = [tw, fam, sb, pal]; later.forEach((e) => e._detach())                    // not parsed yet
   sfLayout(doc, tabbar(), ['gradient', 'bracelets', 'necklaces'])
   assert.equal(doc.querySelector('#klInfo'), null, '#klInfo waits (detached) until the grid exists')
   assert.ok(doc.__klInfo.querySelector('.launchfee') && !doc.querySelector('.hero .launchfee'))
@@ -344,7 +345,7 @@ test('pre-paint: the layout runs right after the hero and is finished right afte
   sfLayout(doc, null, ['gradient', 'bracelets', 'necklaces'])
   const o = order(doc)
   assert.deepEqual(o.slice(0, 4), ['div.announce', 'nav', 'nav.kl-tabbar', 'header.hero'])
-  assert.ok(o.indexOf('#klInfo') > o.indexOf('#klFam'), o.join(' > '))
+  assert.ok(o.indexOf('#klInfo') > o.indexOf('#klFam') && o.indexOf('#klInfo') > o.indexOf('#palette'), o.join(' > '))
   for (const s of ['.launch', '.launchfee', '.stars', '.trustband', '.tb-legal']) assert.ok(doc.querySelector('#klInfo').querySelector(s), s)
   assert.equal(doc.querySelector('.hero-copy p').textContent, 'Bracelets and necklaces. Build your own stack.')
   sfLayout(doc, tabbar())                                                                 // storefront.js re-run: idempotent

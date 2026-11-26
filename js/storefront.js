@@ -12,9 +12,15 @@
   'use strict';
 
   /*KL-SF-CORE-START*/ // pure functions (no DOM); tests/storefront.test.mjs evaluates this block as-is
-  var SF_TABS = ['bracelets', 'necklaces', 'gifts', 'hair', 'rings', 'gradient'];   // owner 26 Nov 2026: categories first, the Gradient Edit last (chip 'Beaded'); Hair / Rings   // Gifts (W49-A2) after Hair; Rings (K-069) last; hidden like every tab while nothing in it is sellable
-  var SF_TITLE = { gradient: 'Beaded', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };
-  var SF_CHIP = { gradient: 'Beaded', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };   // short chip labels: the first 4 fit one 390 px row (nav fix F4); the row scrolls sideways when Rings shows; panel titles keep SF_TITLE
+  var SF_TABS = ['bracelets', 'necklaces', 'gifts', 'hair', 'rings', 'gradient'];   // owner 26 Nov 2026: categories first; Hair / Rings / Gifts (W49-A2) hidden like every tab while nothing in it is sellable
+  // 'gradient' (26 Nov 2026, Gradient into Bracelets): an INTERNAL view, no chip of its own any more. It is Bracelets >
+  // Beaded: the Gradient Edit panel (#palette: colour bar, bundle builder, Beaded / Beaded Cobra row, the page's sticky
+  // bar) under the Bracelets chip + its 'Beaded' sub-chip. Bracelets > All = the family grid with the Gradient cards after
+  // it. Its URL: #bracelets-colour(-classic|-cobra); old #gradient(-<sub>), #bracelets-beaded and #bracelets-gradient(-<sub>)
+  // still open it (sfParseHash). Komuta 26 Nov (D-002 stands, no visible 'Gradient'; 'Beaded' only as the card meta): the
+  // Bracelets row names it 'Colour, worn softly' / 'Classic' / 'Cobra'; the old in-panel style row is hidden there.
+  var SF_TITLE = { gradient: 'Colour, worn softly', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };
+  var SF_CHIP = { gradient: 'Colour, worn softly', bracelets: 'Bracelets', necklaces: 'Necklaces', hair: 'Hair', gifts: 'Gifts', rings: 'Rings' };   // short chip labels: the first 4 fit one 390 px row (nav fix F4); the row scrolls sideways when Rings shows; panel titles keep SF_TITLE
   var SF_ORDER = { sellable: 0, single: 0, cap: 1, photo: 2, soldout: 3 };
   function sfMoney(p) { return '£' + (p / 100).toFixed(2); }
   /** Pool key exactly as the server (api/_pricing.js poolKey): Gradient Edit -> 'gradient'; any other product -> its
@@ -72,13 +78,14 @@
     var tq = P(q), b = sfFromBadge(ladders, key, cap), ex = tq % q === 0;
     return label + ': ' + q + ' for ' + sfMoney(tq) + (ex ? ' (' + sfMoney(tq / q) + ' each)' : '') + (b && ex && tq / q === b.each ? ', the lowest step' : '') + '.';
   }
-  /** Tabs shown: the Gradient Edit always (today's page); any other tab only with >= 1 sellable card (K-01); Gifts only
-   *  with >= SF_GIFTS_MIN sellable picks (giftN = sfGiftCount(sfGiftRows(...)); absent = hidden). */
+  /** Tabs shown: Bracelets and the Gradient Edit view always (Bracelets hosts the Gradient Edit since 26 Nov 2026; the
+   *  'gradient' entry has no chip, it keeps the view reachable); any other tab only with >= 1 sellable card (K-01); Gifts
+   *  only with >= SF_GIFTS_MIN sellable picks (giftN = sfGiftCount(sfGiftRows(...)); absent = hidden). */
   var SF_GIFTS_MIN = 4;
   function sfVisibleTabs(cards, stateOf, giftN) {
     return SF_TABS.filter(function (t) {
       if (t === 'gifts') return giftN >= SF_GIFTS_MIN;
-      return t === 'gradient' || cards.some(function (c) { var s = stateOf(c); return c.tab === t && (s === 'sellable' || s === 'single'); });
+      return t === 'gradient' || t === 'bracelets' || cards.some(function (c) { var s = stateOf(c); return c.tab === t && (s === 'sellable' || s === 'single'); });
     });
   }
   /* Sub-categories (owner 23 Nov: bracelets split, each its own sub-tab + URL). A card's sub-category comes from its
@@ -89,10 +96,14 @@
   var SF_SUBS = {
     // Gradient: index.html LADDER_TYPES (the two DB types of the Gradient Edit) told apart by the word Cobra; regexes, so
     // no DB type name sits in this file as a string (K-08 wording test)
-    gradient: [{ k: 'classic', label: 'Beaded', re: /^(?!.*\bcobra\b).*\bbracelet$/i }, { k: 'cobra', label: 'Beaded Cobra', re: /\bcobra bracelet$/i }],
+    gradient: [{ k: 'classic', label: 'Classic', re: /^(?!.*\bcobra\b).*\bbracelet$/i }, { k: 'cobra', label: 'Cobra', re: /\bcobra bracelet$/i }],
     bracelets: [{ k: 'stretch', label: 'Stretch', re: /\bstretch bracelet$/i }, { k: 'charm', label: 'Stretch Charm', re: /^stretch charm bracelet$/i },
       { k: 'bangle', label: 'Bangle', re: /^bangle$/i }, { k: 'double', label: 'Stretch Double', re: /^stretch double bracelet$/i },
-      { k: 'sparkle', label: 'Sparkle Line', re: /^sparkle line$/i }],
+      { k: 'sparkle', label: 'Sparkle Line', re: /^sparkle line$/i },
+      // the Gradient Edit inside Bracelets (26 Nov 2026): never matched by a line (these re match nothing); the Gradient
+      // items carry their subs themselves (storefront famItems: ['colour', 'colour-<style>']), so no family line lands here
+      { k: 'colour', label: 'Colour, worn softly', re: /[^\s\S]/ }, { k: 'colour-classic', label: 'Classic', re: /[^\s\S]/ },
+      { k: 'colour-cobra', label: 'Cobra', re: /[^\s\S]/ }],
     // Rings (K-069, 31_rings_ui_spec): one generic barcode per ring style ('we pick, designs vary'). Labels make no
     // unverified material claim (no stainless / zircon / gemstone / natural; 'Steel-look' until K&D + owner confirm).
     // Keys may hold a hyphen ('#rings-steel-chunky'): sfParseHash splits at the FIRST hyphen only.
@@ -108,20 +119,37 @@
     for (var i = 0; i < L.length; i++) if (L[i].re.test(String(line || ''))) return L[i].k;
     return null;
   }
-  /** '#bracelets-bangle' -> {tab:'bracelets', sub:'bangle'}; unknown tab -> null; unknown sub -> 'all' */
+  /** '#bracelets-bangle' -> {tab:'bracelets', sub:'bangle'}; unknown tab -> null; unknown sub -> 'all'.
+   *  '#bracelets-colour(-<style>)' and the old '#bracelets-beaded' / '#bracelets-gradient(-<style>)' -> the Gradient Edit view {tab:'gradient', sub};
+   *  old '#gradient' / '#gradient-cobra' as before. */
   function sfParseHash(h) {
     h = String(h || '').replace(/^#/, '').toLowerCase();
     var i = h.indexOf('-'), t = i < 0 ? h : h.slice(0, i), s = i < 0 ? '' : h.slice(i + 1);
     if (SF_TABS.indexOf(t) < 0) return null;
+    if (t === 'bracelets' && sfIsGradSub(s)) return { tab: 'gradient', sub: sfGradSub(s) };
     var ok = (SF_SUBS[t] || []).some(function (x) { return x.k === s; });
     return { tab: t, sub: ok ? s : 'all' };
   }
-  function sfHash(tab, sub) { return '#' + tab + (sub && sub !== 'all' && (SF_SUBS[tab] || []).some(function (x) { return x.k === sub; }) ? '-' + sub : ''); }
+  /** a Bracelets sub key that means the Gradient Edit view: 'colour(-<style>)', old 'beaded', old 'gradient(-<style>)' */
+  function sfIsGradSub(s) { s = String(s || ''); return s === 'beaded' || /^(colour|gradient)(-|$)/.test(s); }
+  /** 'colour-cobra' / 'gradient-cobra' / 'colour' / 'beaded' -> the Gradient Edit sub ('cobra' / 'all') */
+  function sfGradSub(s) {
+    var m = /^(?:colour|gradient)-(.+)$/.exec(String(s || '')), g = m ? m[1] : '';
+    return SF_SUBS.gradient.some(function (x) { return x.k === g; }) ? g : 'all';
+  }
+  /** URL of a tab + sub-chip; the Gradient Edit view = '#bracelets-colour', its styles '#bracelets-colour-<style>' */
+  function sfHash(tab, sub) {
+    var has = function (t) { return sub && sub !== 'all' && (SF_SUBS[t] || []).some(function (x) { return x.k === sub; }); };
+    if (tab === 'gradient') return '#bracelets-colour' + (has('gradient') ? '-' + sub : '');
+    return '#' + tab + (has(tab) ? '-' + sub : '');
+  }
   /** Sub-chips of a tab: [{k,label,n}] with All first; only subs with >= 1 sellable item (like the main tabs, K-01).
-   *  items = [{line, ok}] (ok = sellable now). Fewer than 2 sub-categories to choose from = no row ([]). */
+   *  items = [{line, ok, sub?}] (ok = sellable now; sub = the item's sub-category when its line does not say it: the
+   *  Gradient Edit inside Bracelets; a list = every sub it belongs to). Fewer than 2 sub-categories = no row ([]). */
+  function sfInSub(tab, it, k) { var s = it.sub || sfSubOf(tab, it.line); return Array.isArray(s) ? s.indexOf(k) >= 0 : s === k; }
   function sfVisibleSubs(tab, items) {
     var subs = (SF_SUBS[tab] || []).map(function (x) {
-      return { k: x.k, label: x.label, n: items.filter(function (it) { return it.ok && sfSubOf(tab, it.line) === x.k; }).length };
+      return { k: x.k, label: x.label, n: items.filter(function (it) { return it.ok && sfInSub(tab, it, x.k); }).length };
     }).filter(function (x) { return x.n > 0; });
     if (subs.length < 2) return [];
     return [{ k: 'all', label: 'All', n: items.filter(function (it) { return it.ok; }).length }].concat(subs);
@@ -258,10 +286,10 @@
     var singles = gs.filter(function (g) { return g.single !== lo.single; }).length;
     return { from: tiers > 0, big: d.big, cond: d.cond, cond0: d.cond0, short: d.short, one: singles ? 'Single pieces from ' + sfMoney(sMin) : d.one };
   }
-  /** The barcodes SHOWN on a tab + sub-chip (Komuta 24 Nov: per-tab 'from' price). rows = [{bc, tab, line, ok}] (ok =
-   *  sellable now). Pure; js tabBcs() feeds it the page's cards. */
+  /** The barcodes SHOWN on a tab + sub-chip (Komuta 24 Nov: per-tab 'from' price). rows = [{bc, tab, line, ok, sub?}] (ok =
+   *  sellable now; sub as in sfVisibleSubs). Pure; js tabBcs() feeds it the page's cards. */
   function sfTabPick(tab, sk, rows) {
-    return rows.filter(function (r) { return r.ok && r.tab === tab && (!sk || sk === 'all' || sfSubOf(tab, r.line) === sk); }).map(function (r) { return String(r.bc); });
+    return rows.filter(function (r) { return r.ok && r.tab === tab && (!sk || sk === 'all' || sfInSub(tab, r, sk)); }).map(function (r) { return String(r.bc); });
   }
   /*KL-SF-CORE-END*/
 
@@ -316,7 +344,7 @@
     bc = String(bc); if (FAMBY[bc]) return FAMBY[bc]; if (GIFTBY[bc]) return GIFTBY[bc];
     var d = (window.DATA || []).filter(function (x) { return String(x.barcode) === bc; })[0]; if (!d || !isGrad(bc)) return null;
     var sk = sfSubOf('gradient', d.type), sl = SF_SUBS.gradient.filter(function (x) { return x.k === sk; })[0], real = !!d.img && String(d.img).indexOf('/img/tone/') !== 0;
-    return (GIFTBY[bc] = { barcode: bc, tab: 'gradient', grad: true, name: d.color_en, line: sl ? sl.label : SF_TITLE.gradient, swatch: d.swatch,
+    return (GIFTBY[bc] = { barcode: bc, tab: 'gradient', grad: true, name: d.color_en, line: 'Beaded bracelet', swatch: d.swatch,   // = the Gradient card meta (Komuta 26 Nov: 'Beaded' only there)
       photo: real ? d.img : null, photo_qc: real, ai_image: giftMeta(bc).ai_image === true });
   }
   /** a gift pick's card state: a QC-passed photo only (never a colour tile, never a ring); Gradient picks: the M1 group
@@ -358,16 +386,19 @@
     var nav = $('nav.kl-tabbar') || KL.sfBar(document, ['gradient'], null, 'gradient');
     nav.querySelector('.kl-tabs').addEventListener('scroll', function () { tabScroll(false); }, { passive: true });
     window.addEventListener('resize', function () { tabScroll(true); });
-    var pal = $('#palette'); pal.setAttribute('role', 'tabpanel'); pal.setAttribute('aria-labelledby', 'kltab-gradient');
+    var pal = $('#palette'); pal.setAttribute('role', 'tabpanel'); pal.setAttribute('aria-labelledby', 'kltab-bracelets');   // the Gradient Edit panel belongs to the Bracelets chip (26 Nov 2026)
     var sec = document.createElement('section'); sec.className = 'wrap collection kl-fam'; sec.id = 'klFam'; sec.hidden = true;
     sec.setAttribute('role', 'tabpanel'); sec.setAttribute('tabindex', '-1');
     sec.innerHTML = '<div class="kl-err" id="klErr" role="alert" hidden><span>Prices are not loading. Try again.</span> <button type="button" class="btn" id="klRetry">Try again</button></div>'
       + '<div class="col-head"><h2 id="klFamTitle"></h2><div class="c" id="klFamCount" aria-live="polite"></div><div class="kl-dlv" data-kl="ship"></div><div class="kl-dlv kl-rdlv" id="klRDlv" hidden></div></div>'
-      + '<div class="kl-empty" id="klEmpty" hidden><p class="et">Nothing here yet</p><p class="es">This category opens once its pieces are photographed.</p><a class="btn ghost" href="#gradient">See beaded bracelets</a></div>'
+      + '<div class="kl-empty" id="klEmpty" hidden><p class="et">Nothing here yet</p><p class="es">This category opens once its pieces are photographed.</p><a class="btn ghost" href="#bracelets">See all bracelets</a></div>'
       + '<div class="kl-subs" id="klBSubs" role="tablist" aria-label="Bracelet styles" hidden>' + sfSubButtons('bracelets', 'klFamGrid') + '</div>'
       + '<div class="kl-subs" id="klRSubs" role="tablist" aria-label="Ring styles" hidden>' + sfSubButtons('rings', 'klFamGrid') + '</div>'
-      + '<div class="grid" id="klFamGrid"></div>';
-    pal.parentNode.insertBefore(sec, pal.nextSibling);
+      + '<div id="klBGrid"><div class="grid" id="klFamGrid"></div></div>';   // klBGrid: Bracelets > All = ONE grid of the family cards + the Gradient cards (#grid moved in, renderTabs)
+    // Bracelets panel ABOVE the Gradient Edit panel (26 Nov 2026): Bracelets > All = family grid, then the Gradient cards
+    // (#palette, its head hidden); Bracelets > Beaded = the sub-chip row, then the colour bar + Gradient grid as before
+    var swb = $('.swatchbar'), at = swb && swb.parentNode === pal.parentNode ? swb : pal;
+    pal.parentNode.insertBefore(sec, at);
     sfLayout(document, nav, KL.vis);   // chips under the logo row, hero short, delivery/Christmas/trust/VAT after the grids
     // mobile: the bundle builder moves into the colour chip row so the first cards are on the first screen (V-01)
     KL.sfBundleChip(document);
@@ -386,10 +417,11 @@
   function landingTab() { return KL.sfDefTab ? KL.sfDefTab(sfVisibleTabs(FAM, famState, sfGiftCount(giftRows())), '') : 'gradient'; }
   function setTab(t, push, s) {
     if (SF_TABS.indexOf(t) < 0) t = landingTab();
+    if (t === 'bracelets' && s && sfIsGradSub(s)) { t = 'gradient'; s = sfGradSub(s); }   // Bracelets > Gradient (-Classic / -Cobra) = the Gradient Edit view
     tab = t;
     if (s !== undefined && sub[t] !== undefined) sub[t] = s || 'all';
     renderTabs();   // may fall back to 'All' when the asked sub-category has nothing on sale (hidden)
-    var sb = $('.kl-subs [data-subtab="' + tab + '"][aria-selected="true"]'), sc = sb && (sb.closest('#klBSubs') || sb.closest('#klRSubs') || $('#swatchbar'));
+    var sb = tab === 'gradient' ? $('#klBSubs [aria-selected="true"]') : $('.kl-subs [data-subtab="' + tab + '"][aria-selected="true"]'), sc = sb && (sb.closest('#klBSubs') || sb.closest('#klRSubs') || $('#swatchbar'));   // the Gradient view: its named chip in the Bracelets row
     if (sc) {   // 390 px: the selected sub-chip is brought into view inside its own row (deep link #gradient-cobra)
       var r = sb.getBoundingClientRect(), cr = sc.getBoundingClientRect();
       if (r.right > cr.right || r.left < cr.left) sc.scrollLeft += (r.left - cr.left) - (cr.width - r.width) / 2;
@@ -399,22 +431,27 @@
     else if (!push && location.hash && location.hash !== h) history.replaceState(null, '', url);   // deep link to a hidden sub-tab
   }
   /* Gradient Edit pieces on sale now (same rule as decorateGradient: not sold out) */
+  /** the Bracelets subs of a Gradient piece: 'colour' (all of them) + its style chip ('colour-classic' / '-cobra') */
+  function gradSubs(type) { var k = sfSubOf('gradient', type); return k ? ['colour', 'colour-' + k] : ['colour']; }
   function gradOk(bc) { return !(typeof window.klIsSold === 'function' && window.klStockReady && window.klStockReady() && window.klIsSold(bc)); }
   function gradItems() {
     return (window.DATA || []).filter(function (d) { return isGrad(d.barcode); }).map(function (d) { return { line: d.type, ok: gradOk(d.barcode) }; });
   }
   function famItems(t) {
-    return FAM.filter(function (c) { return c.tab === t; }).map(function (c) { var s = famState(c); return { line: c.line, ok: s === 'sellable' || s === 'single' }; });
+    var fam = FAM.filter(function (c) { return c.tab === t; }).map(function (c) { var s = famState(c); return { line: c.line, ok: s === 'sellable' || s === 'single' }; });
+    // Bracelets hosts the Gradient Edit (26 Nov 2026): its pieces count under All and under the 'Beaded' sub-chip
+    return t === 'bracelets' ? fam.concat(gradItems().map(function (x) { return { line: x.line, ok: x.ok, sub: gradSubs(x.line) }; })) : fam;
   }
   /** one sub-chip row in place: hidden when < 2 sub-categories are on sale; the selected sub falls back to All when its
-   *  sub-tab is hidden. Returns the visible subs. */
+   *  sub-tab is hidden. Returns the visible subs. On the Gradient Edit view the Bracelets row shows 'Beaded' selected. */
   function renderSubs(t, row) {
     var vs = sfVisibleSubs(t, t === 'gradient' ? gradItems() : famItems(t)), keys = vs.map(function (x) { return x.k; });
     if (keys.indexOf(sub[t]) < 0) sub[t] = 'all';
     if (!row) return vs;
     row.hidden = !vs.length;
+    var cur = t === 'bracelets' && tab === 'gradient' ? (sub.gradient && sub.gradient !== 'all' ? 'colour-' + sub.gradient : 'colour') : sub[t];
     $$('[role=tab]', row).forEach(function (b) {
-      var x = vs.filter(function (v) { return v.k === b.dataset.sub; })[0], on = !!x && b.dataset.sub === sub[t];
+      var x = vs.filter(function (v) { return v.k === b.dataset.sub; })[0], on = !!x && b.dataset.sub === cur;
       b.hidden = !x; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1;
       var n = b.querySelector('.n'); if (n) n.textContent = x ? String(x.n) : '';
     });
@@ -424,23 +461,33 @@
     document.documentElement.setAttribute('data-kl-tab', tab);   // phone CSS: family tabs use a one-line hero price (V-01)
     var gn = sfGiftCount(giftRows()), vis = sfVisibleTabs(FAM, famState, gn), seen = {};
     SF_TABS.forEach(function (t) {
-      var b = $('#kltab-' + t); if (!b) return;
-      var v = vis.indexOf(t) >= 0; b.hidden = !v;
-      b.setAttribute('aria-selected', String(t === tab && v)); b.tabIndex = t === tab ? 0 : -1;
-      var n = t === 'gifts' ? gn : t === 'gradient' ? gradItems().filter(function (x) { return x.ok; }).length   // all Gradient pieces on sale, whatever sub-chip / colour is picked (was: DOM cards with a pool badge = 0 under the M1 table)
-        : FAM.filter(function (c) { var s = famState(c); return c.tab === t && (s === 'sellable' || s === 'single'); }).length;
+      var b = $('#kltab-' + t); if (!b) return;   // 'gradient' has no chip (26 Nov 2026): the Bracelets chip stands for it
+      var v = vis.indexOf(t) >= 0, me = t === tab || (t === 'bracelets' && tab === 'gradient'); b.hidden = !v;
+      b.setAttribute('aria-selected', String(me && v)); b.tabIndex = me ? 0 : -1;
+      var gN = gradItems().filter(function (x) { return x.ok; }).length;   // all Gradient pieces on sale, whatever sub-chip / colour is picked
+      var n = t === 'gifts' ? gn : t === 'gradient' ? gN
+        : FAM.filter(function (c) { var s = famState(c); return c.tab === t && (s === 'sellable' || s === 'single'); }).length + (t === 'bracelets' ? gN : 0);
       var cnt = $('[data-count="' + t + '"]'); if (cnt) cnt.textContent = String(n);
       seen[t] = n;
     });
     var gsv = renderSubs('gradient', $('#klGSubs')); renderSubs('bracelets', $('#klBSubs'));
     var rsr = $('#klRSubs'); renderSubs('rings', rsr); if (rsr && tab !== 'rings') rsr.hidden = true;
-    if (tab !== 'bracelets') { var bsr = $('#klBSubs'); if (bsr) bsr.hidden = true; }   // bracelet style chips on the Bracelets tab only (they also showed on Necklaces)
+    if (tab !== 'bracelets' && tab !== 'gradient') { var bsr = $('#klBSubs'); if (bsr) bsr.hidden = true; }   // bracelet style chips on Bracelets (+ its Beaded view) only (they also showed on Necklaces)
     syncRingInfo();
     if (FAM.length) try { localStorage.setItem('kl_sf_tabs', JSON.stringify({ v: vis, n: seen,   // next visit's pre-paint chip bar + Gradient sub-chips (index.html)
       gs: gsv.reduce(function (o, x) { o[x.k] = x.n; return o; }, {}) })); } catch (e) {}
-    var isG = tab === 'gradient', wasG = !$('#palette').hidden;
-    $('#palette').hidden = !isG; $('.swatchbar').hidden = !isG;   // colour bar on the Gradient Edit only (K-11)
-    $('#klFam').hidden = isG;
+    // 26 Nov 2026: Bracelets > Beaded (isG) = the Gradient Edit panel as before, under the Bracelets panel's sub-chip row;
+    // Bracelets > All (gall) = ONE grid: the Gradient grid node (#grid, the page's own cards and code) moves into #klBGrid
+    // after the family grid, both display:contents there (css), so the Gradient cards fill the family grid's last row
+    var isG = tab === 'gradient', gall = tab === 'bracelets' && sub.bracelets === 'all', withG = isG || gall;
+    var pal = $('#palette'), bw = $('#klBGrid');
+    if (bw) {
+      if (gall && grid.parentNode !== bw) bw.appendChild(grid); else if (!gall && grid.parentNode !== pal) pal.appendChild(grid);
+      bw.className = gall ? 'grid kl-bgrid' : '';
+    }
+    pal.hidden = !isG; $('.swatchbar').hidden = !isG;   // colour bar + bundle block on the Gradient Edit view only (K-11)
+    $('#klFam').hidden = false;
+    if (gall) document.documentElement.setAttribute('data-kl-gall', ''); else document.documentElement.removeAttribute('data-kl-gall');
     $$('[data-kl-gonly]').forEach(function (e) { e.classList.toggle('kl-goff', !isG); });
     var hp = $('.hero-copy p'); if (hp && hp.parentNode) hp.textContent = sfHeroLine(vis);
     // hero price block: the lowest 10+ price + singles of the groups on sale (index.html klHeroPriceApply)
@@ -448,8 +495,15 @@
     sfMetaCats(document, vis.indexOf('hair') >= 0);
     tabScroll(true); syncSticky(); syncHero();
     // only the open tab's cards are in the page (no hidden duplicate buttons / texts)
-    if (isG) { $('#klFamGrid').innerHTML = ''; if (!wasG || !grid.children.length || lastGSub !== sub.gradient) { lastGSub = sub.gradient; rerenderGradient(); } }
-    else { if (grid.children.length) grid.innerHTML = ''; renderFam(vis.indexOf(tab) >= 0); }
+    if (isG) {
+      $('#klFamGrid').innerHTML = ''; $('#klEmpty').hidden = true; $('#klErr').hidden = !stockErr; $('#klFamCount').textContent = '';
+      $('#klFamTitle').textContent = SF_TITLE.bracelets + ' · ' + SF_TITLE.gradient;
+      if (gridMode !== 'g' || !grid.children.length || lastGSub !== sub.gradient) { gridMode = 'g'; lastGSub = sub.gradient; rerenderGradient(); }
+    } else {
+      renderFam(vis.indexOf(tab) >= 0);
+      if (withG) { if (gridMode !== 'all' || !grid.children.length) { gridMode = 'all'; rerenderGradient(true); } }
+      else if (grid.children.length) { grid.innerHTML = ''; gridMode = null; }
+    }
   }
   /* 390 px: the tab row scrolls sideways by itself (never the page); edge fades show there is more; the selected tab
      is brought into view. center=true: scroll the selected tab to the middle of the row. */
@@ -475,6 +529,7 @@
     if (tab === 'gradient') rows = (window.DATA || []).filter(function (d) { return isGrad(d.barcode); }).map(function (d) { return { bc: d.barcode, tab: 'gradient', line: d.type, ok: gradOk(d.barcode) }; });
     else if (tab === 'gifts') rows = giftRows().filter(function (r) { return r.bc; }).map(function (r) { return { bc: r.bc, tab: 'gifts', line: '', ok: true }; });
     else rows = FAM.map(function (c) { return { bc: c.barcode, tab: c.tab, line: c.line, ok: on(famState(c)) }; });
+    if (tab === 'bracelets') rows = rows.concat((window.DATA || []).filter(function (d) { return isGrad(d.barcode); }).map(function (d) { return { bc: d.barcode, tab: 'bracelets', line: d.type, sub: gradSubs(d.type), ok: gradOk(d.barcode) }; }));   // Bracelets > All shows the Gradient cards too
     return sfTabPick(tab, tab === 'gifts' ? 'all' : sub[tab], rows).filter(function (bc) { return !isRing(bc) && priceP(bc) > 0; });   // K-069: rings never set the 'from' price
   }
   /** groups (non-flat, in the served table) of the cards on the active tab; null = not known yet (family data not
@@ -515,10 +570,10 @@
     }
     inf.innerHTML = st.info; btn.textContent = st.btn; btn.onclick = function () { scrollToGrid(); };
   }
-  var inRerender = false;
-  function rerenderGradient() {   // back on the Gradient Edit: today's grid, with today's colour filter if one is set
+  var inRerender = false, gridMode = null;   // gridMode: what #grid holds now ('g' = Beaded view, 'all' = after the Bracelets family grid)
+  function rerenderGradient(all) {   // Beaded view: today's grid, with today's colour filter if one is set; all = every Gradient piece (Bracelets > All)
     if (inRerender) return; inRerender = true;
-    try { render(typeof active !== 'undefined' && active ? DATA.filter(function (d) { return d.color_en === active; }) : DATA); } finally { inRerender = false; }
+    try { render(!all && typeof active !== 'undefined' && active ? DATA.filter(function (d) { return d.color_en === active; }) : DATA); } finally { inRerender = false; }
   }
   function famCardHTML(c, st) {
     var line = sfPriceLine(c.barcode, window), key = sfPoolKey(L(), !!c.grad, line.p), w = window.klWindow, R = isRing(c.barcode) ? ringTexts() : null;
@@ -537,8 +592,8 @@
     if (!has) { g.innerHTML = ''; $('#klFamCount').textContent = ''; return; }
     list.forEach(function (x, i) { x.i = i; });   // stable: state, then real photo before colour tile (Komuta 23 Nov), then original order
     list.sort(function (a, b) { return SF_ORDER[a.s] - SF_ORDER[b.s] || (a.c.photo ? 0 : 1) - (b.c.photo ? 0 : 1) || a.i - b.i; });
-    var avail = list.filter(function (x) { return x.s === 'sellable' || x.s === 'single'; }).length;
-    $('#klFamCount').textContent = list.length + ' pieces · ' + avail + ' available now';
+    var avail = list.filter(function (x) { return x.s === 'sellable' || x.s === 'single'; }).length, gi = tab === 'bracelets' && sk === 'all' ? gradItems().filter(function (x) { return x.ok || CFG.sold_out !== 'hide'; }) : [];   // + the Gradient cards after the grid
+    $('#klFamCount').textContent = (list.length + gi.length) + ' pieces · ' + (avail + gi.filter(function (x) { return x.ok; }).length) + ' available now';
     g.innerHTML = list.map(function (x) { return famCardHTML(x.c, x.s); }).join('');
   }
   function renderGifts(has) {
@@ -567,7 +622,7 @@
   }
   function scrollToTabs() {   // the open panel's start just under the stuck chip bar (the bar itself sits at the top of the page)
     var bar = $('.kl-tabbar'); if (!bar) return;
-    var sb = $('.swatchbar'), t = tab === 'gradient' ? (sb && !sb.hidden ? sb : $('#palette')) : $('#klFam'); if (!t) return;
+    var t = $('#klFam'); if (!t) return;   // every tab, the Beaded view too: its Bracelets sub-chip row is the panel's start (26 Nov 2026)
     var y = Math.max(0, t.getBoundingClientRect().top + window.scrollY - bar.offsetHeight);
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (Math.abs(window.scrollY - y) > 4) window.scrollTo({ top: y, behavior: reduce ? 'auto' : 'smooth' });
@@ -647,6 +702,7 @@
       var origR = window.render;
       window.render = function (list) {   // Gradient sub-chip: only that type's cards (the colour filter still applies on top)
         if (Array.isArray(list) && tab === 'gradient' && sub.gradient !== 'all') list = list.filter(function (d) { return sfSubOf('gradient', d.type) === sub.gradient; });
+        else if (Array.isArray(list) && tab !== 'gradient') list = DATA;   // Bracelets > All: every Gradient piece, never a colour filter left from the Beaded view
         origR.call(this, list); try { decorateGradient(); renderTabs(); } catch (e) {}
       };
       var origUB = window.updateBag;

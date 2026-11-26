@@ -83,7 +83,7 @@ test('Gifts tab hidden with fewer than 4 sellable picks; rows keep order, skip u
   const few = core.sfGiftRows(doc, (bc) => bc !== 'a' && bc !== 'b' && bc !== 'e')
   assert.deepEqual(few, [{ bc: 'c' }, { bc: 'd' }], 'no heading above the first cards; empty sections dropped')
   assert.equal(core.sfGiftCount(few), 2)
-  assert.deepEqual(core.sfVisibleTabs([], () => 'hidden', core.sfGiftCount(few)), ['gradient'])
+  assert.deepEqual(core.sfVisibleTabs([], () => 'hidden', core.sfGiftCount(few)), ['bracelets', 'gradient'])
   assert.deepEqual(core.sfGiftRows(null, () => true), [], 'no gifts file = no rows')
   // the real list: enough picks for the tab when they are on sale
   assert.ok(core.sfGiftCount(core.sfGiftRows(GIFTS, () => true)) >= core.SF_GIFTS_MIN)
