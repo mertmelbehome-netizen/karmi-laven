@@ -103,11 +103,11 @@ test('nit 3: at 9 items the bag drawer says "Add 1 more" once, above Secure Chec
 
 // ---------- (4) 10+ -> below 10 notice ----------
 const toastOf = (doc) => doc.getElementById('toast')
-test('nit 4: removing one item 10 -> 9 shows "Bag now has 9 items: the 10+ price no longer applies" in an aria-live toast', () => {
+test('nit 4: removing one item 10 -> 9 shows "Now 9 items: add 1 more for the 10+ price" in an aria-live toast', () => {
   assert.match(HTML, /<div class="toast" id="toast" role="status" aria-live="polite"><\/div>/)
   for (const act of [(p) => p.changeQty(0, -1), (p) => { p.setCart([{ bc: A, qty: 9 }, { bc: B, qty: 1 }]); p.removeItem(1) }]) {
     const { p, doc } = page(); p.setCart([{ bc: A, qty: 10 }]); act(p)
-    assert.equal(toastOf(doc).textContent, 'Bag now has 9 items: the 10+ price no longer applies')
+    assert.equal(toastOf(doc).textContent, 'Now 9 items: add 1 more for the 10+ price')
     assert.ok(toastOf(doc).cls.has('show'))
   }
 })

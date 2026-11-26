@@ -403,7 +403,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 .ci-q button{width:24px; height:24px; border:1px solid var(--hair); background:none; cursor:pointer; font-size:13px; line-height:1}
 .ci-q input{width:42px; height:26px; border:1px solid var(--hair); background:var(--paper); text-align:center; font-family:'Jost'; font-size:13px; color:var(--ink)}
 .ci-q .ci-x{width:auto; height:auto; border:none; color:var(--soft); text-decoration:underline; font-size:12px; margin-left:auto; padding:0}
-.cart-foot{border-top:1px solid var(--hair); padding:18px 24px 22px}
+.cart-foot{border-top:1px solid var(--hair); padding:12px 24px 22px}
 .shipbar{height:5px; background:var(--hair); border-radius:5px; overflow:hidden; margin-bottom:8px}
 .shipbar i{display:block; height:100%; background:linear-gradient(90deg,var(--accent),var(--gold)); width:0; transition:width .4s}
 .cart-sub{display:flex; justify-content:space-between; font-size:15px; margin-bottom:5px}
@@ -415,7 +415,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 .cart-shipline{display:flex; justify-content:space-between; align-items:baseline; font-size:13px; color:var(--soft); margin-bottom:8px}
 .cart-shipline .free{color:var(--accent); font-weight:600}
 .cart-shipline .note{font-size:12px; opacity:.75}
-.cart-pre{font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--soft); margin-bottom:14px}
+.cart-pre{font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--soft); margin-bottom:10px}
 .cart-checkout{width:100%; font-family:'Jost'; font-weight:400; font-size:12px; letter-spacing:.18em; text-transform:uppercase;
   color:var(--bg); background:var(--ink); border:none; padding:16px 0; cursor:pointer; transition:.3s}
 .cart-checkout:hover{opacity:.88} .cart-checkout:disabled{opacity:.4; cursor:default}
@@ -452,7 +452,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 /* toast */
 .toast{position:fixed; z-index:95; bottom:84px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
   background:var(--ink); color:var(--bg); font-family:'Jost'; font-size:12px; letter-spacing:.1em; text-transform:uppercase;
-  padding:13px 26px; transition:.35s; pointer-events:none}
+  padding:13px 26px; transition:.35s; pointer-events:none; width:max-content; max-width:calc(100vw - 32px); text-align:center}   /* left:50% alone shrinks the box to half the screen: 4+ lines on a phone */
 .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
 /* basket-1 (K&D 4): adding never opens the bag. A small bar sits just above the sticky bag bar (bottom = the measured --bar-h),
    the wrapper lets taps through (pointer-events:none), only 'View' takes taps, so the next card's Add button and the sticky bar's
@@ -465,13 +465,13 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
 .addbar .ab-view{pointer-events:auto; min-width:44px; min-height:44px; padding:0 10px; border:none; background:none; color:var(--bg); font:inherit;
   font-weight:600; text-decoration:underline; text-underline-offset:3px; cursor:pointer}
 .addbar .ab-view:focus-visible{outline:2px solid var(--bg); outline-offset:-4px; border-radius:22px}
-@media(min-width:841px){.addbar{bottom:24px; right:24px}}
+@media(min-width:841px){.addbar{right:24px}}   /* the sticky bag bar also shows on desktop once the bag has items: stay above it (bottom = --bar-h + 8px, base rule) */
 @media (prefers-reduced-motion: reduce){.addbar{transition:none; transform:none}}
 /* U3: the tapped card's button says 'Added ✓' for ~1.5 s (no scroll, no re-render) */
 .cbody .add.is-added, .cbody .add.is-added:hover{background:var(--ink); color:var(--bg); border-color:var(--ink)}
 /* K&D 5: the bag's item list keeps room for 2 rows (>= 3 lines each) at 375x812; the footer (which scrolls on its own) gives the room back */
 .cart .cart-items{flex:1 0 min(260px,36vh); flex-basis:min(260px,36dvh); min-height:min(260px,36vh) !important; min-height:min(260px,36dvh) !important}   /* flex-shrink 0 + basis + !important: nothing (footer height, dvh fallback) can squeeze the list */
-.cart .cart-foot{flex:0 1 auto; min-height:0; max-height:calc(100vh - 90px - min(260px,36vh)); max-height:calc(100dvh - 90px - min(260px,36dvh))}
+.cart .cart-foot{flex:0 1 auto; min-height:0; max-height:calc(100vh - 84px - min(260px,36vh)); max-height:calc(100dvh - 84px - min(260px,36dvh))}
 
 @keyframes rise{to{opacity:1; transform:none}}
 .fadein{opacity:0; animation:rise 1s forwards}
@@ -1765,7 +1765,7 @@ function changeQty(i,delta){const c=cart[i]; if(!c)return; if(delta>0 && atLimit
 function removeItem(i){const was=tierOn(); cart.splice(i,1);save();updateBag();renderCart(); belowTenNote(was);}
 /* basket-nits: leaving the 10+ price by remove / qty - says so (toast, aria-live polite); never when the bag is empty or stays at 10+ */
 function tierOn(){ try{ return m1On()&&!!m1Summary(cart).tier_unlocked; }catch(e){ return false; } }
-function belowTenNote(was){ if(!was||!cart.length||tierOn()) return; const n=totalQty(); toast('Bag now has '+n+' item'+(n===1?'':'s')+': the '+m1Summary(cart).tier_from+'+ price no longer applies',4500); }
+function belowTenNote(was){ if(!was||!cart.length||tierOn()) return; const n=totalQty(); const tf=m1Summary(cart).tier_from; toast('Now '+n+' item'+(n===1?'':'s')+': add '+(tf-n)+' more for the '+tf+'+ price',4500); }
 function subtotal(){return cartTotal(cart);}
 function hasFreeShip(){return deliveryFor(Math.round(subtotal()*100), totalQty()).free;}
 function renderCart(){
