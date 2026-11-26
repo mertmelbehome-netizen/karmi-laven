@@ -1141,7 +1141,7 @@ function card(d,i){
   const el=document.createElement('article');el.className='card';
   el.setAttribute('data-kl-card',''); el.dataset.bc=d.barcode; el.dataset.klState=lad?'sellable':'single';   // measurement hooks (vitrin rule audit), no visual change
   el.innerHTML=`<div class="imgwrap" onclick="openModal('${d.barcode}')">${isNew?'<span class="new">New</span>':''}
-    <img loading="lazy" src="${d.img}" srcset="${d.img.replace('/img/gradient/','/img/gradient/w480/')} 480w, ${d.img} 1000w" sizes="(max-width:560px) 50vw, 300px" alt="${d.img.indexOf('/img/tone/')===0 ? d.color_en+' colour tile, not a photo' : d.color_en+' bracelet, worn'}">
+    <img ${i<2?(i?'loading="eager"':'loading="eager" fetchpriority="high"'):'loading="lazy"'} src="${d.img}" srcset="${d.img.replace('/img/gradient/','/img/gradient/w480/')} 480w, ${d.img} 1000w" sizes="(max-width:560px) 50vw, 300px" alt="${d.img.indexOf('/img/tone/')===0 ? d.color_en+' colour tile, not a photo' : d.color_en+' bracelet, worn'}">
     ${klAiImg(d)?'<small class="kl-ai kl-ai-s"'+(isNew?' style="left:auto;right:8px"':'')+'>AI-styled image</small>':''}<span class="stk">${stockTxt(d)}</span><span class="zoom">View</span></div>
     <div class="cbody">
       <div class="nm">${d.color_en}</div>

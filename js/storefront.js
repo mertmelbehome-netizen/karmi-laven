@@ -595,6 +595,7 @@
     var avail = list.filter(function (x) { return x.s === 'sellable' || x.s === 'single'; }).length, gi = tab === 'bracelets' && sk === 'all' ? gradItems().filter(function (x) { return x.ok || CFG.sold_out !== 'hide'; }) : [];   // + the Gradient cards after the grid
     $('#klFamCount').textContent = (list.length + gi.length) + ' pieces · ' + (avail + gi.filter(function (x) { return x.ok; }).length) + ' available now';
     g.innerHTML = list.map(function (x) { return famCardHTML(x.c, x.s); }).join('');
+    var fi = g.querySelector('img[loading="lazy"]'); if (fi) { fi.setAttribute('loading', 'eager'); fi.setAttribute('fetchpriority', 'high'); }   // 26 Nov: first card photo is not lazy (cold load LCP)
   }
   function renderGifts(has) {
     $('#klFamTitle').textContent = SF_TITLE.gifts;
