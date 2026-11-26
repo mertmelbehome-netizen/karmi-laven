@@ -2080,8 +2080,61 @@ function cookieChoice(accepted){
   if(b){ b.classList.remove('visible'); setTimeout(function(){ b.style.display='none'; },450); }
   localStorage.setItem('kl_cookie_consent', accepted ? 'accepted' : 'rejected');
   if(accepted){ initConsentedAnalytics(); klRememberFirstTouch(); }
+  if(accepted){ try{ if(typeof klViewStart==='function') klViewStart(); }catch(e){} }   // view funnel starts at the click (KL-VIEW below)
   else { try{ localStorage.removeItem('kl_sid'); sessionStorage.removeItem('kl_ft'); }catch(e){} }
 }
+</script>
+
+<script>
+/* ---- VIEW FUNNEL (26 Nov 2026): first-party 'view' events through flTrack, ONLY with cookie consent (PECR).
+   1 page view per page load (no product_bc) + 1 card view per distinct barcode per page load, when the card is
+   >= 50% on screen (classic Gradient grid and the families grid, any [data-kl-card][data-bc]). Re-render, filter,
+   tab change and back/forward never send a barcode twice (Set). No consent / rejected = nothing is observed or sent;
+   Accept later in the visit starts it then (cookieChoice). No IntersectionObserver = card views off, page untouched.
+   Never throws. No price, no email, no personal data. ---- */
+/*KL-VIEW-START*/
+var klView=(function(){
+  var st={page:false,io:null,mo:null,seen:{},obs:[]};
+  function ok(){ try{ return typeof klConsent==='function'&&klConsent()==='accepted'&&typeof flTrack==='function'; }catch(e){ return false; } }
+  function nameOf(card){ try{ var n=card.querySelector('.nm'); return n?String(n.textContent||'').replace(/\s+/g,' ').trim().slice(0,120):''; }catch(e){ return ''; } }
+  function onSeen(es){
+    try{
+      for(var i=0;i<es.length;i++){
+        var e=es[i]; if(!e.isIntersecting||e.intersectionRatio<0.5) continue;
+        var c=e.target, bc=String((c.getAttribute&&c.getAttribute('data-bc'))||'');
+        try{ st.io.unobserve(c); }catch(x){}
+        if(!bc||st.seen[bc]||!ok()) continue;
+        st.seen[bc]=1;
+        flTrack('view',{product_bc:bc,product_name:nameOf(c)});
+      }
+    }catch(e){}
+  }
+  function watch(el){
+    try{
+      if(!st.io||!el||el.nodeType!==1) return;
+      var list=[]; if(el.matches&&el.matches('[data-kl-card][data-bc]')) list.push(el);
+      if(el.querySelectorAll){ var q=el.querySelectorAll('[data-kl-card][data-bc]'); for(var i=0;i<q.length;i++) list.push(q[i]); }
+      for(var j=0;j<list.length;j++){ var bc=String(list[j].getAttribute('data-bc')||''); if(bc&&!st.seen[bc]) st.io.observe(list[j]); }
+    }catch(e){}
+  }
+  function start(){
+    try{
+      if(!ok()) return;
+      if(!st.page){ st.page=true; flTrack('view',{}); }
+      if(st.io||typeof window.IntersectionObserver!=='function') return;
+      st.io=new IntersectionObserver(onSeen,{threshold:[0.5]});
+      watch(document.body);
+      if(typeof window.MutationObserver==='function'){
+        st.mo=new MutationObserver(function(ms){ try{ for(var i=0;i<ms.length;i++){ var a=ms[i].addedNodes; for(var j=0;j<a.length;j++) watch(a[j]); } }catch(e){} });
+        st.mo.observe(document.body,{childList:true,subtree:true});
+      }
+    }catch(e){}
+  }
+  return {start:start,_state:st};
+})();
+function klViewStart(){ try{ klView.start(); }catch(e){} }
+klViewStart();
+/*KL-VIEW-END*/
 </script>
 
 <script>
