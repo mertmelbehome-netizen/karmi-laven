@@ -89,18 +89,16 @@ test('nit 2: undefined behaves like null; 0 -> "with free delivery"; >0 -> "+ £
   assert.match(stickyOf((s) => ({ ...s, unlock_shipping_pence: 399 })), /^<b>Add 2 more → £[\d.]+ \+ £3\.99 delivery<\/b>/)
 })
 
-// ---------- (3) one 'Add N more' line at 9 items ----------
-test('nit 3: at 9 items the bag drawer says "Add 1 more" once (band), not again above Secure Checkout', () => {
+// ---------- (3) one 'Add N more' line at 9 items: the one above Secure Checkout (CTSI 20) ----------
+test('nit 3: at 9 items the bag drawer says "Add 1 more" once, above Secure Checkout; the band keeps only the Add button', () => {
   const { p, doc } = page(); p.setCart([{ bc: A, qty: 9 }]); p.updateBag()
   p.m1Foot()
   const count = (h) => (h.match(/Add 1 more/g) || []).length
   const band = doc.getElementById('cartShip').innerHTML, near = doc.getElementById('cartM1Near')
-  assert.equal(count(band), 1)
-  assert.equal(count(near.innerHTML + near.textContent), 0)
-  assert.equal(near.hidden, true)
-})
-test('nit 3: the line above Secure Checkout still carries ring / delivery lines (only the repeated progress line is gone)', () => {
-  assert.match(HTML, /rl\.concat\(L\.progress&&!bandShowsProgress\?\[L\.progress\]:\[\], L\.delivery\?\[L\.delivery\]:\[\]\)/)
+  assert.equal(count(band), 0)
+  assert.match(band, /class="nudge-add"/)
+  assert.equal(count(near.innerHTML + near.textContent), 1)
+  assert.equal(near.hidden, false)
 })
 
 // ---------- (4) 10+ -> below 10 notice ----------

@@ -1622,7 +1622,7 @@ function m1Foot(){
     : (SHIP.freeQty?'<span class="note">'+gbpP(SHIP.feeP)+' UK delivery · free with any '+SHIP.freeQty+'+ items'+sn+'</span>':SHIP.freeP!==null?'<span class="note">'+shipSentence()+'</span>':gbpP(SHIP.feeP));
   document.getElementById('cartTotal').textContent=q?gbpP(dlv.totalP):'—';
   const band=document.getElementById('cartShip');
-  if(L.progress) band.innerHTML='<b>'+L.progress+'</b>'+(L.delivery?' · '+L.delivery:'')+' <button class="nudge-add" type="button" onclick="nudgeAddOne()">Add to bag</button>';
+  if(L.progress) band.innerHTML='<button class="nudge-add" type="button" onclick="nudgeAddOne()">Add to bag</button>';   // K&D (26 Nov): the 'Add N more' text is said ONCE, above Secure Checkout (CTSI §20); the band keeps the bar + the Add button
   else if(dlv.free) band.innerHTML='✓ <b>Free UK delivery</b>';
   else if(L.delivery) band.textContent=L.delivery;   // spend threshold (owner 25 Nov 2026): 'Add £x for free delivery'
   else band.textContent=R&&SHIP.freeQty&&SHIP.feeP?'Free UK delivery with any '+SHIP.freeQty+'+ items'+sn+' · otherwise '+gbpP(SHIP.feeP):shipSentence();
@@ -1637,8 +1637,7 @@ function m1Foot(){
   // CTSI §20 (K&D): the same 'Add N more' line again right above Secure Checkout, the last screen before payment.
   // K-069: 1-4 rings = 'Add N more rings to check out (minimum 5)' above Secure Checkout, and checkout is disabled (the server refuses it too)
   const near=document.getElementById('cartM1Near'), rl=L.rings||[];
-  const bandShowsProgress=!!L.progress;   // the band above already says it (with its Add button): one 'Add N more' line, not two
-  if(near){ if(rl.length||L.delivery){ near.innerHTML=rl.concat(L.progress&&!bandShowsProgress?[L.progress]:[], L.delivery?[L.delivery]:[]).map(x=>'<span class="kl-near">'+x+'</span>').join(''); near.hidden=false; } else { near.textContent=''; near.hidden=true; } }
+  if(near){ if(rl.length||L.delivery){ near.innerHTML=rl.concat(L.progress?[L.progress]:[], L.delivery?[L.delivery]:[]).map(x=>'<span class="kl-near">'+x+'</span>').join(''); near.hidden=false; } else { near.textContent=L.progress||''; near.hidden=!L.progress; } }
   const cb=document.getElementById('checkoutBtn'); cb.disabled=!cart.length||rl.length>0;
   if(rl.length) cb.setAttribute('aria-describedby','cartM1Near'); else cb.removeAttribute('aria-describedby');
 }
