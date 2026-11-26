@@ -537,6 +537,7 @@
       var bc = b.dataset.bc, c = tab === 'gifts' ? giftCard(bc) : FAMBY[bc]; if (!c) return; var st = tab === 'gifts' ? giftState(c) : famState(c); if (st !== 'sellable' && st !== 'single') return;
       var full = inBag(bc) >= (window.klAvail ? window.klAvail(bc) : 0), dis = stockErr || full;
       b.disabled = dis; if (dis) b.setAttribute('aria-disabled', 'true'); else b.removeAttribute('aria-disabled');
+      if (b.getAttribute('data-kl-added') === '1') { b.setAttribute('data-kl-was', sfAddText(priceP(bc), full, stockErr)); return; }   // basket-1 U3: 'Added ✓' keeps its text, then restores this one
       b.textContent = sfAddText(priceP(bc), full, stockErr);
     });
   }
