@@ -801,3 +801,76 @@ test('webhook recordOrder: barcode from product metadata, legacy description, me
     Object.assign(process.env, saved)
   }
 })
+
+// Webhook handler end to end (real signature check, faked Stripe line items + faked ops fetch): livemode guard.
+test('webhook handler: test-mode guard, live regression, forged body, no-barcode alert', async () => {
+  const { default: StripeLib } = await import('stripe')
+  const { createWebhookHandler } = await import('../api/stripe-webhook.js')
+  const real = new StripeLib('sk_test_unit')
+  const SECRET = 'whsec_unit_test'
+  const saved = { ...process.env }
+  const realFetch = globalThis.fetch
+  const realWarn = console.warn, realLog = console.log, realErr = console.error
+  const logs = []
+  console.warn = console.log = console.error = (...a) => logs.push(a.map(String).join(' '))
+  process.env.STRIPE_WEBHOOK_SECRET = SECRET
+  process.env.OPS_SUPABASE_URL = 'https://db.test'; process.env.OPS_SUPABASE_SERVICE_KEY = 'k'; process.env.OPS_APP_URL = 'https://ops.test'
+  delete process.env.META_PIXEL_ID; delete process.env.GA4_MEASUREMENT_ID
+  let listed = 0
+  const mk = (data) => ({ webhooks: real.webhooks, checkout: { sessions: { listLineItems: async () => { listed++; return { data } } } } })
+  const NEW = [{ description: 'Stretch Charm — Rose', quantity: 2, amount_total: 1198, price: { product: { metadata: { bc: '6101' } } } }]
+  const event = (livemode) => ({ id: 'evt_1', type: 'checkout.session.completed', livemode,
+    data: { object: { id: livemode ? 'cs_live_1' : 'cs_test_1', livemode, metadata: { hold_ref: 'h1', consent: 'accepted' },
+      customer_details: { email: 'buyer@example.com', name: 'A Buyer' }, amount_total: 1198 } } })
+  const send = async (h, payload, header) => {
+    const body = typeof payload === 'string' ? payload : JSON.stringify(payload)
+    const handlers = {}
+    const req = { method: 'POST', headers: { 'stripe-signature': header ?? real.webhooks.generateTestHeaderString({ payload: body, secret: SECRET }) },
+      on(e, f) { handlers[e] = f; if (e === 'end') setImmediate(() => { handlers.data && handlers.data(Buffer.from(body)); f() }); return this } }
+    let status, json
+    const res = { status(c) { status = c; return this }, json(b) { json = b; return this }, send(b) { json = b; return this } }
+    await h(req, res)
+    return { status, json }
+  }
+  const spy = () => { const calls = []; globalThis.fetch = async (url, o = {}) => { calls.push({ url: String(url), body: o.body ? JSON.parse(o.body) : null })
+    return { ok: true, status: 200, json: async () => ({ ok: true, data: {} }), text: async () => '' } }; return calls }
+  try {
+    // (a) verified TEST-mode event: zero ops calls, one log line with bc/qty/name only
+    let calls = spy(); logs.length = 0; listed = 0
+    let r = await send(createWebhookHandler({ stripe: mk(NEW) }), event(false))
+    assert.equal(r.status, 200); assert.equal(listed, 1)
+    assert.equal(calls.length, 0, JSON.stringify(calls))
+    const tl = logs.filter((l) => l.includes('test-mode session'))
+    assert.equal(tl.length, 1)
+    assert.equal(tl[0], '[stripe-webhook] test-mode session cs_test_1: items [{"bc":"6101","qty":2,"name":"Stretch Charm — Rose"}]')
+    assert.ok(!logs.join('\n').includes('buyer@example.com'))
+    // (b) LIVE event: same ops calls as before the guard (hold complete, order insert, late flag, overshoot alarm)
+    calls = spy()
+    r = await send(createWebhookHandler({ stripe: mk(NEW) }), event(true))
+    assert.equal(r.status, 200)
+    const tails = calls.map((c) => c.url.replace('https://db.test/rest/v1', '').replace('https://ops.test', ''))
+    assert.deepEqual(tails, ['/rpc/fn_karmi_checkout_complete', '/online_orders', '/api/orders/notify', '/rpc/fn_karmi_flag_late_order', '/rpc/fn_karmi_cap_overshoot', 'https://melbehome-ops-v2.vercel.app/api/track'])
+    assert.deepEqual(calls.find((c) => c.url.endsWith('/online_orders')).body.items.map((i) => [i.bc, i.qty]), [['6101', 2]])
+    // (c) forged / unsigned body claiming livemode false: rejected by the signature check, nothing listed or written
+    calls = spy(); listed = 0
+    for (const hdr of ['t=1,v1=deadbeef', '']) {
+      r = await send(createWebhookHandler({ stripe: mk(NEW) }), event(false), hdr)
+      assert.equal(r.status, 400)
+    }
+    assert.equal(calls.length, 0); assert.equal(listed, 0)
+    // (d) LIVE line without a barcode: agent_runs row + owner alert push, order still recorded
+    calls = spy()
+    r = await send(createWebhookHandler({ stripe: mk([{ description: 'Mystery', quantity: 1, amount_total: 599, price: { product: {} } }]) }), event(true))
+    assert.equal(r.status, 200)
+    const run = calls.find((c) => c.url.endsWith('/rest/v1/agent_runs'))
+    assert.deepEqual(run.body, { routine: 'karmi:webhook-no-bc', status: 'error', meta: { session_id: 'cs_live_1', name: 'Mystery' } })
+    const alert = calls.find((c) => c.url === 'https://ops.test/api/orders/notify')
+    assert.equal(alert.body.detail, 'Online order line without a barcode: Mystery (session cs_live_1)')
+    assert.ok(!JSON.stringify(alert.body).includes('buyer@example.com'))
+    assert.ok(calls.some((c) => c.url.endsWith('/online_orders')))
+  } finally {
+    globalThis.fetch = realFetch; console.warn = realWarn; console.log = realLog; console.error = realErr
+    for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k]
+    Object.assign(process.env, saved)
+  }
+})
