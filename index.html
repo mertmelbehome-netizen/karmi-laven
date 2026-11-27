@@ -239,6 +239,7 @@ nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
 @media(max-width:860px){ .rgrid{grid-template-columns:1fr; max-width:520px} }
 
 footer{border-top:1px solid var(--hair); margin-top:10px; padding:56px 0 120px; text-align:center}
+footer .ai-note{font-size:12.5px; line-height:1.5; color:#6b6457; letter-spacing:.02em; margin:0 auto 14px; max-width:46ch}
 footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size:25px; letter-spacing:.36em;
   text-transform:uppercase; line-height:1; margin-bottom:16px; color:var(--ink)}
 .ftag{font-size:12.5px; letter-spacing:.05em; color:var(--soft); margin-bottom:22px; font-weight:300}
@@ -606,7 +607,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
     <div class="spectrum fadein d4" id="spectrum"></div>
   </div>
   <div class="hero-img fadein d2">
-    <img id="heroImg" src="/img/gradient/1268.jpg" fetchpriority="high" decoding="async" alt="Karmi Laven bracelet, worn"><small class="kl-ai kl-ai-s">AI-styled image</small>
+    <img id="heroImg" src="/img/gradient/1268.jpg" fetchpriority="high" decoding="async" alt="Karmi Laven bracelet, worn">
     <div class="cap"><div class="n" id="heroName">Ice Blue</div><div class="s">Colour, worn softly</div></div>
   </div>
 </header>
@@ -913,6 +914,7 @@ try{ if(window.__klSfPre&&window.klSfL){ klSfL.sfLayout(document, null, klSfL.vi
   <div class="paybar">
     <span class="pi">Visa</span><span class="pi">Mastercard</span><span class="pi">Amex</span><span class="pi">Apple&nbsp;Pay</span><span class="pi">Google&nbsp;Pay</span>
   </div>
+  <p class="ai-note">Some images on this site are created or styled with AI technology.</p>
   <div class="secure">Secure checkout · powered by <b>Stripe</b></div>
   <div class="flinks">
     <a href="#palette">Shop by colour</a>
@@ -1142,7 +1144,7 @@ function card(d,i){
   el.setAttribute('data-kl-card',''); el.dataset.bc=d.barcode; el.dataset.klState=lad?'sellable':'single';   // measurement hooks (vitrin rule audit), no visual change
   el.innerHTML=`<div class="imgwrap" onclick="openModal('${d.barcode}')">${isNew?'<span class="new">New</span>':''}
     <img ${i<2?(i?'loading="eager"':'loading="eager" fetchpriority="high"'):'loading="lazy"'} src="${d.img}" srcset="${d.img.replace('/img/gradient/','/img/gradient/w480/')} 480w, ${d.img} 1000w" sizes="(max-width:560px) 50vw, 300px" alt="${d.img.indexOf('/img/tone/')===0 ? d.color_en+' colour tile, not a photo' : d.color_en+' bracelet, worn'}">
-    ${klAiImg(d)?'<small class="kl-ai kl-ai-s"'+(isNew?' style="left:auto;right:8px"':'')+'>AI-styled image</small>':''}<span class="stk">${stockTxt(d)}</span><span class="zoom">View</span></div>
+    <span class="stk">${stockTxt(d)}</span><span class="zoom">View</span></div>
     <div class="cbody">
       <div class="nm">${d.color_en}</div>
       <div class="sub kl-ged">Colour, worn softly</div>
@@ -1175,7 +1177,6 @@ function openModal(bc){
   const d=BY[bc]; if(!d) return; window._mbc=bc;
   { const mi=document.getElementById('mImg'); mi.src=d.img||''; mi.alt=imgAlt(d); }
   klModalGallery(d);
-  { const box=document.querySelector('#modal .mimg'); if(box&&!klModalPhotos(d).length&&klAiImg(d)){ const a=document.createElement('small'); a.className='kl-ai kl-ai-s'; a.textContent='AI-styled image'; box.appendChild(a); } }
   document.getElementById('mName').textContent=d.color_en;
   document.getElementById('mDot').style.background=d.swatch;
   document.getElementById('mPrice').innerHTML=`<span class="p">${m1On()?m1PriceHtml(bc):priceTxt(bc)}</span><div class="fee" data-kl="cardship">${cardShipText()}</div>`;
@@ -1207,7 +1208,6 @@ function klModalGallery(d){
     const s=document.createElement('div'); s.className='kl-slide'; s.setAttribute('role','group'); s.setAttribute('aria-roledescription','slide'); s.setAttribute('aria-label',(i+1)+' of '+n);
     let im=mi; if(i){ im=document.createElement('img'); im.src=p.src; im.width=1000; im.height=1250; im.loading='lazy'; im.decoding='async'; }
     im.alt=p.alt||(i?imgAlt(d)+', photo '+(i+1):imgAlt(d)); s.appendChild(im);
-    if(p.ai==null?i>0:p.ai===true){ const a=document.createElement('small'); a.className='kl-ai kl-ai-s'; a.textContent='AI-styled image'; s.appendChild(a); }
     tr.appendChild(s);
     [th,dt].forEach((w,k)=>{ const b=document.createElement('button'); b.type='button'; b.setAttribute('data-kl-dot',String(i)); b.setAttribute('aria-label','Photo '+(i+1)+' of '+n); if(!i) b.setAttribute('aria-current','true');
       if(k){ b.className='kl-dot'; } else { const t=document.createElement('img'); t.src=p.src; t.width=56; t.height=70; t.loading='lazy'; t.alt=''; b.appendChild(t); }

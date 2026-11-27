@@ -154,12 +154,10 @@ test('modal close button is pinned inside the scrolling product view on phones',
 })
 
 // K&D #101 (9): the Beaded (Gradient) tab: /img/gradient/*.jpg are renders (19_live_gradient_audit), /img/tone/*.svg colour
-// tiles. Live 26 Nov the tab sells 8: 1268 (render, referee-passed) + 7 colour tiles. Every render is labelled on every surface.
-test('Beaded tab: every Gradient render carries the "AI-styled image" label (grid card, product view, hero); tiles do not', () => {
+// tiles. Live 26 Nov the tab sells 8: 1268 (render, referee-passed) + 7 colour tiles. 27 Nov 2026: no per-image label any more (footer line instead).
+test('Beaded tab: no Gradient render (grid card, product view, hero) carries an "AI-styled image" label; renders vs tiles still told apart', () => {
   assert.match(HTML, /function klAiImg\(d\)\{ return !!d&&typeof d\.img==='string'&&d\.img\.indexOf\('\/img\/gradient\/'\)===0; \}/)
-  assert.match(HTML, /\$\{klAiImg\(d\)\?'<small class="kl-ai kl-ai-s"'\+\(isNew\?' style="left:auto;right:8px"':''\)\+'>AI-styled image<\/small>':''\}<span class="stk">/)
-  assert.match(HTML, /if\(box&&!klModalPhotos\(d\)\.length&&klAiImg\(d\)\)\{ const a=document\.createElement\('small'\); a\.className='kl-ai kl-ai-s'; a\.textContent='AI-styled image'; box\.appendChild\(a\); \}/)
-  assert.match(HTML, /<img id="heroImg" src="\/img\/gradient\/1268\.jpg"[^>]*><small class="kl-ai kl-ai-s">AI-styled image<\/small>/)
+  assert.doesNotMatch(HTML, /<small class="kl-ai[^>]*>AI-styled image/, 'no label markup in index.html')
   const DATA = JSON.parse(HTML.match(/const DATA=(\[[\s\S]*?\]), PRICE=/)[1])
   for (const d of DATA) assert.ok(/^\/img\/(gradient|tone)\//.test(d.img), d.barcode + ': image is a render or a colour tile')
   const tile = DATA.filter((d) => d.img.startsWith('/img/tone/')).map((d) => d.barcode).sort()

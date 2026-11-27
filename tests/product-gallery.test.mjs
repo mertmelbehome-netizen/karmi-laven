@@ -70,20 +70,22 @@ const gal = (over = {}) => ({ barcode: 'G1', name: 'Rose', line: 'Beaded Bracele
 // Re-pinned 26 Nov 2026 ON PURPOSE (Komuta, owner screenshot 81009): a single-photo AI card now carries the SAME overlay label as
 // the carousel cards, inside .imgwrap, instead of '<small class="kl-ai">' at the top of .cbody. The golden hashes are kept
 // (pre-gallery render); legacy() moves the label back to where the golden had it, so the ONLY allowed difference is that move.
-const LBL_IMG = '<small class="kl-ai kl-ai-s">AI-styled image</small></div><div class="cbody">'
-const legacy = (h) => (NOCAR.test(h) ? h : h.replace(LBL_IMG, '</div><div class="cbody"><small class="kl-ai">AI-styled image</small>'))
-test('single photo / no photos: sfFamCard output is byte-identical to the pre-gallery render except the AI label moved onto the image (75 cards x 5 states x 4 options)', () => {
+// 27 Nov 2026 (owner): the label is gone altogether (footer line instead). legacy(h, c, st) re-adds the OLD top-of-body label to an
+// AI single-photo render, so the ONLY allowed difference to the golden is that the label is absent.
+const LEG_LBL = '<small class="kl-ai">AI-styled image</small>'
+const legacy = (h, c, st) => (!NOCAR.test(h) && c.ai_image && c.photo && st !== 'photo' ? h.replace('</div><div class="cbody">', '</div><div class="cbody">' + LEG_LBL) : h)
+test('single photo / no photos: sfFamCard output is byte-identical to the pre-gallery render except the AI label, which is gone (75 cards x 5 states x 4 options)', () => {
   assert.equal(Object.keys(GOLD.sha256_24).length, GOLD.inputs.length * GOLD.states.length * GOLD.opts.length)
   assert.ok(GOLD.inputs.length >= 70)
   let n = 0
   for (const c of GOLD.inputs) for (const st of GOLD.states) GOLD.opts.forEach((o, i) => {
     const k = c.barcode + '|' + st + '|' + i, want = GOLD.sha256_24[k]
     const h = core.sfFamCard(c, st, o)
-    assert.equal(sha(legacy(h)), want, 'as today (label moved only) ' + k)
-    if (c.ai_image && c.photo && st !== 'photo') assert.ok(h.includes(LBL_IMG), 'AI label on the image ' + k)
+    assert.equal(sha(legacy(h, c, st)), want, 'as today (label absent only) ' + k)
+    assert.doesNotMatch(h, /AI-styled image|kl-ai/, 'no label anywhere ' + k)
     // photos[] that is empty, or holds only the hero photo, changes nothing
-    assert.equal(sha(legacy(core.sfFamCard({ ...c, photos: [] }, st, o))), want, 'photos [] ' + k)
-    if (c.photo) assert.equal(sha(legacy(core.sfFamCard({ ...c, photos: [{ src: c.photo, type: 'hero', alt: 'x', qc: true, ai: !!c.ai_image }] }, st, o))), want, 'one photo ' + k)
+    assert.equal(sha(legacy(core.sfFamCard({ ...c, photos: [] }, st, o), c, st)), want, 'photos [] ' + k)
+    if (c.photo) assert.equal(sha(legacy(core.sfFamCard({ ...c, photos: [{ src: c.photo, type: 'hero', alt: 'x', qc: true, ai: !!c.ai_image }] }, st, o), c, st)), want, 'one photo ' + k)
     n++
   })
   assert.equal(n, 1500)
@@ -104,7 +106,7 @@ test('live data: only the KEEP20 cards have a 2-photo gallery (photo 1 = main ph
       const slides = h.split('<div class="kl-slide"').slice(1)
       assert.equal(slides.length, 2, c.barcode)
       assert.match(slides[1], /loading="lazy"/, c.barcode)
-      assert.match(slides[1], /AI-styled image/, c.barcode)
+      assert.doesNotMatch(slides[1], /AI-styled image|kl-ai/, c.barcode)
       assert.doesNotMatch(core.sfFamCard(c, 'photo', O), NOCAR, c.barcode + ' photo')
       continue
     }
@@ -133,7 +135,7 @@ test('multi-photo card: carousel roles, "n of N" slides, photo 1 eager / 2+ lazy
   assert.equal(count(h, /aria-current="true"/g), 1)
   // card body, price and add button stay as on the one-photo card
   const one = core.sfFamCard({ ...gal(), photos: undefined }, 'single', O)
-  assert.equal(h.slice(h.indexOf('<div class="cbody">')), one.slice(one.indexOf('<div class="cbody">')).replace('<small class="kl-ai">AI-styled image</small>', ''))
+  assert.equal(h.slice(h.indexOf('<div class="cbody">')), one.slice(one.indexOf('<div class="cbody">')))
   assert.match(h, /data-kl-add data-bc="G1"/)
 })
 
@@ -150,14 +152,14 @@ test('photos[0].src must equal photo; only qc:true entries show; no hero QC / co
   for (const st of ['sellable', 'cap', 'soldout']) assert.match(core.sfFamCard(gal(), st, O), NOCAR, st)
 })
 
-test('AI label per photo: one "AI-styled image" per AI photo, none on a real photo, no card-level label on a carousel', () => {
+test('AI label: no "AI-styled image" on any photo, AI or real, and no card-level label on a carousel (ai flags stay data)', () => {
   const h = core.sfFamCard(gal(), 'single', O)
   const slides = h.split('<div class="kl-slide"').slice(1)
-  assert.deepEqual(slides.map((s) => /<small class="kl-ai kl-ai-s">AI-styled image<\/small>/.test(s)), [true, false, true])
-  assert.doesNotMatch(h, /<small class="kl-ai">AI-styled image<\/small>/)
-  // ai flag missing: photo 1 follows the card's ai_image, later photos are labelled (never an unlabelled render)
+  assert.deepEqual(slides.map((s) => /AI-styled image|kl-ai/.test(s)), [false, false, false])
+  assert.doesNotMatch(h, /AI-styled image|kl-ai/)
+  // ai flag missing: still no image label
   const noflag = gal({ ai_image: false, photos: gal().photos.map(({ ai, ...p }) => p) })
-  assert.deepEqual(core.sfFamCard(noflag, 'single', O).split('<div class="kl-slide"').slice(1).map((s) => /AI-styled image/.test(s)), [false, true, true])
+  assert.deepEqual(core.sfFamCard(noflag, 'single', O).split('<div class="kl-slide"').slice(1).map((s) => /AI-styled image|kl-ai/.test(s)), [false, false, false])
 })
 
 // ---------- 3. data rules ----------
@@ -217,8 +219,9 @@ test('modal: #mImg and the openModal(bc) card text unchanged (index.html parses 
   const g = HTML.match(/function klModalGallery\(d\)\{[\s\S]*?\n\}\n/)[0]
   assert.match(g, /if\(!n\) return;/, 'one photo: back to the plain #mImg markup, nothing added')
   for (const re of [/'role','region'/, /'aria-roledescription','carousel'/, /'aria-roledescription','slide'/, /\(i\+1\)\+' of '\+n/, /'Photo '\+\(i\+1\)\+' of '\+n/,
-    /im\.loading='lazy'/, /im\.width=1000; im\.height=1250/, /t\.width=56; t\.height=70; t\.loading='lazy'/, /kl-thumbs/, /kl-dots/, /tr\.scrollLeft=0/, /AI-styled image/])
+    /im\.loading='lazy'/, /im\.width=1000; im\.height=1250/, /t\.width=56; t\.height=70; t\.loading='lazy'/, /kl-thumbs/, /kl-dots/, /tr\.scrollLeft=0/])
     assert.match(g, re)
+  assert.doesNotMatch(g, /AI-styled image|kl-ai/, 'modal gallery builds no AI label')
 })
 
 test('CSS + behaviour: 4/5 box, scroll-snap, no hover scale on carousels, thumbs desktop / dots <=620px, tap zoom, reduced motion, arrow keys', () => {
@@ -242,26 +245,24 @@ test('scope: no checkout / cart / price / api change rides on the gallery', () =
   assert.doesNotMatch(fns, /\b(document|window|navigator|location)\b/, 'gallery helpers in KL-SF-CORE stay pure')
 })
 
-// 26 Nov 2026 (Komuta): every AI card, single photo or carousel, shows its 'AI-styled image' label inside the image area
-// (overlay, same class), never in the text block; one label per AI photo, so a single-photo card has exactly one
-test('AI label: every live AI card (single or carousel) has its label inside the image area, none in the text block; single photo = exactly 1', () => {
+// 27 Nov 2026 (owner): the per-image 'AI-styled image' label is gone; one footer line (tests/ai-note-footer) says it for the site.
+// Every live AI card (single or carousel) renders no label anywhere; image area and text block keep their structure.
+test('AI label: every live AI card (single or carousel) renders no label anywhere; single photo = bare image box', () => {
   const ai = CARDS.filter((c) => c.ai_image && c.photo && c.photo_qc)
   assert.ok(ai.length >= 20)
   let single = 0, car = 0
   for (const c of ai) for (const st of ['sellable', 'single', 'cap', 'soldout']) {
     const h = core.sfFamCard(c, st, O), body = h.slice(h.indexOf('<div class="cbody">')), media = h.slice(0, h.indexOf('<div class="cbody">'))
-    assert.equal(count(body, /AI-styled image/g), 0, 'no label in the text block ' + c.barcode + ' ' + st)
+    assert.doesNotMatch(h, /AI-styled image|kl-ai/, 'no label ' + c.barcode + ' ' + st)
     assert.match(body, /^<div class="cbody"><h3 class="nm">/, 'name first in the text block ' + c.barcode)
     assert.ok(media.includes('alt="'), 'alt kept ' + c.barcode)
     if (NOCAR.test(h)) {
       car++
       const slides = media.split('<div class="kl-slide"').slice(1)
-      for (const s of slides) assert.ok(count(s, /AI-styled image/g) <= 1, 'one label per slide ' + c.barcode)
-      assert.equal(count(slides[0], /<small class="kl-ai kl-ai-s">AI-styled image<\/small>/g), 1, 'photo 1 labelled ' + c.barcode)
+      assert.ok(slides.length >= 2, 'carousel keeps its slides ' + c.barcode)
     } else {
       single++
-      assert.equal(count(media, /<small class="kl-ai kl-ai-s">AI-styled image<\/small>/g), 1, 'exactly one label on the image ' + c.barcode)
-      assert.match(media, /^<article [^>]*><div class="imgwrap"><img [^>]*><small class="kl-ai kl-ai-s">AI-styled image<\/small><\/div>$/)
+      assert.match(media, /^<article [^>]*><div class="imgwrap"><img [^>]*><\/div>$/)
     }
   }
   assert.ok(single > 0 && car > 0, 'both kinds checked: ' + single + ' single, ' + car + ' carousel')

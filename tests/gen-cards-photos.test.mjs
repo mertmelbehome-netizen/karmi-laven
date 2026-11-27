@@ -41,16 +41,16 @@ test('buildCards: photos only when the main photo passed QC', (t) => {
   assert.ok(!('photos' in b));
 });
 
-test('K&D #93 B1: ai_image card + gallery_ai false -> slide 1 still labelled AI, the real extra photos not', () => {
+test('K&D #93 B1: ai_image card + gallery_ai false -> no slide carries an image label (flags stay data)', () => {
   const SF = readFileSync(new URL('../js/storefront.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   const CORE = SF.match(/\/\*KL-SF-CORE-START\*\/([\s\S]*?)\/\*KL-SF-CORE-END\*\//)[1];
   const { sfGallery } = new Function(`${CORE}; return { sfGallery };`)();
   const c = { name: 'N', line: 'L', ai_image: true };
   const ps = [{ src: '/a.jpg', qc: true, ai: false }, { src: '/b.jpg', qc: true, ai: false }, { src: '/c.jpg', qc: true, ai: false }];
   const slides = sfGallery(c, ps).split('class="kl-slide"').slice(1);
-  assert.deepEqual(slides.map((x) => x.includes('AI-styled image')), [true, false, false]);
+  assert.deepEqual(slides.map((x) => /AI-styled image|kl-ai/.test(x)), [false, false, false]);
   const real = sfGallery({ ...c, ai_image: false }, ps).split('class="kl-slide"').slice(1);
-  assert.deepEqual(real.map((x) => x.includes('AI-styled image')), [false, false, false]);
+  assert.deepEqual(real.map((x) => /AI-styled image|kl-ai/.test(x)), [false, false, false]);
 });
 
 test('PHOTO-MIX v1 trial: gallery_lead -> card.lead (index of an extra photo); none = no lead key; bad index throws', (t) => {
