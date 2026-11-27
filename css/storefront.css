@@ -39,16 +39,8 @@ html.kl-v2 .swatchbar{top:var(--kl-tb-h,54px)}
 @media(max-width:840px){
   /* phone/tablet: one sticky row only (the chips); the colour bar + bundle chip scroll with the page (F2) */
   html.kl-v2 .swatchbar{position:relative; top:auto}
-  /* hero: H1 + line first, photo after it and capped (F5) */
-  html.kl-v2 .hero-img{order:0}
-  html.kl-v2 .hero-img img{aspect-ratio:auto; height:42vh}
 }
 @media(min-width:841px){
-  /* desktop: hero photo capped so the first product cards reach the first screen (Komuta 23 Nov) */
-  /* measured 1440x900: first card top 1485 -> 759 */
-  html.kl-v2 .hero{padding-top:12px; padding-bottom:12px}
-  html.kl-v2 .hero-img img{aspect-ratio:auto; height:min(28vh,240px)}
-  html.kl-v2 .hero h1{font-size:clamp(40px,4.2vw,58px); margin-bottom:8px}
   html.kl-v2 #palette{padding-top:14px}
   html.kl-v2 #palette .bundlecta{margin-top:0; padding-top:10px; padding-bottom:10px}
   html.kl-v2 #palette .bundletrust{margin-bottom:10px}
@@ -56,14 +48,9 @@ html.kl-v2 .swatchbar{top:var(--kl-tb-h,54px)}
   html.kl-v2 #palette .col-head h2{font-size:30px}
 }
 @media(max-width:560px){
-  /* phone first screen = chips + at least 1 full product card (K&D 23 Nov; measured 390x844: Gradient card 305-756,
-     Bracelets card 261-751, sticky bar from 779). The logo row already carries 'Colour, worn softly'; the H1 and panel
-     titles stay for screen readers and search (visually hidden), the hero photo is not shown on phones. */
-  html.kl-v2 header.hero{padding:0; gap:0; min-height:0}
-  html.kl-v2 .hero-img{display:none}
-  html.kl-v2 .hero-copy{padding:0}
-  html.kl-v2 .hero-copy p, html.kl-v2 .hero-copy .spectrum{display:none}
-  html.kl-v2 .hero h1, html.kl-v2 #palette .col-head h2, html.kl-v2 #klFam .col-head h2{position:absolute; width:1px; height:1px;
+  /* phone first screen = hero slider + chips + the top of the first product card (Mert 27 Nov relaxed V-01: the hero
+     slider leads). The panel titles stay for screen readers and search (visually hidden); the H1 header: see below. */
+  html.kl-v2 #palette .col-head h2, html.kl-v2 #klFam .col-head h2{position:absolute; width:1px; height:1px;
     margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
   html.kl-v2 #palette{padding-top:2px}
   html.kl-v2 #palette .col-head, html.kl-v2 #klFam .col-head{margin:0 0 6px}
@@ -77,50 +64,89 @@ html.kl-v2 .swatchbar{top:var(--kl-tb-h,54px)}
   /* 375x812: announce bar 60 -> 44 px so the first full card ends above the sticky bar (Komuta 23 Nov: overlap 0 at 812 + 844) */
   html.kl-v2 .announce{padding:5px 10px; font-size:12px; letter-spacing:.06em; line-height:1.4}
 }
-/* ---- hero price block (25_hero_price/BENCHMARK.md rules HP-1..HP-6): big lowest 10+ price, its condition on the same
-   line (>= 1/2.5 of the big size, never small print), singles smaller under it, delivery last. Families view only; the
-   old page keeps its own hero price line (.launch). Text: index.html sfHeroPrice (from the served table). */
+/* ---- the ONE visible hero = the slider #klHero (27 Nov 2026, Mert: 'kayar galeri tarzı sistemde sayfada hero olmalı').
+   The H1 header stays in the page for screen readers and search (visually hidden, never removed; sfHeroLine keeps its
+   line up to date), its photo is off; the old thin top strip (.m1bar) is the old page's only: its text is slide 1. ---- */
+html.kl-v2 .m1bar{display:none}
+html.kl-v2 header.hero{display:block; padding:0; gap:0; min-height:0}
+html.kl-v2 .hero-img, html.kl-v2 .hero-copy .spectrum{display:none}
+html.kl-v2 .hero-copy{padding:0}
+html.kl-v2 .hero h1, html.kl-v2 .hero-copy p{position:absolute; width:1px; height:1px;
+  margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
+/* slider: fixed height per viewport (CLS 0; images carry width/height), photo on the right, text on a 96% paper panel on
+   the left (AA on any photo pixel: tests/hero-slider.test.mjs); 380 px desktop, 300 px tablet, 232 px phone (375x812:
+   <= 45% of the screen, the chips and the top of the first card below it). Old page: not shown. */
+.kl-hs{display:none}
+html.kl-v2 .kl-hs{display:block; position:relative; z-index:1; max-width:1200px; margin:0 auto; padding:0 26px 12px}
+.kl-hs .kl-track{height:380px; background:var(--paper)}
+.kl-hs .kl-slide{overflow:hidden; background:var(--paper)}
+.kl-hs .kl-slide img{position:absolute; top:0; right:0; width:58%; height:100%; object-fit:cover; object-position:50% 45%}
+.kl-hs .kl-hs-s3 img{object-position:50% 30%}
+.kl-hs-panel{position:absolute; top:0; bottom:0; left:0; width:54%; display:flex; flex-direction:column; justify-content:center; align-items:flex-start;
+  padding:20px 13% 20px 44px; color:var(--ink); font-family:'Jost',sans-serif; font-weight:400; line-height:1.3;
+  background:linear-gradient(90deg, rgba(255,254,251,.96) 0, rgba(255,254,251,.96) 80%, rgba(255,254,251,0) 100%)}
+/* slide 1: the 10+ offer (text = m1Texts().bar) + singles + delivery (#klHeroPrice, sfHeroPriceApply). No was / save / strike */
+.kl-hs-offer .bm-pct{display:block; font-family:'Cormorant Garamond',serif; font-weight:600; font-size:68px; line-height:1; letter-spacing:-.01em}
+.kl-hs-offer .bm-when, .kl-hs-offer .bm-from{font-size:22px; font-weight:500}
+.kl-hs-offer .bm-from{white-space:nowrap; display:block}   /* its own line (no leading dot) */
+.kl-hs-offer .bm-from::before{content:none}
+.kl-hs-offer .bm-how{display:block; font-size:15px; color:#6b6457; margin-top:6px}
 .kl-hp{display:none}
-html.kl-v2 .kl-hp{display:block; margin:14px 0 4px; color:var(--ink); font-family:'Jost',sans-serif; font-weight:400}
+html.kl-v2 .kl-hp{display:block; margin:12px 0 0}
 html.kl-v2 .kl-hp[hidden]{display:none}
-.kl-hp-l1{display:flex; flex-wrap:wrap; align-items:baseline; column-gap:10px; row-gap:0; line-height:1.05}
-.kl-hp-from{font-size:20px; font-weight:400}
-.kl-hp-big{font-size:64px; font-weight:500; letter-spacing:-.02em; line-height:1; white-space:nowrap}
-.kl-hp-big small{font-size:22px; font-weight:400; letter-spacing:0; margin-left:2px}
-.kl-hp-cond{font-size:22px; font-weight:500}
-.kl-hp-single{font-size:16px; margin-top:10px; letter-spacing:.01em}
-.kl-hp-dlv{font-size:14px; margin-top:4px; letter-spacing:.01em}
-@media(min-width:841px){
-  /* desktop: H1 on one line and the price block takes its place (cards stay on the first screen) */
-  html.kl-v2 .hero h1{font-size:clamp(34px,3.2vw,46px)}
-  html.kl-v2 .hero h1 br{display:none}
-  html.kl-v2 .hero-copy p{font-size:15px}
-  html.kl-v2 .hero-copy .spectrum{display:none}
+.kl-hp-single{font-size:17px; font-weight:500}
+.kl-hp-dlv{font-size:15px; margin-top:2px}
+/* slides 2-3: line + category name and a link into that category (no price, no %) */
+.kl-hs-k{font-size:12px; letter-spacing:.24em; text-transform:uppercase; color:#6b6457}
+.kl-hs-t{font-family:'Cormorant Garamond',serif; font-weight:500; font-size:48px; line-height:1.05; margin:6px 0 16px}
+.kl-hs-a{display:inline-flex; align-items:center; min-height:44px; padding:0 22px; background:var(--ink); color:#faf7f1; text-decoration:none;
+  font-size:13px; letter-spacing:.14em; text-transform:uppercase}
+.kl-hs-a:hover{opacity:.9}
+/* dots + Pause/Play (WCAG 2.2.2), on a paper chip over the photo */
+.kl-hs-ctl{position:absolute; right:36px; bottom:22px; display:flex; align-items:center; gap:2px; padding:0 4px; background:rgba(255,254,251,.94)}
+.kl-hs .kl-dots{position:static; height:32px; align-items:center}
+.kl-hs-play{display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; border:0; background:none; color:var(--ink); cursor:pointer}
+.kl-hs-play svg{width:18px; height:18px; fill:currentColor}
+.kl-hs-play[data-state="playing"] .i-play, .kl-hs-play[data-state="paused"] .i-pause{display:none}
+.kl-hs-play:focus-visible, .kl-hs-a:focus-visible, .kl-hs .kl-dot:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
+@media(min-width:561px) and (max-width:840px){
+  .kl-hs .kl-track{height:300px}
+  .kl-hs-panel{width:62%; padding:16px 12% 16px 28px}
+  .kl-hs-offer .bm-pct{font-size:52px}
+  .kl-hs-offer .bm-when, .kl-hs-offer .bm-from{font-size:18px}
+  .kl-hs-offer .bm-how{font-size:14px}
+  .kl-hp-single{font-size:15px} .kl-hp-dlv{font-size:14px}
+  .kl-hs-t{font-size:38px}
 }
 @media(max-width:560px){
-  /* phone (compact, the task's fallback): one line big price + condition, one small line singles. The delivery line is
-     the announce bar at the top of the same first screen ('£1.49 UK delivery · free with any 10+ items'). */
-  html.kl-v2 .kl-hp{margin:0; padding:6px 16px 4px}
-  .kl-hp-l1{column-gap:6px; flex-wrap:nowrap; white-space:nowrap}
-  .kl-hp-from{font-size:13px}
-  .kl-hp-big{font-size:32px}
-  .kl-hp-big small{font-size:14px; margin-left:1px}
-  .kl-hp-cond{font-size:15px}
-  .kl-hp-single{font-size:14px; line-height:1.3; margin-top:2px}   /* deal-first (24 Nov): single price >= 14 px */
-  .kl-hp-dlv{display:none}
-  /* family tabs (Bracelets / Necklaces / Hair) with their sub-chip row: one-line hero price; every card right below shows its
-     single price + the same 10+ condition, so the first full card stays above the sticky bar (V-01, 375x812) */
-  /* 26 Nov (K&D R1b): the single price stays in the hero block next to the deal price on every tab (14 px, one line) */
+  /* phone: edge to edge, 232 px (375x812: announce + logo + slider + chips end near 400 px) */
+  html.kl-v2 .kl-hs{padding:0 0 8px}
+  .kl-hs .kl-track{height:232px}
+  .kl-hs .kl-slide img{width:50%}
+  .kl-hs-panel{width:68%; padding:12px 10% 12px 16px; line-height:1.25;
+    background:linear-gradient(90deg, rgba(255,254,251,.96) 0, rgba(255,254,251,.96) 86%, rgba(255,254,251,0) 100%)}
+  .kl-hs-offer .bm-pct{font-size:38px}
+  .kl-hs-offer .bm-when, .kl-hs-offer .bm-from{font-size:15px}
+  .kl-hs-offer .bm-how{font-size:13px; margin-top:3px}
+  html.kl-v2 .kl-hp{margin-top:6px}
+  .kl-hp-single{font-size:14px} .kl-hp-dlv{font-size:13px}   /* deal-first (24 Nov): single price >= 14 px */
+  .kl-hs-k{font-size:12px; letter-spacing:.16em}
+  .kl-hs-t{font-size:30px; margin:4px 0 12px}
+  .kl-hs-a{padding:0 16px; font-size:12px; letter-spacing:.1em}
+  .kl-hs-ctl{right:8px; bottom:8px}
+}
+@media(max-width:560px){
+  /* family tabs (Bracelets / Necklaces / Hair) with their sub-chip row: every card shows its single price + the 10+
+     condition, so the sub-chip row sits tight under the chips (V-01, 375x812) */
   html.kl-v2[data-kl-tab]:not([data-kl-tab="gradient"]) #klFam{padding-top:0}
   html.kl-v2[data-kl-tab]:not([data-kl-tab="gradient"]) #klFam .col-head{margin-bottom:0}
   html.kl-v2 #klFam [role=tablist]{margin-bottom:4px}
-  /* the Gradient count line repeated the price ('38 shades · £8 each · 70% off ...'): the hero block and every card carry
+  /* the Gradient count line repeated the price ('38 shades · £8 each · 70% off ...'): the hero slide and every card carry
      it now, so on phones it gives its two lines back to the first card (V-01) */
   html.kl-v2 #palette .col-head .c{display:none}
   html.kl-v2 #palette .col-head{margin:0}
 }
-/* hero: H1 + one short line (F3); the eyebrow and buttons are hidden by sfLayout */
-html.kl-v2 .hero-copy p{margin-bottom:0}
+/* hero header: H1 + one short line (F3, visually hidden since 27 Nov); the eyebrow and buttons are hidden by sfLayout */
 html.kl-v2 .hero .cta[hidden], html.kl-v2 .hero-copy .k[hidden]{display:none}
 /* pre-paint (index.html KL-SF-LAYOUT runs while the page is parsed; this file is linked in <head>): the nodes sfLayout
    moves out of the hero are never painted there first, so nothing jumps (CLS, morning_review/18_cls_prepaint) */
@@ -151,7 +177,6 @@ html.kl-v2 .sw{min-height:44px}
   html.kl-v2 .collection{padding-top:14px}
   html.kl-v2 .col-head{margin-bottom:14px} html.kl-v2 .col-head h2{font-size:24px}
   html.kl-v2 .cbody .ship24{display:none}
-  html.kl-v2 .hero{padding:10px 0 16px} html.kl-v2 .hero h1{font-size:40px; margin-bottom:10px}
 }
 html.kl-v2 .sbi{padding-top:2px; padding-bottom:2px}
 
