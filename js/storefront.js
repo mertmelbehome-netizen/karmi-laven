@@ -154,6 +154,7 @@
   function sfParseHash(h) {
     h = String(h || '').replace(/^#/, '').toLowerCase();
     var i = h.indexOf('-'), t = i < 0 ? h : h.slice(0, i), s = i < 0 ? '' : h.slice(i + 1);
+    if (t === 'gifts' && !SF_GIFTS_OPEN) return { tab: 'bracelets', sub: 'all' };   // closed 27 Nov 2026: an old #gifts link or ad lands on Bracelets (setTab rewrites the hash)
     if (SF_TABS.indexOf(t) < 0) return null;
     if (t === 'bracelets' && sfIsGradSub(s)) return { tab: 'gradient', sub: sfGradSub(s) };
     var ok = (SF_SUBS[t] || []).some(function (x) { return x.k === s; }) || !!sfBlock(t, s);   // a line or a block (SF_BLOCKS)

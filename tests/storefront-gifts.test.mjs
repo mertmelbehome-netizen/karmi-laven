@@ -60,8 +60,8 @@ test('Gifts tab: chip after Necklaces (owner 26 Nov 2026: Bracelets, Necklaces, 
   assert.deepEqual(core.SF_TABS, ['bracelets', 'necklaces', 'gifts', 'hair', 'rings', 'gradient'])
   assert.deepEqual(lay.SFL_TABS, core.SF_TABS, 'pre-paint chip bar knows the Gifts chip (CLS)')
   assert.equal(core.SF_CHIP.gifts, 'Gifts'); assert.equal(lay.SFL_CHIP.gifts, 'Gifts'); assert.equal(core.SF_TITLE.gifts, 'Gifts')
-  assert.deepEqual(core.sfParseHash('#gifts'), { tab: 'gifts', sub: 'all' })
-  assert.deepEqual(core.sfParseHash('#gifts-x'), { tab: 'gifts', sub: 'all' })
+  assert.deepEqual(core.sfParseHash('#gifts'), { tab: 'bracelets', sub: 'all' }, 'closed 27 Nov: an old #gifts link lands on Bracelets')
+  assert.deepEqual(core.sfParseHash('#gifts-x'), { tab: 'bracelets', sub: 'all' })
   assert.equal(core.sfHash('gifts', 'all'), '#gifts')
   // pre-paint bar on a cold #gifts deep link: the Gifts chip is there and selected
   const doc = { createElement: () => ({ setAttribute() {}, innerHTML: '' }) }
