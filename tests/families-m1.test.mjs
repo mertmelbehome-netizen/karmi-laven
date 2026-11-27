@@ -101,7 +101,7 @@ test('new storefront copy keeps K-08 wording rules', () => {
   assert.doesNotMatch(read('../terms.html'), /£8\.00 per bracelet|£2\.40 per item/, 'terms: no single-group price')
 })
 
-test('K-045/K-056: the referee-passed renders only (Karmi 08 A + L2 + 11 Showable + Komuta 23 Nov A(7) wholesale cards); each labelled "AI-styled image"; web-sized; final line names', async () => {
+test('K-045/K-056: the referee-passed renders only (Karmi 08 A + L2 + 11 Showable + Komuta 23 Nov A(7) wholesale cards); no image label (footer note instead); web-sized; final line names', async () => {
   const { statSync } = await import('node:fs')
   const CARDS = JSON.parse(read('../data/cards.json')).cards
   // hair clips 1849-1865 + claws 0301xxxx withdrawn 23 Nov (owner: on-model renders do not sit right; tests/hair-no-onmodel)
@@ -121,9 +121,10 @@ test('K-045/K-056: the referee-passed renders only (Karmi 08 A + L2 + 11 Showabl
   for (const c of CARDS) assert.doesNotMatch(c.line, /Bangle Bracelet|Necklace Lux|Diamond/, 'K-056 line names ' + c.barcode)
   const w = W(LADDERS), c0 = { barcode: 'SB', name: 'N', line: 'L', swatch: '#fff', photo: '/x.jpg', ai_image: true }
   const o = { line: core.sfPriceLine('SB', w), badge: null, ship: '', full: false, dis: false, why: '' }
-  // 26 Nov 2026 (Komuta): the single-photo card labels its image like the carousel cards: overlay inside .imgwrap
-  assert.match(core.sfFamCard(c0, 'single', o), /<div class="imgwrap"><img [^>]*><small class="kl-ai kl-ai-s">AI-styled image<\/small><\/div><div class="cbody"><h3 class="nm">/)
-  assert.doesNotMatch(core.sfFamCard({ ...c0, ai_image: false }, 'single', o), /AI-styled/)
+  // 27 Nov 2026 (owner): the per-image label is gone (one footer line instead); the AI card renders no label at all
+  assert.match(core.sfFamCard(c0, 'single', o), /<div class="imgwrap"><img [^>]*><\/div><div class="cbody"><h3 class="nm">/)
+  assert.doesNotMatch(core.sfFamCard(c0, 'single', o), /AI-styled|kl-ai/)
+  assert.doesNotMatch(core.sfFamCard({ ...c0, ai_image: false }, 'single', o), /AI-styled|kl-ai/)
   assert.match(core.sfFamCard(c0, 'single', o), /loading="lazy"/)
   assert.match(read('../css/storefront.css'), /\.kl-ai\{font-size:12px;[^}]*color:#6b6457/)
 })

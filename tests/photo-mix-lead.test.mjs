@@ -41,14 +41,14 @@ test('lead: photos[lead] is slide 1 (eager), then the rest in original order; do
   assert.equal(h.length, plain.length, 'same markup, slides reordered')
 })
 
-test('K&D: the AI label follows the LEAD image\'s own ai flag; the main photo keeps its ai_image label in slide 2', () => {
-  const ai = (c) => slides(core.sfFamCard(c, 'single', O)).map((x) => /<small class="kl-ai kl-ai-s">AI-styled image<\/small>/.test(x))
-  assert.deepEqual(ai(card({ lead: 1 })), [true, true, false], 'AI close-up leads: labelled; AI main in slide 2: labelled')
-  assert.deepEqual(ai(card({ lead: 2 })), [false, true, true], 'real photo leads: no label; main (ai_image) still labelled')
-  assert.deepEqual(ai(card({ lead: 2, ai_image: false })), [false, false, true], 'real main photo in slide 2: no label')
+test('K&D: no slide carries an AI image label, whatever the LEAD image\'s ai flag (flags stay data)', () => {
+  const ai = (c) => slides(core.sfFamCard(c, 'single', O)).map((x) => /AI-styled image|kl-ai/.test(x))
+  assert.deepEqual(ai(card({ lead: 1 })), [false, false, false], 'AI close-up leads: no label')
+  assert.deepEqual(ai(card({ lead: 2 })), [false, false, false], 'real photo leads: no label')
+  assert.deepEqual(ai(card({ lead: 2, ai_image: false })), [false, false, false])
   const noflag = card({ lead: 1, photos: card().photos.map((p, i) => (i === 1 ? { ...p, ai: undefined } : p)) })
-  assert.deepEqual(ai(noflag), [true, true, false], 'lead without ai flag = labelled (never an unlabelled render)')
-  assert.doesNotMatch(core.sfFamCard(card({ lead: 1 }), 'single', O), /<small class="kl-ai">AI-styled image<\/small>/, 'no card-level label on a carousel')
+  assert.deepEqual(ai(noflag), [false, false, false], 'lead without ai flag: still no image label (footer note covers it)')
+  assert.doesNotMatch(core.sfFamCard(card({ lead: 1 }), 'single', O), /AI-styled image|kl-ai/, 'no card-level label on a carousel')
 })
 
 test('no / invalid lead = byte-identical card on every live card and state (lead 0, out of range, not qc, non-integer, no gallery)', () => {
@@ -159,13 +159,12 @@ test('the checker fails on two neighbouring wrist leads, a thin first screen, an
   assert.deepEqual(order.map((c) => c.barcode), ['p', 's', 't'])
 })
 
-test('label: exactly one "AI-styled image" per shown image, inside the image area (single photo, carousel, lead); none in the card body', () => {
+test('label: no "AI-styled image" / kl-ai anywhere in the card (single photo, carousel, lead); footer note covers it', () => {
   for (const c of CARDS.filter((x) => x.photo && x.photo_qc && x.ai_image)) {
     const h = core.sfFamCard(c, 'single', O)
-    assert.doesNotMatch(h.slice(h.indexOf('<div class="cbody">')), /AI-styled image/, c.barcode + ' no body label')
+    assert.doesNotMatch(h, /AI-styled image|kl-ai/, c.barcode + ' no label anywhere')
     const s = slides(h)
-    if (!s.length) { assert.equal((h.match(/<small class="kl-ai kl-ai-s">AI-styled image<\/small><\/div>/g) || []).length, 1, c.barcode + ' single photo: one overlay label'); continue }
-    for (const x of s) assert.equal((x.match(/AI-styled image/g) || []).length, 1, c.barcode + ' one label per slide (AI main + AI close-up)')
-    if (c.lead) assert.match(s[0], /AI-styled image/, c.barcode + ' lead close-up (ai true) labelled')
+    if (!s.length) { assert.match(h, /<div class="imgwrap"><img [^>]*><\/div><div class="cbody">/, c.barcode + ' single photo: bare image box'); continue }
+    for (const x of s) assert.doesNotMatch(x, /AI-styled image|kl-ai/, c.barcode + ' no label on a slide')
   }
 })

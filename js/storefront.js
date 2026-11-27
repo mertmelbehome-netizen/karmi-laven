@@ -230,7 +230,7 @@
       slides += '<div class="kl-slide" role="group" aria-roledescription="slide" aria-label="' + (i + 1) + ' of ' + n + '">'
         + '<img src="' + sfEsc(x.src) + '" width="400" height="500" ' + (i ? 'loading="lazy" decoding="async"' : 'loading="eager"')
         + ' alt="' + sfEsc(x.alt || (i ? base + ', photo ' + (i + 1) : base)) + '">'
-        + (ai ? '<small class="kl-ai kl-ai-s">AI-styled image</small>' : '') + '</div>';
+        + '</div>';
       dots += '<button type="button" class="kl-dot" data-kl-dot="' + i + '" aria-label="Photo ' + (i + 1) + ' of ' + n + '"' + (i ? '' : ' aria-current="true"') + '></button>';
     });
     return '<div class="imgwrap kl-car" role="region" aria-roledescription="carousel" aria-label="' + sfEsc(c.name) + ' photos" tabindex="0" data-kl-car>'
@@ -244,7 +244,7 @@
     } else {
       media = gal.length ? sfGallery(c, gal) : c.photo
         ? '<div class="imgwrap"><img src="' + sfEsc(c.photo) + '" width="400" height="500" loading="lazy" alt="' + sfEsc(c.name + ', ' + c.line) + '">'
-          + (c.ai_image ? '<small class="kl-ai kl-ai-s">AI-styled image</small>' : '') + '</div>'   // 26 Nov (Komuta): same overlay label as the carousel cards
+          + '</div>'   // 27 Nov (Mert): no per-image AI label; the footer carries one note
         : '<div class="kl-tone" style="background-color:' + sfEsc(c.swatch) + '" role="img" aria-label="' + sfEsc(c.name) + ' colour tile, not a photo"></div>';
       if (!c.photo) body = '<p class="kl-stt">Photo coming</p><p class="kl-why">Colour tile is a guide only.</p>';
       if (st === 'sellable' || st === 'single') {
@@ -257,7 +257,7 @@
       }
     }
     return '<article class="card in kl-card' + (st === 'soldout' ? ' kl-soldout' : '') + '" data-kl-card data-kl-state="' + st + '"' + (st === 'photo' ? ' data-kl-photo="pending"' : '') + ' data-bc="' + sfEsc(c.barcode) + '">'
-      + media + '<div class="cbody">' + (c.ai_image && st !== 'photo' && !gal.length && !c.photo ? '<small class="kl-ai">AI-styled image</small>' : '') + '<h3 class="nm">' + sfEsc(c.name) + '</h3><div class="sub"><span class="d" style="background:' + sfEsc(c.swatch) + '" aria-hidden="true"></span>' + sfEsc(c.line) + '</div>'
+      + media + '<div class="cbody">' + '' + '<h3 class="nm">' + sfEsc(c.name) + '</h3><div class="sub"><span class="d" style="background:' + sfEsc(c.swatch) + '" aria-hidden="true"></span>' + sfEsc(c.line) + '</div>'
       + (p ? '<div class="pr">' + o.line.html + '</div><div class="fee" data-kl="' + (o.shipKey || 'cardship') + '">' + sfEsc(o.ship || '') + '</div>' + (o.note ? '<p class="kl-note">' + sfEsc(o.note) + '</p>' : '') : '') + body + '</div></article>';
   }
   /** Mobile sticky bar with an empty bag, per tab. Gradient Edit: null = keep the page's own bar ("Each £8.00" +
@@ -784,7 +784,7 @@
     return cards.map(function (c, i) {
       var src = sfLeadSrc(c);
       return '<article class="card in kl-card" data-kl-card data-kl-state="loading" data-kl-preview data-bc="' + sfEsc(c.barcode) + '"><div class="imgwrap"><img src="' + sfEsc(src) + '" width="400" height="500" '
-        + (i ? 'loading="lazy"' : 'loading="eager" fetchpriority="high"') + ' decoding="async" alt="' + sfEsc(c.name + ', ' + c.line) + '">' + (c.ai_image ? '<small class="kl-ai kl-ai-s">AI-styled image</small>' : '') + '</div>'
+        + (i ? 'loading="lazy"' : 'loading="eager" fetchpriority="high"') + ' decoding="async" alt="' + sfEsc(c.name + ', ' + c.line) + '">' + '</div>'
         + '<div class="cbody"><h3 class="nm">' + sfEsc(c.name) + '</h3><div class="pr" style="min-height:3.2em" aria-hidden="true"></div>'
         + '<button type="button" class="add" data-kl-add data-bc="' + sfEsc(c.barcode) + '" disabled aria-disabled="true">Loading prices…</button></div></article>';
     }).join('');
