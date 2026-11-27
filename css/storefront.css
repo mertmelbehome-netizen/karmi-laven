@@ -15,7 +15,7 @@ html.kl-v2, html.kl-v2 body{overflow-x:clip}
 .kl-tabs{display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; max-width:1200px; margin:0 auto; padding:4px 26px; justify-content:center}
 .kl-tabs::-webkit-scrollbar{display:none}
 .kl-tabs [role=tab]{flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:44px; padding:0 18px;
-  background:transparent; border:1px solid #9a8f7e; border-radius:0; font-family:'Jost'; font-weight:500; font-size:13.5px; letter-spacing:.04em;
+  background:transparent; border:1px solid #7d7464; border-radius:0; font-family:'Jost'; font-weight:500; font-size:13.5px; letter-spacing:.04em;
   text-transform:none; color:var(--ink); cursor:pointer; white-space:nowrap; transition:background-color .2s, color .2s, border-color .2s}
 .kl-tabs [role=tab][hidden]{display:none}
 .kl-tabs [role=tab]:hover{border-color:var(--ink)}
