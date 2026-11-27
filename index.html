@@ -432,7 +432,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 .cart-wallet{text-align:center; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--soft); margin-top:10px}
 .cart-ship b{color:var(--accent); font-weight:600}
 .nudge-save{color:var(--gold); font-weight:600; margin-left:2px}
-.nudge-add{display:inline-block; margin-left:6px; font-family:'Jost'; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:#fff; background:linear-gradient(90deg,var(--accent),var(--gold)); border:none; border-radius:20px; padding:3px 11px; cursor:pointer; vertical-align:middle}
+.nudge-add{display:inline-block; margin-left:6px; font-family:'Jost'; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:#faf7f1; background:var(--ink); border:none; border-radius:20px; padding:3px 11px; cursor:pointer; vertical-align:middle}
 .nudge-add:hover{opacity:.9}
 .nudge-add{max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}   /* 'Add 1 more <name>' stays on one line at 375 px */
 .cart-trustline{text-align:center; font-size:12px; letter-spacing:.02em; color:var(--soft); line-height:1.55; margin-top:9px}
@@ -1919,7 +1919,7 @@ function nudgeTarget(){
   if(typeof colours!=='undefined'){const c=colours.find(x=>{const inCart=cart.find(k=>k.bc===x.bc); return (inCart?inCart.qty:0)<avail(x.bc);}); if(c) return c.bc;}
   return null;
 }
-function nudgeLabel(){ const bc=nudgeTarget(), d=bc&&BY[bc], n=d&&String(d.color_en||'').trim(); if(!n) return 'Add to bag'; return 'Add 1 more '+(n.length>22?n.slice(0,21).trim()+'…':n); }
+function nudgeLabel(){ const bc=nudgeTarget(), d=bc&&BY[bc], n=d&&String(d.color_en||'').trim(); if(!n) return 'Add to bag'; const nm=(n.length>22?n.slice(0,21).trim()+'…':n), us=m1On()?m1Summary(cart):null; return us&&us.to_unlock===1 ? 'Add 1 more '+nm : 'Quick add: '+nm; }   // 27 Nov (design review): 'Add 1 more X' only when that one item really completes the 10+ price; else 'Quick add' (it never reads like the '7 more' line)
 function nudgeBtn(){ return '<button class="nudge-add" type="button" onclick="nudgeAddOne()">'+nudgeLabel().replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])).split('"').join('&quot;')+'</button>'; }
 function openCart(){renderCart();document.getElementById('cart').classList.add('open');document.getElementById('ovl').classList.add('open');}
 function closeCart(){document.getElementById('cart').classList.remove('open');syncOvl();}
