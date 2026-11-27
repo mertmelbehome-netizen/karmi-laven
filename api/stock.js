@@ -29,7 +29,7 @@
 
 // STORE, the safety buffer (ONLINE_STOCKROOM_BUFFER) and the maths live in ./_stock-lib.js, shared with /api/checkout
 // (server-side stock check, 21 Nov 2026), so the storefront and checkout never disagree.
-import { STORE, computeAvailable } from './_stock-lib.js';
+import { STORE, computeAvailable, shownMap } from './_stock-lib.js';
 import { isGradient, GRADIENT } from './_gradient.js';
 import Stripe from 'stripe';
 import { status as capsStatus, resolveStaleHolds } from './_caps-lib.js';
@@ -99,6 +99,7 @@ export default async function handler(req, res) {
     //    The bc list is small (<= 200), so the product_id in() list stays well under HTTP query-string limits.
     const bcToPid = {};
     const slMap   = {};
+    const dispMap = {};   // display_count: only for the 27 Nov 2026 display rule (shown = display > 0 AND stockroom > 0); never added to the available qty
 
     const pbRes = await q(
       `product_barcodes?select=barcode,product_id&barcode=in.(${want.map(encodeURIComponent).join(',')})&limit=500`
@@ -109,15 +110,16 @@ export default async function handler(req, res) {
     for (const r of pb) { bcToPid[r.barcode] = r.product_id; pids.add(r.product_id); }
 
     if (pids.size) {
-      // Fetch stockroom_count only — display_count is excluded by design.
-      // Online orders ship from the WAT stockroom; display stock is on the shop floor.
+      // Available qty = stockroom only (online orders ship from the WAT stockroom); display_count is read ONLY for the
+      // display rule (owner 27 Nov 2026: a product is shown / sold online only with display > 0 AND stockroom > 0).
       const pidList = [...pids].join(',');
       const slRes = await q(
-        `stock_levels?product_id=in.(${pidList})&store_id=eq.${STORE}&select=product_id,stockroom_count`
+        `stock_levels?product_id=in.(${pidList})&store_id=eq.${STORE}&select=product_id,stockroom_count,display_count`
       );
       if (!slRes.ok) throw new Error(`stock_levels ${slRes.status}`);
       for (const r of await slRes.json()) {
         slMap[r.product_id] = r.stockroom_count || 0;
+        if (r.display_count !== undefined) dispMap[r.product_id] = r.display_count || 0;
       }
     }
 
@@ -126,6 +128,10 @@ export default async function handler(req, res) {
     const ooRes = await q(`online_orders?status=eq.paid&store_id=eq.${STORE}&select=items&limit=5000`);
     if (ooRes.ok) orders = await ooRes.json(); // holds failure is non-fatal — better to slightly over-show than hide everything
     const stock = computeAvailable(want, bcToPid, slMap, orders);
+    // Display rule (owner 27 Nov 2026): not shown = nothing to sell online: stock 0 (the page treats it as unavailable and
+    // hides the card, exactly like a sold-out one); sellable is zeroed below for non-Gradient barcodes.
+    const shown = shownMap(want, bcToPid, dispMap, slMap);
+    for (const bc of want) if (!shown[bc]) stock[bc] = 0;
 
     // 5) non-Gradient barcodes: caps + WAT price + Christmas window (only for barcodes the caller asked for)
     const sellable = {}, price_pence = {}, online_group = {};
@@ -171,7 +177,8 @@ export default async function handler(req, res) {
       }
     }
 
-    const body = { ok: true, store: STORE, stock, sellable, price_pence, window, ts: new Date().toISOString(), ladders: ladderView, storefront: sf() };
+    for (const bc of Object.keys(sellable)) if (shown[bc] === false) sellable[bc] = 0;
+    const body = { ok: true, store: STORE, stock, sellable, price_pence, shown, window, ts: new Date().toISOString(), ladders: ladderView, storefront: sf() };
     if (groupMode) body.online_group = online_group; // additive, M1 only: the live default response is unchanged
     return res.status(200).json(await withXmas(body));
   } catch (e) {
