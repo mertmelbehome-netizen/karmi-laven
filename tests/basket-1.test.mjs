@@ -131,7 +131,8 @@ test('U3: the add path has no scroll / focus call, and the family grid keeps the
 test('U4: every add button reads "Add to bag" (cards, modal, bag nudge); no "＋ Add" / "+ ADD" left; one uppercase style', () => {
   assert.ok(!HTML.includes('＋ Add') && !SFJS.includes('＋ Add'))
   assert.equal((HTML.match(/class="nudge-add"/g) || []).length, 3, 'nudgeBtn() + its two generic fallbacks in the footer (no named product)')
-  assert.match(HTML, /return 'Add to bag'; return 'Add 1 more '/, 'label falls back to Add to bag only when no product can be named')
+  assert.match(HTML, /return 'Add to bag'; const nm=/, 'label falls back to Add to bag only when no product can be named')
+  assert.match(HTML, /'Add 1 more '\+nm : 'Quick add: '\+nm/, '27 Nov: Add 1 more only when it completes the 10; otherwise Quick add')
   assert.match(HTML, /id="mAdd"[^>]*>Add to bag</)
   assert.match(SFJS, /'Add to bag — '/)
   for (const sel of ['\\.cbody \\.add', '\\.modal \\.madd', '\\.nudge-add']) assert.match(HTML, new RegExp(sel + '\\{[^}]*text-transform:uppercase'), sel)

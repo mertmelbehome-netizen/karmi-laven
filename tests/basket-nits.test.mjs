@@ -172,3 +172,16 @@ test('nits-3: short names are kept whole, long names are cut with an ellipsis (o
   const { p } = page(); p.setCart([{ bc: '81004', qty: 9 }])
   const l = p.nudgeLabel(); assert.match(l, /^Add 1 more /); assert.ok(l.length <= 'Add 1 more '.length + 22)
 })
+
+test('27 Nov design review: at 3 items the bag pill reads "Quick add: <name>" (never "Add 1 more" next to "Add 7 more"); at 9 it is "Add 1 more <name>"', () => {
+  const { p, doc } = page(); p.setCart([{ bc: A, qty: 2 }, { bc: A2, qty: 1 }]); p.updateBag(); p.m1Foot()
+  assert.equal(p.nudgeLabel(), 'Quick add: ' + NAME[A2])
+  assert.match(doc.getElementById('cartShip').innerHTML, />Quick add: [^<]+<\/button>/)
+  assert.doesNotMatch(doc.getElementById('cartShip').innerHTML, /Add 1 more/)
+  p.setCart([{ bc: A, qty: 5 }, { bc: A2, qty: 4 }]); p.updateBag(); p.m1Foot()
+  assert.equal(p.nudgeLabel(), 'Add 1 more ' + NAME[A2])
+})
+test('27 Nov design review: the bag pill is flat (ink on cream), no accent-gold gradient', () => {
+  assert.doesNotMatch(HTML, /\.nudge-add\{[^}]*linear-gradient/)
+  assert.match(HTML, /\.nudge-add\{[^}]*background:var\(--ink\)/)
+})
