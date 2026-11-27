@@ -124,8 +124,8 @@ html.kl-v2 .kl-hp[hidden]{display:none}
      row UNDER the slide (no chip over the photo). Delivery is NOT repeated here: it lives in the dark strip at the very top. */
   html.kl-v2 .kl-hs{padding:0 0 6px}
   .kl-hs .kl-track{height:296px}
-  .kl-hs-panel{width:56%; padding:18px 8px 18px 16px; line-height:1.25; background:var(--paper); justify-content:flex-start}
-  .kl-hs .kl-hs-s1, .kl-hs .kl-hs-s1 .kl-hs-panel{background:#f6eee3}
+  .kl-hs-panel{width:56%; padding:18px 8px 18px 16px; line-height:1.25; background:#f6eee3; justify-content:flex-start}   /* one warm tone on all 3 slides (27 Nov: slide 3 read near-white) */
+  .kl-hs .kl-slide{background:#f6eee3}
   /* one grid for all 3 slides: text from the top, the CTA on the same baseline at the bottom */
   .kl-hs-panel .kl-hs-a{margin-top:auto}
   .kl-hs .kl-slide img{left:56%; right:auto; width:44%; -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 16%); mask-image:linear-gradient(90deg, transparent 0, #000 16%)}   /* the photo fades into the panel: no hard vertical cut */
