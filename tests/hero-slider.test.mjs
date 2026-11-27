@@ -48,7 +48,9 @@ test('slide 1 = the 10+ offer from the table (m1Texts().bar) + singles + deliver
 test('slides 2-3: line / category name + a category deep link only (no price, no %, no was, no "Gradient")', () => {
   const hashes = []
   for (const s of SLIDES.slice(1)) {
-    const t = text(s.body)
+    // 27 Nov (design review g): the engine-driven 10+ offer (data-kl-m1="bar", checked in m1-banner.test.mjs) is allowed; the rest stays price-free
+    assert.match(s.body, /<p class="kl-hs-offer kl-hs-mini" data-kl-m1="bar">/, 'slides 2-3 show the 10+ offer')
+    const t = text(s.body.replace(/<p class="kl-hs-offer kl-hs-mini" data-kl-m1="bar">[\s\S]*?<\/p>/, ''))
     assert.doesNotMatch(t, /£|%|\boff\b|\bwas\b|\bsave\b|gradient/i, t)
     const a = s.body.match(/<a class="kl-hs-a" href="#([a-z-]+)">Shop [^<]+<\/a>/); assert.ok(a, t)
     hashes.push(a[1])
@@ -107,7 +109,7 @@ test('text over the photo: AA on the panel even over a black pixel (96% paper), 
   // the text stays on the solid part: right padding (% of the slide) >= the fading end of the panel
   // (desktop 54% panel solid to 80%, tablet 62% / 80%, phone 68% / 86%)
   // phone (27 Nov redo): SOLID paper panel 56% + photo 44%, no text ever over the photo, so no fade to compute
-  const ph = CSS.match(/@media\(max-width:560px\)\{\n  \/\* phone \(27 Nov redo[\s\S]*?\n\}/)[0]
+  const ph = CSS.match(/@media\(max-width:560px\)\{\r?\n  \/\* phone \(27 Nov redo[\s\S]*?\r?\n\}/)[0]
   assert.match(ph, /\.kl-hs-panel\{width:56%;[^}]*background:#f6eee3/)
   assert.match(ph, /.kl-hs .kl-slide img{left:56%; right:auto; width:44%/)
   assert.ok(ratio('#34302a', '#f6eee3') >= 7 && ratio('#6b6457', '#f6eee3') >= 4.5, 'slide 1 warm panel AA')
@@ -121,7 +123,7 @@ test('text over the photo: AA on the panel even over a black pixel (96% paper), 
   assert.ok(hs[0] <= 420 && hs[2] <= 0.37 * 812 && hs[2] >= 240)
   // Komuta 27 Nov (a): 'No code needed. Applied instantly.' shows on phones too (only the old strip hid it)
   assert.doesNotMatch(ph,/bm-how\{[^}]*display:none/)
-  assert.doesNotMatch(CSS, /\.kl-hs[^{]*\.bm-how\{[^}]*display:none/)
+  assert.doesNotMatch(CSS, /\.kl-hs(?!-mini)[^{]*\.bm-how\{[^}]*display:none/)
 })
 
 test('families view only: the slider is hidden on the old page; in the families view the old top strip and hero photo are off, the H1 stays (sr-only)', () => {
@@ -186,4 +188,9 @@ test('auto-advance holds on hover / keyboard focus, stops for good on touch or a
   assert.equal(r.btn.attrs['aria-label'], 'Play slides'); assert.equal(r.api.state().stop, true)
   r = rig({ v2: false }); r.api.tick(); assert.equal(r.go.length, 0, 'old page: never moves')
   r = rig(); r.doc.hidden = true; r.api.tick(); assert.equal(r.go.length, 0, 'background tab: never moves')
+})
+
+test('slides 2-3 (K&D #134): no "From £x each" under a product name: the compact offer hides .bm-from (true for every group: only "70% off when you buy 10+ items")', () => {
+  assert.match(CSS, /\.kl-hs-mini \.bm-from, \.kl-hs-mini \.bm-how\{display:none\}/)
+  assert.doesNotMatch(CSS, /\.kl-hs-mini[^{]*\.bm-from\{[^}]*display:(block|inline)/)
 })

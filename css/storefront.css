@@ -402,3 +402,15 @@ html.kl-v2 .announce{background:var(--ink); color:#faf7f1; border-bottom:0; font
   html.kl-v2 body > nav:not(.kl-tabbar) .bagbtn{top:3px; transform:none; right:10px; padding:7px 11px}
   html.kl-v2 body > nav:not(.kl-tabbar){padding-top:10px; padding-bottom:10px}
 }
+/* slides 2-3 carry the 10+ offer too (design review 27 Nov, item g): same engine text (data-kl-m1="bar"), compact: 70% off + when + from, no 'no code' line */
+.kl-hs-mini{margin:0 0 14px}
+.kl-hs-mini .bm-pct{font-size:30px; line-height:1}
+.kl-hs-mini .bm-when{font-size:15px}
+.kl-hs-mini .bm-from, .kl-hs-mini .bm-how{display:none}   /* K&D: 'From £1.50' under a product name reads as THAT product's price (group C: £3.90 at 10+): slides 2-3 keep only the claim true for every group */
+.kl-hs-t{margin-bottom:8px}
+@media(max-width:560px){
+  .kl-hs-mini{margin:0 0 12px}
+  .kl-hs-mini .bm-pct{font-size:28px}
+  .kl-hs-mini .bm-when{font-size:14px}
+  .kl-hs-t{margin:2px 0 8px}
+}

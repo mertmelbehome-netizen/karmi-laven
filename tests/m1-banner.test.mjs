@@ -18,7 +18,9 @@ test('families view: the strip is off and the same offer line (same key, same te
   assert.match(css, /\nhtml\.kl-v2 \.m1bar\{display:none\}/)
   const bar = HTML.match(/<div class="m1bar" data-kl-m1="bar">([\s\S]*?)<\/div>/)[1]
   assert.ok(HTML.includes(`<p class="kl-hs-offer" data-kl-m1="bar">${bar}</p>`))
-  assert.equal((HTML.match(/data-kl-m1="bar"/g) || []).length, 2, 'strip (old page) + slide 1 (families view): one shows at a time')
+  assert.equal((HTML.match(/data-kl-m1="bar"/g) || []).length, 4, 'strip (old page) + slide 1 + the compact copies on slides 2-3 (families view)')
+  const mini = `<p class="kl-hs-offer kl-hs-mini" data-kl-m1="bar">${bar}</p>`
+  assert.equal(HTML.split(mini).length - 1, 2, 'slides 2 and 3 carry the SAME engine text (static first paint = m1Texts().bar)')
 })
 
 test('phone: the banner is one line (the no-code line is desktop-only) so the first card stays above the sticky bar (V-01)', () => {

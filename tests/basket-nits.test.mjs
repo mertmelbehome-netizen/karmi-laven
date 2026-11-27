@@ -184,4 +184,5 @@ test('27 Nov design review: at 3 items the bag pill reads "Quick add: <name>" (n
 test('27 Nov design review: the bag pill is flat (ink on cream), no accent-gold gradient', () => {
   assert.doesNotMatch(HTML, /\.nudge-add\{[^}]*linear-gradient/)
   assert.match(HTML, /\.nudge-add\{[^}]*background:var\(--ink\)/)
+  assert.doesNotMatch(read('../css/a11y.css'), /\.nudge-add\{[^}]*gradient/, 'a11y.css (loaded last) must not bring the gradient back')
 })

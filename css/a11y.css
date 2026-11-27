@@ -36,7 +36,7 @@
 .hero-img .cap .s{ opacity:1 }
 
 /* white text on the "+ Add" pill: the gold end of its gradient was 3.1:1 against white; both ends are now >= 5:1 */
-.nudge-add{ background:linear-gradient(90deg, #7d4f48, var(--gold-text)) }
+.nudge-add{ background:var(--ink); color:#faf7f1 }   /* 27 Nov: flat ink pill (12.26:1); the old accent-gold gradient came back from here */
 
 /* ---- 3 tap targets >= 44 x 44 ---- */
 .sw, .btn, .cbody .add, .madd, .mbundle, .bagbtn, .cb-btn, .cart-checkout, .sbtn, .b-add, .klpop-submit, .klpop-skip, .kl-sub, .kl-bundlechip{ min-height:44px }
