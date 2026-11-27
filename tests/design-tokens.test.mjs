@@ -48,3 +48,12 @@ test('T-07: Jost body text is weight 400 (300 only on >= 24 px Cormorant heading
 test('T-08: lining numerals on the whole page (Cormorant default is old-style: "70" read as "7o")', () => {
   assert.match(HTML, /body\{[^}]*font-variant-numeric:lining-nums/)
 })
+
+test('card baseline: add button pinned to the card bottom (designer review f)', () => {
+  assert.match(SF, /\.cbody \.add\{margin-top:auto\}/)
+  assert.match(SF, /\.cbody\{display:flex; flex-direction:column; flex:1 1 auto\}/)
+})
+
+test('T-10: buttons inherit the page font (no Arial fallback)', () => {
+  assert.match(SF, /html\.kl-v2 button\{font-family:inherit\}/)
+})

@@ -414,3 +414,11 @@ html.kl-v2 .announce{background:var(--ink); color:#faf7f1; border-bottom:0; font
   .kl-hs-mini .bm-when{font-size:14px}
   .kl-hs-t{margin:2px 0 8px}
 }
+
+/* card baseline (27 Nov, designer review f): the add button sits on one baseline in a row, whatever the category row's length */
+html.kl-v2 #grid .card, html.kl-v2 .kl-card{display:flex; flex-direction:column}
+html.kl-v2 #grid .card .cbody, html.kl-v2 .kl-card .cbody{display:flex; flex-direction:column; flex:1 1 auto}
+html.kl-v2 #grid .card .cbody .add, html.kl-v2 .kl-card .cbody .add{margin-top:auto}
+html.kl-v2 #grid .card .cbody .fee, html.kl-v2 .kl-card .cbody .fee{margin-bottom:11px}
+/* T-10: buttons inherit Jost (five close/skip buttons fell back to Arial) */
+html.kl-v2 button{font-family:inherit}
