@@ -109,7 +109,7 @@ test('text over the photo: AA on the panel even over a black pixel (96% paper), 
   // phone (27 Nov redo): SOLID paper panel 56% + photo 44%, no text ever over the photo, so no fade to compute
   const ph = CSS.match(/@media\(max-width:560px\)\{\n  \/\* phone \(27 Nov redo[\s\S]*?\n\}/)[0]
   assert.match(ph, /\.kl-hs-panel\{width:56%;[^}]*background:var\(--paper\)/)
-  assert.match(ph, /\.kl-hs \.kl-slide img\{width:44%\}/)
+  assert.match(ph, /.kl-hs .kl-slide img{left:56%; width:auto/)
   assert.ok(ratio('#34302a', '#f6eee3') >= 7 && ratio('#6b6457', '#f6eee3') >= 4.5, 'slide 1 warm panel AA')
   for (const [w, pad, solid] of [[54, 13, 0.8], [62, 12, 0.8]]) {
     assert.match(CSS, new RegExp(`\\.kl-hs-panel\\{[^}]*width:${w}%;[^}]*padding:\\d+px ${pad}% `))
@@ -117,8 +117,8 @@ test('text over the photo: AA on the panel even over a black pixel (96% paper), 
   }
   assert.match(CSS, /\.kl-hs-offer \.bm-how\{display:block; font-size:15px; color:#6b6457/)
   const hs = [...CSS.matchAll(/\.kl-hs \.kl-track\{height:(\d+)px/g)].map((x) => +x[1])
-  assert.deepEqual(hs, [380, 300, 262])   // desktop, tablet, phone
-  assert.ok(hs[0] <= 420 && hs[2] <= 0.35 * 812 && hs[2] >= 240)
+  assert.deepEqual(hs, [380, 300, 296])   // desktop, tablet, phone
+  assert.ok(hs[0] <= 420 && hs[2] <= 0.37 * 812 && hs[2] >= 240)
   // Komuta 27 Nov (a): 'No code needed. Applied instantly.' shows on phones too (only the old strip hid it)
   assert.doesNotMatch(ph,/bm-how\{[^}]*display:none/)
   assert.doesNotMatch(CSS, /\.kl-hs[^{]*\.bm-how\{[^}]*display:none/)

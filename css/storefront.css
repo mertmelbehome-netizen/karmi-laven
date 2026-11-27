@@ -123,10 +123,12 @@ html.kl-v2 .kl-hp[hidden]{display:none}
      fade, nothing over the photo), slide 1 on a warmer paper so the 70% offer stands out; dots + Pause sit in their own
      row UNDER the slide (no chip over the photo). Delivery is NOT repeated here: it lives in the dark strip at the very top. */
   html.kl-v2 .kl-hs{padding:0 0 6px}
-  .kl-hs .kl-track{height:262px}
-  .kl-hs .kl-slide img{width:44%}
-  .kl-hs-panel{width:56%; padding:14px 10px 14px 16px; line-height:1.25; background:var(--paper); justify-content:center}
-  .kl-hs-s1 .kl-hs-panel{background:#f6eee3}
+  .kl-hs .kl-track{height:296px}
+  .kl-hs-panel{width:56%; padding:18px 8px 18px 16px; line-height:1.25; background:var(--paper); justify-content:flex-start}
+  .kl-hs-s1, .kl-hs-s1 .kl-hs-panel{background:#f6eee3}
+  /* one grid for all 3 slides: text from the top, the CTA on the same baseline at the bottom */
+  .kl-hs-panel .kl-hs-a{margin-top:auto}
+  .kl-hs .kl-slide img{left:56%; width:auto; right:0; -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 16%); mask-image:linear-gradient(90deg, transparent 0, #000 16%)}   /* the photo fades into the panel: no hard vertical cut */
   .kl-hs-offer .bm-pct{font-size:50px; line-height:.95}
   .kl-hs-offer .bm-when, .kl-hs-offer .bm-from{font-size:15px}
   .kl-hs-offer .bm-when{display:block; margin-top:4px}
@@ -138,9 +140,11 @@ html.kl-v2 .kl-hp[hidden]{display:none}
   .kl-hs-k{font-size:12px; letter-spacing:.16em}
   .kl-hs-t{font-size:32px; margin:4px 0 14px}
   .kl-hs-a{padding:0 16px; font-size:12px; letter-spacing:.1em}
-  .kl-hs-ctl{position:static; justify-content:center; gap:6px; padding:2px 0 0; background:none; height:40px}
-  .kl-hs .kl-dots{height:40px; gap:2px}
-  .kl-hs-play{width:40px; height:40px}
+  .kl-hs-ctl{position:static; justify-content:center; gap:4px; padding:0; background:none; height:44px}
+  .kl-hs .kl-dots{height:44px; gap:0}
+  .kl-hs .kl-dot{width:44px; height:44px}   /* touch target >= 44 px (dots + Pause) */
+  .kl-hs-play{width:44px; height:44px}
+  .kl-hs-a{min-height:44px}
 }
 @media(max-width:560px){
   /* family tabs (Bracelets / Necklaces / Hair) with their sub-chip row: every card shows its single price + the 10+
@@ -389,4 +393,12 @@ html.kl-v2 .announce{background:var(--ink); color:#faf7f1; border-bottom:0; font
   /* 360 px phones: the singles line must not break inside '£5 / £8 / £13' */
   .kl-hs-panel{width:58%} .kl-hs .kl-slide img{width:42%}
   .kl-hp-single{letter-spacing:0; white-space:nowrap}
+}
+.kl-hs-a-s1{display:none}
+@media(max-width:560px){
+  .kl-hs-a-s1{display:inline-flex}
+  /* header (Komuta 27 Nov): the hand-written logo never touches the Bag pill; the Bag sits on the logo row, the tagline below it */
+  html.kl-v2 .logo{font-size:clamp(42px,12vw,56px); margin-bottom:6px}
+  html.kl-v2 body > nav:not(.kl-tabbar) .bagbtn{top:8px; transform:none; right:10px; padding:7px 11px}
+  html.kl-v2 body > nav:not(.kl-tabbar){padding-top:10px; padding-bottom:10px}
 }
