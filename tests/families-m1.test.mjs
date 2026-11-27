@@ -75,8 +75,8 @@ test('pools table (rollback): family price = till price, plain money, no M1 text
 
 test('mobile sticky bar per tab (empty bag)', () => {
   assert.equal(core.sfSticky('gradient', 800, 149), null, 'Gradient: the page keeps "Each £8.00" + Build your bundle')
-  assert.deepEqual(core.sfSticky('bracelets', 500, 149), { info: 'From <b>£5.00</b> each<span class="dl" data-kl="fee1">+ £1.49 UK delivery</span>', btn: 'Shop Bracelets' })
-  assert.deepEqual(core.sfSticky('necklaces', 1300, 149), { info: 'From <b>£13.00</b> each<span class="dl" data-kl="fee1">+ £1.49 UK delivery</span>', btn: 'Shop Necklaces' })
+  assert.deepEqual(core.sfSticky('bracelets', 500, 149), { info: 'From <b>£5.00</b> each<span class="dl" data-kl="fee1">+ £1.49 UK delivery</span>', btn: 'Start picking' })
+  assert.deepEqual(core.sfSticky('necklaces', 1300, 149), { info: 'From <b>£13.00</b> each<span class="dl" data-kl="fee1">+ £1.49 UK delivery</span>', btn: 'Start picking' })
   assert.equal(core.sfSticky('hair', 800, 0).info, 'From <b>£8.00</b> each<span class="dl" data-kl="fee1">Free UK delivery</span>')
   assert.equal(core.sfSticky('hair', null, 149).info, '<span class="dl" data-kl="fee1">+ £1.49 UK delivery</span>', 'no sellable card: no price claim')
   for (const t of ['bracelets', 'necklaces', 'hair']) assert.doesNotMatch(core.sfSticky(t, 500, 149).btn, /bundle/i)

@@ -1762,7 +1762,10 @@ function updateBag(){
       // the unlocked bag's delivery is the ENGINE's unlock_shipping_pence (same source as m1Lines); the CURRENT bag's delivery status is never shown as if it applied to it.
       // Second line = the bag's own running total (§5.18), incl. its delivery only when that is charged.
       const nearTxt=near?'Add '+us.to_unlock+' more → '+gbpP(us.unlock_total_pence)+(us.unlock_shipping_pence>0?' + '+gbpP(us.unlock_shipping_pence)+' delivery':(us.unlock_shipping_pence===0?' with free delivery':'')):'';
-      inf.innerHTML=near ? '<b>'+nearTxt+'</b><span class="dl">Bag '+gbpP(d.totalP)+(d.feeP>0?' inc. '+gbpP(d.feeP)+' delivery':'')+'</span>' : 'Bag <b>'+gbpP(d.totalP)+'</b>'+dl;
+      // 27 Nov (design review e): a live counter while the bag is below the 10+ price, 'N / 10 · M more for 70% off' (engine numbers: tier_units / tier_from / to_unlock), the bag total on the second line
+      const cnt=us?(typeof us.tier_units==='number'?us.tier_units:us.units):0, far=us&&!us.tier_unlocked&&!near&&us.to_unlock>=1&&us.tier_from>=1&&typeof cnt==='number';
+      const farTxt=far?'<b>'+cnt+' / '+us.tier_from+'</b> · '+us.to_unlock+' more'+(us.pct_off!==null?' for '+us.pct_off+'% off':''):'';   // the % only when the engine can claim it for every group on the bag (K-046)
+      inf.innerHTML=near ? '<b>'+nearTxt+'</b><span class="dl">Bag '+gbpP(d.totalP)+(d.feeP>0?' inc. '+gbpP(d.feeP)+' delivery':'')+'</span>' : far ? farTxt+'<span class="dl">Bag '+gbpP(d.totalP)+(d.feeP>0?' inc. '+gbpP(d.feeP)+' delivery':'')+'</span>' : 'Bag <b>'+gbpP(d.totalP)+'</b>'+dl;
       // measurement hooks for the CMA209 check (total = items + delivery), no visual change
       inf.setAttribute('data-kl-total',''); inf.dataset.klItemsP=subP; inf.dataset.klShipP=d.feeP; inf.dataset.klTotalP=d.totalP; }
     else { inf.removeAttribute('data-kl-total'); }

@@ -137,7 +137,7 @@ test('Bracelets > All = ONE grid (the page\'s own Gradient grid node moved in); 
   assert.match(HTML, /<div class="grid" id="grid"><\/div>/)
 })
 
-test('sticky bar per tab unchanged: the collection view keeps the page bar (bundle builder); Bracelets keeps "Shop Bracelets"', () => {
+test('sticky bar per tab unchanged: the collection view keeps the page bar (bundle builder); Bracelets says "Start picking" (27 Nov: the shopper is already on the tab)', () => {
   assert.equal(core.sfSticky('gradient', 800, 399, null, null), null)
-  assert.equal(core.sfSticky('bracelets', 500, 399, null, null).btn, 'Shop Bracelets')
+  assert.equal(core.sfSticky('bracelets', 500, 399, null, null).btn, 'Start picking')
 })
