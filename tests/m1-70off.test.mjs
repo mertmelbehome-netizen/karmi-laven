@@ -193,5 +193,5 @@ test('#10 accessibility: the secondary "70% off" lines are >= 12 px and #6b6457 
 
 test('static first paint = JS text from ladders.json (cta, each, faqq, faqa): change the table -> change the HTML too', () => {
   const T = page(LADDERS).m1Texts()
-  for (const k of ['cta', 'each', 'faqq', 'faqa']) assert.ok(HTML.includes(`data-kl-m1="${k}">${T[k]}</`), `static ${k} != m1Texts().${k} (regenerate the static HTML)`)
+  for (const k of ['bar', 'cta', 'each', 'faqq', 'faqa']) assert.ok(HTML.includes(`data-kl-m1="${k}">${T[k]}</`), `static ${k} != m1Texts().${k} (regenerate the static HTML)`)
 })
