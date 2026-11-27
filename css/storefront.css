@@ -128,7 +128,7 @@ html.kl-v2 .kl-hp[hidden]{display:none}
   .kl-hs-s1, .kl-hs-s1 .kl-hs-panel{background:#f6eee3}
   /* one grid for all 3 slides: text from the top, the CTA on the same baseline at the bottom */
   .kl-hs-panel .kl-hs-a{margin-top:auto}
-  .kl-hs .kl-slide img{left:56%; width:auto; right:0; -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 16%); mask-image:linear-gradient(90deg, transparent 0, #000 16%)}   /* the photo fades into the panel: no hard vertical cut */
+  .kl-hs .kl-slide img{left:56%; right:auto; width:44%; -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 16%); mask-image:linear-gradient(90deg, transparent 0, #000 16%)}   /* the photo fades into the panel: no hard vertical cut */
   .kl-hs-offer .bm-pct{font-size:50px; line-height:.95}
   .kl-hs-offer .bm-when, .kl-hs-offer .bm-from{font-size:15px}
   .kl-hs-offer .bm-when{display:block; margin-top:4px}
@@ -399,6 +399,6 @@ html.kl-v2 .announce{background:var(--ink); color:#faf7f1; border-bottom:0; font
   .kl-hs-a-s1{display:inline-flex}
   /* header (Komuta 27 Nov): the hand-written logo never touches the Bag pill; the Bag sits on the logo row, the tagline below it */
   html.kl-v2 .logo{font-size:clamp(42px,12vw,56px); margin-bottom:6px}
-  html.kl-v2 body > nav:not(.kl-tabbar) .bagbtn{top:8px; transform:none; right:10px; padding:7px 11px}
+  html.kl-v2 body > nav:not(.kl-tabbar) .bagbtn{top:3px; transform:none; right:10px; padding:7px 11px}
   html.kl-v2 body > nav:not(.kl-tabbar){padding-top:10px; padding-bottom:10px}
 }
