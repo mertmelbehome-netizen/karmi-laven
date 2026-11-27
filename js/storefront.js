@@ -114,14 +114,14 @@
       { k: 'sparkle', label: 'Sparkle', re: /^(statement )?sparkle ring$/i }, { k: 'antique', label: 'Antique-Style', re: /^antique-style ring$/i },
       { k: 'enamel', label: 'Enamel', re: /^enamel ring$/i }, { k: 'rough-cut', label: 'Rough-Cut Look', re: /^rough-cut look ring$/i }],
     // Necklace groups (Komuta 27 Nov, owner: 'Necklaces 2 kategoriye böl stone, NL, NC ekle'): neutral keys (hash
-    // '#necklaces-drop' / '-choker' / '-stone'), the group name HERE only (label = desktop chip + panel title + grid
+    // '#necklaces-drop' / '-choker' / '-chip'), the group name HERE only (label = desktop chip + panel title + grid
     // heading; short = phone chip): an owner rename = one label here. Heading rule: one motif shared by every piece in
     // the group = the motif name ('Daisy Drop Necklaces'), else the general name. 27 Nov: Drop = 2 daisy + 2 starfish,
-    // Stone = rose chip + starfish / lilac heart / black chip -> general names. "Stone Necklaces" = a group name (Komuta),
-    // no material claim on cards. Order = sfSubOf order: Choker before Stone (a 'Chip Bead Choker' is a choker).
+    // Chip = rose chip + starfish / lilac heart / black chip -> general name. 27 Nov (K&D): the word 'stone' read as a material
+    // claim (products.material empty), so the group is named Chip Necklaces; a supplier spec would let it return. Order = sfSubOf order: Choker before Chip (a 'Chip Bead Choker' is a choker).
     necklaces: [{ k: 'drop', label: 'Drop Necklaces', short: 'Drop', re: /^bead necklace$/i },
       { k: 'choker', label: 'Bead Chokers', short: 'Chokers', re: /\bchokers?\b/i },
-      { k: 'stone', label: 'Stone Necklaces', short: 'Stone', re: /^(charm|chip bead) necklace$/i }]
+      { k: 'chip', label: 'Chip Necklaces', short: 'Chips', re: /^(charm|chip bead) necklace$/i }]
   };
   /* Tabs whose sub-categories are groups (Necklaces, 27 Nov): All shows every group under its own heading (.kl-gh, the
    * bracelet-block style); an open group's panel title is the group name alone ("Drop Necklaces", not "Necklaces · ..."). */

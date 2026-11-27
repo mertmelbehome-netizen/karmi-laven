@@ -1,5 +1,5 @@
 // Necklace groups (Komuta 27 Nov, owner: 'Necklaces 2 kategoriye böl stone, NL, NC ekle'). The Necklaces row = All +
-// Drop Necklaces | Bead Chokers | Stone Necklaces (an empty group hidden, K-01; fewer than 2 groups on sale = no row);
+// Drop Necklaces | Bead Chokers | Chip Necklaces (an empty group hidden, K-01; fewer than 2 groups on sale = no row);
 // Necklaces > All groups its cards under small headings (.kl-gh, none above the first cards on phones, V-01); one row at
 // 375 / 390 px, wraps on desktop. Group names live in ONE constant (js/storefront.js SF_SUBS.necklaces).
 // Pure functions run as-is from js/storefront.js (KL-SF-CORE); the DOM / css wiring is pinned on its source lines.
@@ -18,29 +18,29 @@ const NECK = CARDS.filter((c) => c.tab === 'necklaces')
 const N = core.SF_SUBS.necklaces
 const it = (line, ok = true) => ({ line, ok })
 
-test('one constant: Drop Necklaces | Bead Chokers | Stone Necklaces, neutral keys, a rename = one label', () => {
-  assert.deepEqual(N.map((x) => x.k), ['drop', 'choker', 'stone'])
-  assert.deepEqual(N.map((x) => x.label), ['Drop Necklaces', 'Bead Chokers', 'Stone Necklaces'])
-  assert.deepEqual(N.map((x) => x.short), ['Drop', 'Chokers', 'Stone'])
+test('one constant: Drop Necklaces | Bead Chokers | Chip Necklaces, neutral keys, a rename = one label', () => {
+  assert.deepEqual(N.map((x) => x.k), ['drop', 'choker', 'chip'])
+  assert.deepEqual(N.map((x) => x.label), ['Drop Necklaces', 'Bead Chokers', 'Chip Necklaces'])
+  assert.deepEqual(N.map((x) => x.short), ['Drop', 'Chokers', 'Chips'])
   assert.equal(core.SF_GROUPED.necklaces, true)
   assert.ok(!core.SF_BLOCKS.necklaces, 'groups are SF_SUBS (the Rings row pattern), no second block system')
   for (const l of N.flatMap((x) => [x.label, x.short])) {
     assert.equal(SF.split("'" + l + "'").length - 1, 1, l + ' written once (SF_SUBS.necklaces)')
     assert.ok(!HTML.includes("'" + l + "'"), l + ' not repeated in index.html')
   }
-  // customer wording: no Lux / crystal / diamond / Gradient / Steel; 'Stone' only as the Komuta group name
-  for (const l of N.flatMap((x) => [x.label, x.short])) assert.doesNotMatch(l.replace(/^Stone( Necklaces)?$/, ''), /\blux\b|crystal|diamond|gradient|steel|\bstone\b/i, l)
+  // customer wording: no Lux / crystal / diamond / Gradient / Steel / stone (K&D 27 Nov: 'stone' reads as a material claim)
+  for (const l of N.flatMap((x) => [x.label, x.short])) assert.doesNotMatch(l, /\blux\b|crystal|diamond|gradient|steel|\bstone\b/i, l)
 })
 
-test('map: every live necklace card sits in a group by its line; the Necklace Lux Stone family = Stone; Bead Necklace = Drop', () => {
-  const want = { 6180: 'stone', 6170: 'stone', 6159: 'stone', 7058: 'drop', 7056: 'drop', 6095: 'drop', 6091: 'drop' }
+test('map: every live necklace card sits in a group by its line; the Necklace Lux Stone family = Chip; Bead Necklace = Drop', () => {
+  const want = { 6180: 'chip', 6170: 'chip', 6159: 'chip', 7058: 'drop', 7056: 'drop', 6095: 'drop', 6091: 'drop' }
   for (const [bc, k] of Object.entries(want)) {
     const c = NECK.find((x) => x.barcode === bc); if (!c) continue   // a card that left the feed is no longer pinned
     assert.equal(core.sfSubOf('necklaces', c.line), k, bc + ' ' + c.line)
   }
   for (const c of NECK) assert.ok(core.sfSubOf('necklaces', c.line), c.barcode + ' ' + c.line + ' lands in a group (nothing only under All)')
-  for (const c of NECK.filter((x) => x.family === 'Necklace Lux Stone')) assert.equal(core.sfSubOf('necklaces', c.line), 'stone', c.barcode)
-  // chokers: no live product yet; the line name is not known, so any line with the word choker(s) lands there, before Stone
+  for (const c of NECK.filter((x) => x.family === 'Necklace Lux Stone')) assert.equal(core.sfSubOf('necklaces', c.line), 'chip', c.barcode)
+  // chokers: no live product yet; the line name is not known, so any line with the word choker(s) lands there, before Chip
   for (const l of ['Bead Choker', 'Choker Necklace', 'Chip Bead Choker', 'Bead Chokers']) assert.equal(core.sfSubOf('necklaces', l), 'choker', l)
   for (const l of ['Necklace', 'Pendant Necklace', 'Bead Necklace Set', '']) assert.equal(core.sfSubOf('necklaces', l), null, l)
   assert.equal(core.sfSubOf('bracelets', 'Bead Necklace'), null, 'a necklace line never lands in a bracelet line')
@@ -58,9 +58,9 @@ test('heading rule: one shared motif = the motif name, else the general name (27
   }
 })
 
-test('hashes: #necklaces = All; #necklaces-drop / -choker / -stone round-trip; unknown -> All; other tabs unchanged', () => {
+test('hashes: #necklaces = All; #necklaces-drop / -choker / -chip round-trip; unknown -> All; other tabs unchanged', () => {
   assert.deepEqual(core.sfParseHash('#necklaces'), { tab: 'necklaces', sub: 'all' })
-  for (const k of ['drop', 'choker', 'stone']) {
+  for (const k of ['drop', 'choker', 'chip']) {
     assert.equal(core.sfHash('necklaces', k), '#necklaces-' + k)
     assert.deepEqual(core.sfParseHash('#necklaces-' + k), { tab: 'necklaces', sub: k })
   }
@@ -74,11 +74,11 @@ test('hashes: #necklaces = All; #necklaces-drop / -choker / -stone round-trip; u
   assert.match(SF, /var sub = \{ gradient: 'all', bracelets: 'all', rings: 'all', necklaces: 'all' \}/)
 })
 
-test('counts: live cards on sale -> All 7 | Drop 4 | Stone 3; Chokers (nothing on sale) hidden', () => {
+test('counts: live cards on sale -> All 7 | Drop 4 | Chip 3; Chokers (nothing on sale) hidden', () => {
   const v = core.sfVisibleSubs('necklaces', NECK.map((c) => it(c.line)))
   const n = (k) => NECK.filter((c) => core.sfSubOf('necklaces', c.line) === k).length
-  assert.deepEqual(v.map((x) => x.k + ':' + x.n), ['all:' + NECK.length].concat(['drop', 'stone'].filter((k) => n(k)).map((k) => k + ':' + n(k))))
-  if (NECK.length === 7) assert.deepEqual(v.map((x) => x.k + ':' + x.n), ['all:7', 'drop:4', 'stone:3'])
+  assert.deepEqual(v.map((x) => x.k + ':' + x.n), ['all:' + NECK.length].concat(['drop', 'chip'].filter((k) => n(k)).map((k) => k + ':' + n(k))))
+  if (NECK.length === 7) assert.deepEqual(v.map((x) => x.k + ':' + x.n), ['all:7', 'drop:4', 'chip:3'])
   assert.equal(v.reduce((a, x) => a + (x.k === 'all' ? 0 : x.n), 0), v[0].n, 'every piece on sale sits in one group')
   // the hero / sticky 'from' price follows the open group
   const rows = NECK.map((c) => ({ bc: c.barcode, tab: 'necklaces', line: c.line, ok: true }))
@@ -101,7 +101,7 @@ test('grid: Necklaces > All groups cards under .kl-gh headings (first one hidden
   const x = (line, id) => ({ c: { line, id }, s: 'sellable' })
   const list = [x('Charm Necklace', 1), x('Bead Necklace', 2), x('Chip Bead Necklace', 3), x('Bead Necklace', 4)]
   const r = core.sfBlockRows('necklaces', 'all', list)
-  assert.deepEqual(r.map((y) => y.h ? 'h:' + y.h + (y.first ? '*' : '') : y.x.c.id), ['h:Drop Necklaces*', 2, 4, 'h:Stone Necklaces', 1, 3])
+  assert.deepEqual(r.map((y) => y.h ? 'h:' + y.h + (y.first ? '*' : '') : y.x.c.id), ['h:Drop Necklaces*', 2, 4, 'h:Chip Necklaces', 1, 3])
   assert.deepEqual(core.sfBlockRows('necklaces', 'all', [x('Bead Necklace', 1), x('Bead Necklace', 2)]).map((y) => y.h || y.x.c.id), [1, 2], 'one group = no heading')
   assert.deepEqual(core.sfBlockRows('necklaces', 'drop', [x('Bead Necklace', 1)]).map((y) => y.h || y.x.c.id), [1], 'an open group = no heading')
   // a piece in no group: last, under the tab title (never under another group's heading)
