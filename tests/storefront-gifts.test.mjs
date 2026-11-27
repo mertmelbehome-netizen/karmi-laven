@@ -69,7 +69,7 @@ test('Gifts tab: chip after Necklaces (owner 26 Nov 2026: Bracelets, Necklaces, 
   assert.match(nav.innerHTML, /id="kltab-gifts" data-tab="gifts" aria-controls="klFam" aria-selected="true" tabindex="0">Gifts /)
   assert.match(lay.sfBar(doc, ['gradient', 'bracelets'], null, 'gifts').innerHTML, /id="kltab-gifts"[^>]* hidden>/, 'not shown when not visible')
   // first visit (no remembered chips): the Gifts chip is painted with the others
-  assert.match(HTML, /: \['bracelets', 'necklaces', 'gifts', 'gradient'\]\)\.filter\(function \(t\) \{ return t !== 'hair' && t !== 'rings'; \}\);/)
+  assert.match(HTML, /: \['bracelets', 'necklaces', 'gradient'\]\)\.filter\(function \(t\) \{ return t !== 'hair' && t !== 'rings' && t !== 'gifts'; \}\);/)   // closed 27 Nov: no Gifts chip on a first visit
 })
 
 test('Gifts tab hidden with fewer than 4 sellable picks; rows keep order, skip unsellable picks and empty sections', () => {
@@ -77,7 +77,9 @@ test('Gifts tab hidden with fewer than 4 sellable picks; rows keep order, skip u
   const cards = [{ tab: 'bracelets', st: 'single' }]
   assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st), ['bracelets', 'gradient'], 'no count = hidden')
   assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st, 3), ['bracelets', 'gradient'])
-  assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st, 4), ['bracelets', 'gifts', 'gradient'])
+  assert.deepEqual(core.sfVisibleTabs(cards, (c) => c.st, 4), ['bracelets', 'gradient'], 'Gifts section closed 27 Nov 2026 (SF_GIFTS_OPEN=false): never a chip, even with enough picks')
+  assert.match(SF, /var SF_GIFTS_OPEN = false;/)
+  assert.match(SF, /if \(!SF_GIFTS_OPEN\) \{ GIFTDOC = null; return Promise\.resolve\(\); \}/, 'no gifts.json request while closed')
   const doc = { sections: [{ items: ['a', 'b'] }, { heading: 'H1', items: ['c', { bc: 'd', ai_image: true }] }, { heading: 'H2', items: ['e'] }, { heading: 'H3', items: ['a'] }] }
   assert.deepEqual(core.sfGiftRows(doc, () => true), [{ bc: 'a' }, { bc: 'b' }, { h: 'H1' }, { bc: 'c' }, { bc: 'd' }, { h: 'H2' }, { bc: 'e' }], 'dedupe: H3 had only a repeat')
   const few = core.sfGiftRows(doc, (bc) => bc !== 'a' && bc !== 'b' && bc !== 'e')

@@ -87,13 +87,13 @@ test('landing tab = Bracelets (All), always shown since it holds the Gradient Ed
 })
 
 test('Hair / Rings chips: never painted from memory while loading (only the live answer shows them)', () => {
-  assert.match(HTML, /\.filter\(function \(t\) \{ return t !== 'hair' && t !== 'rings'; \}\);/)
+  assert.match(HTML, /\.filter\(function \(t\) \{ return t !== 'hair' && t !== 'rings' && t !== 'gifts'; \}\);/)
   const vis = new Function('localStorage', `var SFL_TABS = ${JSON.stringify(lay.SFL_TABS)}; var m = {}; try { m = JSON.parse(localStorage.getItem('kl_sf_tabs') || '{}') || {}; } catch (e) {}
     ${HTML.match(/  var vis = \(Array\.isArray[^\n]*/)[0]}
     return vis;`)
   const ls = (v) => ({ getItem: () => JSON.stringify({ v }) })
-  assert.deepEqual(vis(ls(['gradient', 'bracelets', 'necklaces', 'hair', 'gifts', 'rings'])), ['gradient', 'bracelets', 'necklaces', 'gifts'])
-  assert.deepEqual(vis({ getItem: () => null }), ['bracelets', 'necklaces', 'gifts', 'gradient'])
+  assert.deepEqual(vis(ls(['gradient', 'bracelets', 'necklaces', 'hair', 'gifts', 'rings'])), ['gradient', 'bracelets', 'necklaces'])
+  assert.deepEqual(vis({ getItem: () => null }), ['bracelets', 'necklaces', 'gradient'])
 })
 
 // ---------- Komuta D-002 / D-001 wording ----------
