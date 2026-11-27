@@ -122,7 +122,7 @@ test('text over the photo: AA on the panel even over a black pixel (96% paper), 
 })
 
 test('families view only: the slider is hidden on the old page; in the families view the old top strip and hero photo are off, the H1 stays (sr-only)', () => {
-  assert.match(CSS, /\n\.kl-hs\{display:none\}\nhtml\.kl-v2 \.kl-hs\{display:block;/)
+  assert.match(CSS, /\r?\n\.kl-hs\{display:none\}\r?\nhtml\.kl-v2 \.kl-hs\{display:block;/)
   assert.match(CSS, /\nhtml\.kl-v2 \.m1bar\{display:none\}/)
   assert.match(HTML, /<h1 class="fadein d1">Colour,<br> worn <em>softly<\/em>\.<\/h1>/)
   // the old page keeps its strip exactly (PR #121 text); one offer per view
