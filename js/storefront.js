@@ -114,6 +114,22 @@
       { k: 'sparkle', label: 'Sparkle', re: /^(statement )?sparkle ring$/i }, { k: 'antique', label: 'Antique-Style', re: /^antique-style ring$/i },
       { k: 'enamel', label: 'Enamel', re: /^enamel ring$/i }, { k: 'rough-cut', label: 'Rough-Cut Look', re: /^rough-cut look ring$/i }]
   };
+  /* Bracelet blocks (Komuta 27 Nov, owner: 'kategori butonları kötü; bileklikleri gerekiyorsa üst başlıkta ayır'; option A
+   * + C on desktop). The Bracelets row = All + these blocks, ONE line at 375 px (no sideways scroll, no cut-off chip); each
+   * block = a set of SF_SUBS keys (lines). Labels and block -> lines live HERE only: an owner rename = one label here.
+   * label = desktop chip, short = phone chip (<= 620 px). Keys are hash keys ('#bracelets-stretch-all'); none is a line key
+   * except 'colour' (the Colour block IS the Gradient Edit view, '#bracelets-colour', unchanged). Old line hashes keep
+   * their meaning ('#bracelets-stretch' = the Stretch Bracelet line only, '#bracelets-bangle', ...): their block chip
+   * shows selected and the grid holds that line. Desktop (>= 621 px): the open block's lines in a 2nd row (wrap). */
+  var SF_BLOCKS = {
+    bracelets: [{ k: 'stretch-all', label: 'Stretch', short: 'Stretch', subs: ['stretch', 'charm', 'double'] },
+      { k: 'colour', label: 'Colour, worn softly', short: 'Colour', subs: ['colour-classic', 'colour-cobra'] },
+      { k: 'bangle-sparkle', label: 'Bangle & Sparkle', short: 'Bangle & Sparkle', subs: ['bangle', 'sparkle'] }]
+  };
+  /** the block with key k; null = not a block key */
+  function sfBlock(tab, k) { return (SF_BLOCKS[tab] || []).filter(function (b) { return b.k === k; })[0] || null; }
+  /** the block a sub key belongs to (the block key itself or one of its lines); null = All / a line in no block */
+  function sfBlockOf(tab, k) { return (SF_BLOCKS[tab] || []).filter(function (b) { return b.k === k || b.subs.indexOf(k) >= 0; })[0] || null; }
   /** sub-category key of a line/type inside a tab; null = shown under All only */
   function sfSubOf(tab, line) {
     var L = SF_SUBS[tab] || [];
@@ -128,7 +144,7 @@
     var i = h.indexOf('-'), t = i < 0 ? h : h.slice(0, i), s = i < 0 ? '' : h.slice(i + 1);
     if (SF_TABS.indexOf(t) < 0) return null;
     if (t === 'bracelets' && sfIsGradSub(s)) return { tab: 'gradient', sub: sfGradSub(s) };
-    var ok = (SF_SUBS[t] || []).some(function (x) { return x.k === s; });
+    var ok = (SF_SUBS[t] || []).some(function (x) { return x.k === s; }) || !!sfBlock(t, s);   // a line or a block (SF_BLOCKS)
     return { tab: t, sub: ok ? s : 'all' };
   }
   /** a Bracelets sub key that means the Gradient Edit view: 'colour(-<style>)', old 'beaded', old 'gradient(-<style>)' */
@@ -140,14 +156,64 @@
   }
   /** URL of a tab + sub-chip; the Gradient Edit view = '#bracelets-colour', its styles '#bracelets-colour-<style>' */
   function sfHash(tab, sub) {
-    var has = function (t) { return sub && sub !== 'all' && (SF_SUBS[t] || []).some(function (x) { return x.k === sub; }); };
+    var has = function (t) { return sub && sub !== 'all' && ((SF_SUBS[t] || []).some(function (x) { return x.k === sub; }) || !!sfBlock(t, sub)); };
     if (tab === 'gradient') return '#bracelets-colour' + (has('gradient') ? '-' + sub : '');
     return '#' + tab + (has(tab) ? '-' + sub : '');
   }
   /** Sub-chips of a tab: [{k,label,n}] with All first; only subs with >= 1 sellable item (like the main tabs, K-01).
    *  items = [{line, ok, sub?}] (ok = sellable now; sub = the item's sub-category when its line does not say it: the
    *  Gradient Edit inside Bracelets; a list = every sub it belongs to). Fewer than 2 sub-categories = no row ([]). */
-  function sfInSub(tab, it, k) { var s = it.sub || sfSubOf(tab, it.line); return Array.isArray(s) ? s.indexOf(k) >= 0 : s === k; }
+  function sfInSub(tab, it, k) {
+    var b = sfBlock(tab, k);   // a block = the union of its lines (each piece sits in one line, so counts add up)
+    if (b && b.subs.some(function (x) { return sfInSub(tab, it, x); })) return true;
+    var s = it.sub || sfSubOf(tab, it.line); return Array.isArray(s) ? s.indexOf(k) >= 0 : s === k;
+  }
+  /** Block chips of a tab: [{k,label,short,n,subs:[{k,label,n}]}], All first; a block only with >= 1 sellable item (K-01),
+   *  its lines only with >= 1; fewer than 2 blocks on sale = no row ([]). items as in sfVisibleSubs. */
+  function sfVisibleBlocks(tab, items) {
+    var ok = items.filter(function (it) { return it.ok; });
+    var n = function (k) { return ok.filter(function (it) { return sfInSub(tab, it, k); }).length; };
+    var bs = (SF_BLOCKS[tab] || []).map(function (b) {
+      var subs = b.subs.map(function (s) { var x = (SF_SUBS[tab] || []).filter(function (y) { return y.k === s; })[0]; return { k: s, label: x ? x.label : s, n: n(s) }; });
+      return { k: b.k, label: b.label, short: b.short, n: n(b.k), subs: subs.filter(function (x) { return x.n > 0; }) };
+    }).filter(function (b) { return b.n > 0; });
+    if (bs.length < 2) return [];
+    return [{ k: 'all', label: 'All', short: 'All', n: ok.length, subs: [] }].concat(bs);
+  }
+  /** Block row buttons (All + SF_BLOCKS; phone: the short label, one line, equal widths). The label sits in ONE inner span
+   *  so a long label wraps inside its 44 px button instead of adding a row. */
+  function sfBlockButtons(tab, ctl) {
+    return [{ k: 'all', label: 'All', short: 'All' }].concat(SF_BLOCKS[tab] || []).map(function (x) {
+      var l = x.label === x.short ? sfEsc(x.label) : '<span class="kl-bl">' + sfEsc(x.label) + '</span><span class="kl-bs">' + sfEsc(x.short) + '</span>';
+      return '<button type="button" role="tab" class="kl-sub kl-blk" id="klblk-' + tab + '-' + x.k + '" data-subtab="' + tab + '" data-sub="' + x.k + '" aria-controls="' + ctl + '" aria-selected="' + (x.k === 'all') + '" tabindex="' + (x.k === 'all' ? 0 : -1) + '"><span class="kl-bt">' + l + ' <span class="n"></span></span></button>';
+    }).join('');
+  }
+  /** Line row buttons (desktop only): per block an 'All' (= the block) + its lines, data-block = the block; renderTabs shows
+   *  the open block's ones. */
+  function sfLineButtons(tab, ctl) {
+    return (SF_BLOCKS[tab] || []).map(function (b) {
+      return [{ k: b.k, label: 'All', id: 'klline-' + tab + '-' + b.k }].concat(b.subs.map(function (s) {
+        var x = (SF_SUBS[tab] || []).filter(function (y) { return y.k === s; })[0]; return { k: s, label: x ? x.label : s, id: 'klsub-' + tab + '-' + s };
+      })).map(function (x) {
+        return '<button type="button" role="tab" class="kl-sub" id="' + x.id + '" data-subtab="' + tab + '" data-sub="' + x.k + '" data-block="' + b.k + '" aria-controls="' + ctl + '" aria-selected="false" tabindex="-1" hidden>' + sfEsc(x.label) + ' <span class="n"></span></button>';
+      }).join('');
+    }).join('');
+  }
+  /** A block's cards grouped by line in the block's order, a small heading per group (.kl-gh, the Gifts style). list =
+   *  [{c:{line}, s}] already sorted (order inside a group kept). The first group's heading is marked first (hidden on
+   *  phones: the first card stays on the first screen, V-01); one group only = no heading. Not a block = the list as is.
+   *  Rows: {h, first} | {x}. */
+  function sfBlockRows(tab, k, list) {
+    var b = sfBlock(tab, k); if (!b) return list.map(function (x) { return { x: x }; });
+    var gs = b.subs.map(function (s) { return { k: s, xs: list.filter(function (x) { return sfSubOf(tab, x.c.line) === s; }) }; }).filter(function (g) { return g.xs.length; });
+    var out = [];
+    gs.forEach(function (g, i) {
+      var sl = (SF_SUBS[tab] || []).filter(function (y) { return y.k === g.k; })[0];
+      if (gs.length > 1) out.push({ h: sl ? sl.label : g.k, first: i === 0 });
+      g.xs.forEach(function (x) { out.push({ x: x }); });
+    });
+    return out;
+  }
   function sfVisibleSubs(tab, items) {
     var subs = (SF_SUBS[tab] || []).map(function (x) {
       return { k: x.k, label: x.label, n: items.filter(function (it) { return it.ok && sfInSub(tab, it, x.k); }).length };
@@ -393,7 +459,8 @@
     sec.innerHTML = '<div class="kl-err" id="klErr" role="alert" hidden><span>Prices are not loading. Try again.</span> <button type="button" class="btn" id="klRetry">Try again</button></div>'
       + '<div class="col-head"><h2 id="klFamTitle"></h2><div class="c" id="klFamCount" aria-live="polite"></div><div class="kl-dlv" data-kl="ship"></div><div class="kl-dlv kl-rdlv" id="klRDlv" hidden></div></div>'
       + '<div class="kl-empty" id="klEmpty" hidden><p class="et">Nothing here yet</p><p class="es">This category opens once its pieces are photographed.</p><a class="btn ghost" href="#bracelets">See all bracelets</a></div>'
-      + '<div class="kl-subs" id="klBSubs" role="tablist" aria-label="Bracelet styles" hidden>' + sfSubButtons('bracelets', 'klFamGrid') + '</div>'
+      + '<div class="kl-subs kl-blocks" id="klBSubs" role="tablist" aria-label="Bracelet styles" hidden>' + sfBlockButtons('bracelets', 'klFamGrid') + '</div>'   // 27 Nov: All + SF_BLOCKS
+      + '<div class="kl-subs kl-lines" id="klBLines" data-lines="bracelets" role="tablist" aria-label="Bracelet types" hidden>' + sfLineButtons('bracelets', 'klFamGrid') + '</div>'   // desktop: the open block's lines
       + '<div class="kl-subs" id="klRSubs" role="tablist" aria-label="Ring styles" hidden>' + sfSubButtons('rings', 'klFamGrid') + '</div>'
       + '<div id="klBGrid"><div class="grid" id="klFamGrid"></div></div>';   // klBGrid: Bracelets > All = ONE grid of the family cards + the Gradient cards (#grid moved in, renderTabs)
     // Bracelets panel ABOVE the Gradient Edit panel (26 Nov 2026): Bracelets > All = family grid, then the Gradient cards
@@ -446,17 +513,38 @@
   /** one sub-chip row in place: hidden when < 2 sub-categories are on sale; the selected sub falls back to All when its
    *  sub-tab is hidden. Returns the visible subs. On the Gradient Edit view the Bracelets row shows 'Beaded' selected. */
   function renderSubs(t, row) {
-    var vs = sfVisibleSubs(t, t === 'gradient' ? gradItems() : famItems(t)), keys = vs.map(function (x) { return x.k; });
+    var items = t === 'gradient' ? gradItems() : famItems(t), vs = sfVisibleSubs(t, items), keys = vs.map(function (x) { return x.k; });
+    var vb = SF_BLOCKS[t] ? sfVisibleBlocks(t, items) : null;   // Bracelets (27 Nov): the row = All + blocks; a valid sub = a shown block or one of its lines
+    if (vb) keys = vb.reduce(function (a, b) { return a.concat([b.k], b.subs.map(function (x) { return x.k; })); }, []);
     if (keys.indexOf(sub[t]) < 0) sub[t] = 'all';
     if (!row) return vs;
-    row.hidden = !vs.length;
+    row.hidden = !(vb || vs).length;
     var cur = t === 'bracelets' && tab === 'gradient' ? (sub.gradient && sub.gradient !== 'all' ? 'colour-' + sub.gradient : 'colour') : sub[t];
+    if (vb) { renderBlocks(t, row, vb, cur); return vs; }
     $$('[role=tab]', row).forEach(function (b) {
       var x = vs.filter(function (v) { return v.k === b.dataset.sub; })[0], on = !!x && b.dataset.sub === cur;
       b.hidden = !x; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1;
       var n = b.querySelector('.n'); if (n) n.textContent = x ? String(x.n) : '';
     });
     return vs;
+  }
+  /** Bracelets block row + (desktop) the open block's line row, in place: cur = a block key, a line key or 'all'. The
+   *  block chip of a line shows selected (old '#bracelets-bangle' = Bangle & Sparkle chip, Bangle cards only). */
+  function renderBlocks(t, row, vb, cur) {
+    var ob = cur === 'all' ? null : sfBlockOf(t, cur), bk = ob ? ob.k : 'all', bx = vb.filter(function (v) { return v.k === bk; })[0];
+    $$('[role=tab]', row).forEach(function (b) {
+      var x = vb.filter(function (v) { return v.k === b.dataset.sub; })[0], on = !!x && b.dataset.sub === bk;
+      b.hidden = !x; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1;
+      var n = b.querySelector('.n'); if (n) n.textContent = x ? String(x.n) : '';
+    });
+    var lr = $('[data-lines="' + t + '"]'); if (!lr) return;
+    var show = !row.hidden && !!bx && bx.subs.length >= 2;   // one line only = nothing to choose
+    lr.hidden = !show;
+    $$('[role=tab]', lr).forEach(function (b) {
+      var x = show && b.dataset.block === bk ? (b.dataset.sub === bk ? bx : bx.subs.filter(function (s) { return s.k === b.dataset.sub; })[0]) : null, on = !!x && b.dataset.sub === cur;
+      b.hidden = !x; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1;
+      var n = b.querySelector('.n'); if (n) n.textContent = x ? String(x.n) : '';
+    });
   }
   function renderTabs() {
     document.documentElement.setAttribute('data-kl-tab', tab);   // phone CSS: family tabs use a one-line hero price (V-01)
@@ -473,7 +561,7 @@
     });
     var gsv = renderSubs('gradient', $('#klGSubs')); renderSubs('bracelets', $('#klBSubs'));
     var rsr = $('#klRSubs'); renderSubs('rings', rsr); if (rsr && tab !== 'rings') rsr.hidden = true;
-    if (tab !== 'bracelets' && tab !== 'gradient') { var bsr = $('#klBSubs'); if (bsr) bsr.hidden = true; }   // bracelet style chips on Bracelets (+ its Beaded view) only (they also showed on Necklaces)
+    if (tab !== 'bracelets' && tab !== 'gradient') { var bsr = $('#klBSubs'), blr = $('#klBLines'); if (bsr) bsr.hidden = true; if (blr) blr.hidden = true; }   // bracelet style chips on Bracelets (+ its Beaded view) only (they also showed on Necklaces)
     syncRingInfo();
     if (FAM.length) try { localStorage.setItem('kl_sf_tabs', JSON.stringify({ v: vis, n: seen,   // next visit's pre-paint chip bar + Gradient sub-chips (index.html)
       gs: gsv.reduce(function (o, x) { o[x.k] = x.n; return o; }, {}) })); } catch (e) {}
@@ -584,10 +672,10 @@
   }
   function renderFam(has) {
     if (tab === 'gifts') return renderGifts(has);
-    var sk = sub[tab] || 'all', sl = (SF_SUBS[tab] || []).filter(function (x) { return x.k === sk; })[0];
+    var sk = sub[tab] || 'all', sl = (SF_SUBS[tab] || []).filter(function (x) { return x.k === sk; })[0] || sfBlock(tab, sk);
     $('#klFamTitle').textContent = SF_TITLE[tab] + (sl ? ' · ' + sl.label : '');
     $('#klErr').hidden = !stockErr;
-    var g = $('#klFamGrid'), list = FAM.filter(function (c) { return c.tab === tab && (sk === 'all' || sfSubOf(tab, c.line) === sk); }).map(function (c) { return { c: c, s: famState(c) }; })
+    var g = $('#klFamGrid'), list = FAM.filter(function (c) { return c.tab === tab && (sk === 'all' || sfInSub(tab, { line: c.line }, sk)); }).map(function (c) { return { c: c, s: famState(c) }; })
       .filter(function (x) { return x.s !== 'hidden' && (x.s !== 'soldout' || CFG.sold_out !== 'hide') && !(x.c.tab === 'rings' && x.s === 'photo'); });   // rings: no 'Photo coming' tiles (K-069: photo + owner decision first)
     $('#klEmpty').hidden = has;
     if (!has) { g.innerHTML = ''; $('#klFamCount').textContent = ''; return; }
@@ -595,7 +683,8 @@
     list.sort(function (a, b) { return SF_ORDER[a.s] - SF_ORDER[b.s] || (a.c.photo ? 0 : 1) - (b.c.photo ? 0 : 1) || a.i - b.i; });
     var avail = list.filter(function (x) { return x.s === 'sellable' || x.s === 'single'; }).length, gi = tab === 'bracelets' && sk === 'all' ? gradItems().filter(function (x) { return x.ok || CFG.sold_out !== 'hide'; }) : [];   // + the Gradient cards after the grid
     $('#klFamCount').textContent = (list.length + gi.length) + ' pieces · ' + (avail + gi.filter(function (x) { return x.ok; }).length) + ' available now';
-    g.innerHTML = list.map(function (x) { return famCardHTML(x.c, x.s); }).join('');
+    // a block (Stretch / Bangle & Sparkle, 27 Nov): its lines grouped, a small heading per group, none above the first cards on phones
+    g.innerHTML = sfBlockRows(tab, sk, list).map(function (r) { return r.h ? '<h3 class="kl-gh' + (r.first ? ' kl-gh0' : '') + '">' + sfEsc(r.h) + '</h3>' : famCardHTML(r.x.c, r.x.s); }).join('');
     var fi = g.querySelector('img[loading="lazy"]'); if (fi) { fi.setAttribute('loading', 'eager'); fi.setAttribute('fetchpriority', 'high'); }   // 26 Nov: first card photo is not lazy (cold load LCP)
   }
   function renderGifts(has) {

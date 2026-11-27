@@ -92,11 +92,13 @@ test('visible labels never say Lux / crystal / diamond / stone; the pre-paint Gr
 })
 
 test('sub-chip markup: role=tab inside a tablist, ids per tab+sub, All selected by default, 44 px targets in css', () => {
-  const h = core.sfSubButtons('bracelets', 'klFamGrid')
-  assert.equal((h.match(/role="tab"/g) || []).length, 1 + core.SF_SUBS.bracelets.length)
-  assert.match(h, /id="klsub-bracelets-all"[^>]*aria-selected="true" tabindex="0"/)
-  assert.match(h, /id="klsub-bracelets-bangle"[^>]*aria-controls="klFamGrid" aria-selected="false" tabindex="-1"/)
+  // 27 Nov: the Bracelets row is built from SF_BLOCKS (tests/bracelet-blocks.test.mjs); sfSubButtons builds the Rings row
+  const h = core.sfSubButtons('rings', 'klFamGrid')
+  assert.equal((h.match(/role="tab"/g) || []).length, 1 + core.SF_SUBS.rings.length)
+  assert.match(h, /id="klsub-rings-all"[^>]*aria-selected="true" tabindex="0"/)
+  assert.match(h, /id="klsub-rings-charm"[^>]*aria-controls="klFamGrid" aria-selected="false" tabindex="-1"/)
   assert.match(SF, /id="klBSubs" role="tablist" aria-label="Bracelet styles"/)
+  assert.match(SF, /id="klRSubs" role="tablist" aria-label="Ring styles" hidden>' \+ sfSubButtons\('rings', 'klFamGrid'\)/)
   assert.match(HTML, /row\.setAttribute\('role', 'tablist'\); row\.setAttribute\('aria-label', 'Styles'\)/)
   const CSS = read('../css/storefront.css')
   assert.match(CSS, /\.kl-sub\{[^}]*min-height:44px/)

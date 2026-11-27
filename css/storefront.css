@@ -284,6 +284,29 @@ html.kl-v2 #klBSubs::-webkit-scrollbar, html.kl-v2 #klRSubs::-webkit-scrollbar{d
     html.kl-v2 #klFam:has(#klRSubs:not([hidden])) .col-head .c, html.kl-v2 #klFam:has(#klRSubs:not([hidden])) .kl-dlv{position:absolute; width:1px; height:1px; margin:-1px; padding:0;
     overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
 }
+/* Bracelet blocks (Komuta 27 Nov, storefront.js SF_BLOCKS): the Bracelets row = All + 3 blocks, never a sideways scroll.
+   Desktop (>= 621 px): blocks, then the open block's lines in a 2nd row; both rows wrap. Phone (<= 620 px): ONE row,
+   4 equal buttons (flex:1 1 0 + min-width:0 = the row can never be wider than the screen), the short label, the line row
+   off (V-01: no extra row above the first card; the grid shows the block's lines grouped under small headings).
+   Width at 375 px: row 375 - 2x16 padding - 3x4 gap = 331 -> 82.7 px a button, 72.7 px for text after 2x4 padding +
+   2x1 border (390 px: 76.5). Longest words at 12 px Jost (~0.5 em a glyph, tested at 0.6): 'Bangle &' 58 px,
+   'Sparkle 20' 69 px (count .n 12 px, the site minimum) -> at most 2 lines x 13.8 px inside the 44 px target (tests/bracelet-blocks.test.mjs). */
+html.kl-v2 #klBSubs, html.kl-v2 #klBLines{flex-wrap:wrap; overflow:visible}
+html.kl-v2 #klBLines{margin:-6px 0 14px}
+html.kl-v2[data-kl-tab="gradient"] #klFam #klBLines{margin-top:8px}   /* Colour view: the block row has no bottom margin there */
+.kl-sub .kl-bs{display:none}
+.kl-sub .kl-bt{display:inline}
+@media(max-width:620px){
+  html.kl-v2 #klBLines{display:none !important}
+  html.kl-v2 #klBSubs{flex-wrap:nowrap; overflow:visible; gap:4px}
+  html.kl-v2 #klBSubs .kl-sub{flex:1 1 0; min-width:0; justify-content:center; padding:0 4px; font-size:12px; letter-spacing:.01em;
+    white-space:normal; text-align:center; line-height:1.15}
+  .kl-sub .kl-bl{display:none}
+  .kl-sub .kl-bs{display:inline}
+  /* the first group of a block has no heading on phones (first card on the first screen, V-01) */
+  .kl-fam .grid > .kl-gh.kl-gh0{display:none}
+}
+.kl-fam .grid > .kl-gh.kl-gh0{margin-top:0}
 /* a short sub-category (Bangle: 2 pieces) never pulls the info block / footer up into the first screen: the open
    panel is at least one screen tall under the chip bar (cold deep link #bracelets-bangle CLS 0.156 -> measured in
    morning_review/26_bracelet_subcats) */
