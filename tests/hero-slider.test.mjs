@@ -35,7 +35,7 @@ test('slide 1 = the 10+ offer from the table (m1Texts().bar) + singles + deliver
   const s1 = SLIDES[0].body
   const T = pageFns(HTML, { ladders: publicLadders(LADDERS) }).m1Texts()
   assert.ok(s1.includes(`<p class="kl-hs-offer" data-kl-m1="bar">${T.bar}</p>`), 'static first paint = m1Texts().bar')
-  assert.equal(text(T.bar), '70% off when you buy 10+ items · From £1.50 each No code needed. Applied instantly.')
+  assert.equal(text(T.bar), '70% off when you buy 10+ items From £1.50 each No code needed. Applied instantly.')
   const t = text(s1)
   for (const must of ['70% off', 'when you buy 10+ items', 'From £1.50 each', 'No code needed. Applied instantly.', 'Single pieces £5 / £8 / £13', '£3.99 UK delivery, free on orders of £30 or more']) assert.ok(t.includes(must), must)
   assert.doesNotMatch(s1, /<(s|del|strike)\b|line-through|\bwas\b|\bsave\b|instead of|\bRRP\b/i)

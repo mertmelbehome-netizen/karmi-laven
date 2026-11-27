@@ -135,8 +135,8 @@ const sha = (o) => createHash('sha256').update(JSON.stringify(o)).digest('hex')
 // and record(null) against origin/master 3e2a6fa: the ONLY change is out.hero (the price block left the H1 header for
 // slide 1: no own 'from' line any more, singles of every group 'Single pieces £5 / £8 / £13' instead of the landing
 // group's 'Single piece £8'); every text, price, bag line, total and hint byte-identical
-const PIN_OFF = '50cc22d054cf5ff76ef34abc52368fdfc19d157635a954d827aeb394bd653804'
-const PIN_FALLBACK = '50cc22d054cf5ff76ef34abc52368fdfc19d157635a954d827aeb394bd653804'   // M1_FALLBACK = publicLadders(ladders.json)
+const PIN_OFF = '44d3a5809e7179b452a99ae292057645da43a0055b3641cab139e03026556154'
+const PIN_FALLBACK = '44d3a5809e7179b452a99ae292057645da43a0055b3641cab139e03026556154'   // M1_FALLBACK = publicLadders(ladders.json)
 
 test('rings OFF (ladders.json today + first paint): every page text byte-for-byte = master (sha pin)', () => {
   assert.equal(RAW.flat_groups.R.enabled, false)

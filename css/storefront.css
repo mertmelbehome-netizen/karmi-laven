@@ -88,7 +88,8 @@ html.kl-v2 .kl-hs{display:block; position:relative; z-index:1; max-width:1200px;
 /* slide 1: the 10+ offer (text = m1Texts().bar) + singles + delivery (#klHeroPrice, sfHeroPriceApply). No was / save / strike */
 .kl-hs-offer .bm-pct{display:block; font-family:'Cormorant Garamond',serif; font-weight:600; font-size:68px; line-height:1; letter-spacing:-.01em}
 .kl-hs-offer .bm-when, .kl-hs-offer .bm-from{font-size:22px; font-weight:500}
-.kl-hs-offer .bm-from{white-space:nowrap}
+.kl-hs-offer .bm-from{white-space:nowrap; display:block}   /* its own line (no leading dot) */
+.kl-hs-offer .bm-from::before{content:none}
 .kl-hs-offer .bm-how{display:block; font-size:15px; color:#6b6457; margin-top:6px}
 .kl-hp{display:none}
 html.kl-v2 .kl-hp{display:block; margin:12px 0 0}
