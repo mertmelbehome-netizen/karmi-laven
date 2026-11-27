@@ -108,7 +108,7 @@ test('text over the photo: AA on the panel even over a black pixel (96% paper), 
   // (desktop 54% panel solid to 80%, tablet 62% / 80%, phone 68% / 86%)
   // phone (27 Nov redo): SOLID paper panel 56% + photo 44%, no text ever over the photo, so no fade to compute
   const ph = CSS.match(/@media\(max-width:560px\)\{\n  \/\* phone \(27 Nov redo[\s\S]*?\n\}/)[0]
-  assert.match(ph, /\.kl-hs-panel\{width:56%;[^}]*background:var\(--paper\)/)
+  assert.match(ph, /\.kl-hs-panel\{width:56%;[^}]*background:#f6eee3/)
   assert.match(ph, /.kl-hs .kl-slide img{left:56%; right:auto; width:44%/)
   assert.ok(ratio('#34302a', '#f6eee3') >= 7 && ratio('#6b6457', '#f6eee3') >= 4.5, 'slide 1 warm panel AA')
   for (const [w, pad, solid] of [[54, 13, 0.8], [62, 12, 0.8]]) {
