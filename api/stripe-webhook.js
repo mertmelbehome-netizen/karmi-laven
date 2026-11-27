@@ -57,8 +57,35 @@ export async function opsAgentRun(row, { base = process.env.OPS_SUPABASE_URL, ke
   } catch (e) { console.warn('[stripe-webhook] agent_runs write failed (non-fatal):', e.message); return false; }
 }
 
+// New-order push text (owner rule 27 Nov 2026: online orders are picked from the WAT display, so the push carries
+// the barcodes): "bc×qty, bc×qty · pick from display", same barcode summed, cut with "+N more" at 160 characters.
+// Barcode and quantity only (no customer name / email). Twin of ops-v2 src/lib/order-alert.ts.
+export function orderPushDetail(items, max = 160) {
+  if (!Array.isArray(items)) return undefined;
+  const sums = new Map();
+  for (const it of items) {
+    if (!it || typeof it !== 'object') continue;
+    const q = Math.trunc(Number(it.qty));
+    const qty = Number.isFinite(q) && q > 0 ? q : 1;
+    const bc = typeof it.bc === 'string' && it.bc.trim() ? it.bc.trim() : 'no barcode';
+    sums.set(bc, (sums.get(bc) || 0) + qty);
+  }
+  if (!sums.size) return undefined;
+  const parts = [...sums].map(([bc, n]) => `${bc}×${n}`);
+  const tail = ' · pick from display';
+  let text = '';
+  for (let i = 0; i < parts.length; i++) {
+    const next = text ? `${text}, ${parts[i]}` : parts[i];
+    const more = parts.length - i - 1;
+    const reserve = more > 0 ? ` +${more} more`.length : 0;
+    if (next.length + reserve + tail.length > max && text) return `${text} +${parts.length - i} more${tail}`;
+    text = next;
+  }
+  return `${text}${tail}`;
+}
+
 // Record the paid order into ops v2 (online_orders) so it can be fulfilled from
-// the /orders page (stockroom-first WAT decrement). Idempotent on stripe_session_id.
+// the /orders page (display-first WAT decrement, ops-v2 27 Nov 2026). Idempotent on stripe_session_id.
 export async function recordOrder(s, { stripeClient = stripe } = {}) {
   const base = process.env.OPS_SUPABASE_URL, key = process.env.OPS_SUPABASE_SERVICE_KEY;
   if (!base || !key) {
@@ -167,14 +194,13 @@ export async function recordOrder(s, { stripeClient = stripe } = {}) {
   // staff whose clock_records row has clock_in set and clock_out null today.
   const appUrl = process.env.OPS_APP_URL;
   if (appUrl) {
-    const n = items.reduce((a, i) => a + (i.qty || 0), 0);
     try {
       await fetch(`${appUrl}/api/orders/notify`, {
         method: 'POST',
         headers: notifyHeaders(), // + WEBHOOK_SECRET bearer when set (ops-v2 reads the body only then)
         body: JSON.stringify({
           title: 'Yeni online sipariş — Karmi Laven',
-          detail: `${n} bileklik${row.customer_name ? ` · ${row.customer_name}` : ''}`,
+          detail: orderPushDetail(items), // barcodes x qty, no customer data
           url: '/orders',
         }),
       });
