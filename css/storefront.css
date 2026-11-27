@@ -385,3 +385,8 @@ html.kl-v2[data-kl-tab="gradient"] #klFam [role=tablist]{margin-bottom:0}
 
 /* top delivery strip (27 Nov, Mert could not see it: 12 px grey on cream read as absent): dark band, light 13 px text, every width */
 html.kl-v2 .announce{background:var(--ink); color:#faf7f1; border-bottom:0; font-size:13px; font-weight:400; padding:7px 12px; line-height:1.35}
+@media(max-width:380px){
+  /* 360 px phones: the singles line must not break inside '£5 / £8 / £13' */
+  .kl-hs-panel{width:58%} .kl-hs .kl-slide img{width:42%}
+  .kl-hp-single{letter-spacing:0; white-space:nowrap}
+}
