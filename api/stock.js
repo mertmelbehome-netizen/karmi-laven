@@ -99,7 +99,7 @@ export default async function handler(req, res) {
     //    The bc list is small (<= 200), so the product_id in() list stays well under HTTP query-string limits.
     const bcToPid = {};
     const slMap   = {};
-    const dispMap = {};   // display_count: only for the 27 Nov 2026 display rule (shown = display > 0 AND stockroom > 0); never added to the available qty
+    const dispMap = {};   // display_count: only for the 27 Nov 2026 display rule (shown = display > 0 AND stockroom > 0); added to the available qty since 27 Nov 2026 (sellable = display + stockroom − buffer − holds)
 
     const pbRes = await q(
       `product_barcodes?select=barcode,product_id&barcode=in.(${want.map(encodeURIComponent).join(',')})&limit=500`
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
     let orders = [];
     const ooRes = await q(`online_orders?status=eq.paid&store_id=eq.${STORE}&select=items&limit=5000`);
     if (ooRes.ok) orders = await ooRes.json(); // holds failure is non-fatal — better to slightly over-show than hide everything
-    const stock = computeAvailable(want, bcToPid, slMap, orders);
+    const stock = computeAvailable(want, bcToPid, slMap, orders, dispMap);
     // Display rule (owner 27 Nov 2026): not shown = nothing to sell online: stock 0 (the page treats it as unavailable and
     // hides the card, exactly like a sold-out one); sellable is zeroed below for non-Gradient barcodes.
     const shown = shownMap(want, bcToPid, dispMap, slMap);
