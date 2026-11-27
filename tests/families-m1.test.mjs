@@ -97,7 +97,10 @@ test('mobile sticky bar per tab (empty bag)', () => {
 test('new storefront copy keeps K-08 wording rules', () => {
   const code = SF.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\s\/\/ .*$/gm, '')
   const strings = [...code.matchAll(/'([^'\\]|\\.)*'/g)].map((m) => m[0]).filter((s) => /[a-z]{3}/i.test(s))
-  for (const s of strings) assert.doesNotMatch(s, /hand-strung|diamond|\blux\b|\bstone\b|crystal|best|finest|premium/i, s)   // K-069 ring look labels (lead, K&D to confirm)
+  // the one 'stone' exception: the Necklaces group name (Komuta 27 Nov: 'Stone Necklaces', a group name, no material claim on
+  // a card), its phone chip and its hash key; tests/necklace-groups.test.mjs pins that they sit in SF_SUBS.necklaces only
+  const NECK_STONE = new Set(["'stone'", "'Stone Necklaces'", "'Stone'"])
+  for (const s of strings) if (!NECK_STONE.has(s)) assert.doesNotMatch(s, /hand-strung|diamond|\blux\b|\bstone\b|crystal|best|finest|premium/i, s)   // K-069 ring look labels (lead, K&D to confirm)
   assert.doesNotMatch(read('../terms.html'), /£8\.00 per bracelet|£2\.40 per item/, 'terms: no single-group price')
 })
 

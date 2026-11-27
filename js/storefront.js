@@ -112,8 +112,20 @@
       { k: 'charm', label: 'Charm', re: /^charm ring$/i }, { k: 'ivory', label: 'Ivory', re: /^ivory ring$/i },
       { k: 'chip', label: 'Chip', re: /^chip ring$/i }, { k: 'butterfly', label: 'Butterfly & Starfish', re: /^butterfly & starfish ring$/i },
       { k: 'sparkle', label: 'Sparkle', re: /^(statement )?sparkle ring$/i }, { k: 'antique', label: 'Antique-Style', re: /^antique-style ring$/i },
-      { k: 'enamel', label: 'Enamel', re: /^enamel ring$/i }, { k: 'rough-cut', label: 'Rough-Cut Look', re: /^rough-cut look ring$/i }]
+      { k: 'enamel', label: 'Enamel', re: /^enamel ring$/i }, { k: 'rough-cut', label: 'Rough-Cut Look', re: /^rough-cut look ring$/i }],
+    // Necklace groups (Komuta 27 Nov, owner: 'Necklaces 2 kategoriye böl stone, NL, NC ekle'): neutral keys (hash
+    // '#necklaces-drop' / '-choker' / '-stone'), the group name HERE only (label = desktop chip + panel title + grid
+    // heading; short = phone chip): an owner rename = one label here. Heading rule: one motif shared by every piece in
+    // the group = the motif name ('Daisy Drop Necklaces'), else the general name. 27 Nov: Drop = 2 daisy + 2 starfish,
+    // Stone = rose chip + starfish / lilac heart / black chip -> general names. "Stone Necklaces" = a group name (Komuta),
+    // no material claim on cards. Order = sfSubOf order: Choker before Stone (a 'Chip Bead Choker' is a choker).
+    necklaces: [{ k: 'drop', label: 'Drop Necklaces', short: 'Drop', re: /^bead necklace$/i },
+      { k: 'choker', label: 'Bead Chokers', short: 'Chokers', re: /\bchokers?\b/i },
+      { k: 'stone', label: 'Stone Necklaces', short: 'Stone', re: /^(charm|chip bead) necklace$/i }]
   };
+  /* Tabs whose sub-categories are groups (Necklaces, 27 Nov): All shows every group under its own heading (.kl-gh, the
+   * bracelet-block style); an open group's panel title is the group name alone ("Drop Necklaces", not "Necklaces · ..."). */
+  var SF_GROUPED = { necklaces: true };
   /* Bracelet blocks (Komuta 27 Nov, owner: 'kategori butonları kötü; bileklikleri gerekiyorsa üst başlıkta ayır'; option A
    * + C on desktop). The Bracelets row = All + these blocks, ONE line at 375 px (no sideways scroll, no cut-off chip); each
    * block = a set of SF_SUBS keys (lines). Labels and block -> lines live HERE only: an owner rename = one label here.
@@ -204,12 +216,15 @@
    *  phones: the first card stays on the first screen, V-01); one group only = no heading. Not a block = the list as is.
    *  Rows: {h, first} | {x}. */
   function sfBlockRows(tab, k, list) {
-    var b = sfBlock(tab, k); if (!b) return list.map(function (x) { return { x: x }; });
+    var b = sfBlock(tab, k);
+    // a grouped tab's All (Necklaces, SF_GROUPED) = one block of all its groups; a piece in no group goes last under the tab title
+    if (!b && k === 'all' && SF_GROUPED[tab]) b = { subs: (SF_SUBS[tab] || []).map(function (x) { return x.k; }).concat([null]) };
+    if (!b) return list.map(function (x) { return { x: x }; });
     var gs = b.subs.map(function (s) { return { k: s, xs: list.filter(function (x) { return sfSubOf(tab, x.c.line) === s; }) }; }).filter(function (g) { return g.xs.length; });
     var out = [];
     gs.forEach(function (g, i) {
       var sl = (SF_SUBS[tab] || []).filter(function (y) { return y.k === g.k; })[0];
-      if (gs.length > 1) out.push({ h: sl ? sl.label : g.k, first: i === 0 });
+      if (gs.length > 1) out.push({ h: sl ? sl.label : g.k === null ? SF_TITLE[tab] : g.k, first: i === 0 });
       g.xs.forEach(function (x) { out.push({ x: x }); });
     });
     return out;
@@ -225,7 +240,9 @@
    *  so keyboard focus survives the 60 s stock refresh). */
   function sfSubButtons(tab, ctl) {
     return [{ k: 'all', label: 'All' }].concat(SF_SUBS[tab] || []).map(function (x) {
-      return '<button type="button" role="tab" class="kl-sub" id="klsub-' + tab + '-' + x.k + '" data-subtab="' + tab + '" data-sub="' + x.k + '" aria-controls="' + ctl + '" aria-selected="' + (x.k === 'all') + '" tabindex="' + (x.k === 'all' ? 0 : -1) + '">' + sfEsc(x.label) + ' <span class="n"></span></button>';
+      // a phone label (short, Necklaces): both labels in ONE inner span as in the block row (sfBlockButtons), css picks one
+      var l = x.short ? '<span class="kl-bt"><span class="kl-bl">' + sfEsc(x.label) + '</span><span class="kl-bs">' + sfEsc(x.short) + '</span> <span class="n"></span></span>' : sfEsc(x.label) + ' <span class="n"></span>';
+      return '<button type="button" role="tab" class="kl-sub" id="klsub-' + tab + '-' + x.k + '" data-subtab="' + tab + '" data-sub="' + x.k + '" aria-controls="' + ctl + '" aria-selected="' + (x.k === 'all') + '" tabindex="' + (x.k === 'all' ? 0 : -1) + '">' + l + '</button>';
     }).join('');
   }
   /** Gifts tab (W49-A2): data/gifts.json {sections:[{heading?, items:[bc | {bc, ai_image}]}]} -> the rows shown, in order:
@@ -374,7 +391,7 @@
   var FAM = [];            // family cards from /data/cards.json
   var FAMBY = {};          // barcode -> family card
   var tab = 'gradient', lastPool = null, showOther = false, stockErr = false;
-  var sub = { gradient: 'all', bracelets: 'all', rings: 'all' }, lastGSub = 'all';   // selected sub-chip per tab (SF_SUBS)
+  var sub = { gradient: 'all', bracelets: 'all', rings: 'all', necklaces: 'all' }, lastGSub = 'all';   // selected sub-chip per tab (SF_SUBS)
 
   function priceP(bc) { return sfPriceLine(bc, window).p; }
   function isRing(bc) { return typeof window.m1FlatOf === 'function' && !!window.m1FlatOf(String(bc)); }   // flat group (K-069 rings), from the served table
@@ -462,6 +479,7 @@
       + '<div class="kl-subs kl-blocks" id="klBSubs" role="tablist" aria-label="Bracelet styles" hidden>' + sfBlockButtons('bracelets', 'klFamGrid') + '</div>'   // 27 Nov: All + SF_BLOCKS
       + '<div class="kl-subs kl-lines" id="klBLines" data-lines="bracelets" role="tablist" aria-label="Bracelet types" hidden>' + sfLineButtons('bracelets', 'klFamGrid') + '</div>'   // desktop: the open block's lines
       + '<div class="kl-subs" id="klRSubs" role="tablist" aria-label="Ring styles" hidden>' + sfSubButtons('rings', 'klFamGrid') + '</div>'
+      + '<div class="kl-subs" id="klNSubs" role="tablist" aria-label="Necklace styles" hidden>' + sfSubButtons('necklaces', 'klFamGrid') + '</div>'   // 27 Nov: All + the necklace groups, one row on phones
       + '<div id="klBGrid"><div class="grid" id="klFamGrid"></div></div>';   // klBGrid: Bracelets > All = ONE grid of the family cards + the Gradient cards (#grid moved in, renderTabs)
     // Bracelets panel ABOVE the Gradient Edit panel (26 Nov 2026): Bracelets > All = family grid, then the Gradient cards
     // (#palette, its head hidden); Bracelets > Beaded = the sub-chip row, then the colour bar + Gradient grid as before
@@ -489,7 +507,7 @@
     tab = t;
     if (s !== undefined && sub[t] !== undefined) sub[t] = s || 'all';
     renderTabs();   // may fall back to 'All' when the asked sub-category has nothing on sale (hidden)
-    var sb = tab === 'gradient' ? $('#klBSubs [aria-selected="true"]') : $('.kl-subs [data-subtab="' + tab + '"][aria-selected="true"]'), sc = sb && (sb.closest('#klBSubs') || sb.closest('#klRSubs') || $('#swatchbar'));   // the Gradient view: its named chip in the Bracelets row
+    var sb = tab === 'gradient' ? $('#klBSubs [aria-selected="true"]') : $('.kl-subs [data-subtab="' + tab + '"][aria-selected="true"]'), sc = sb && (sb.closest('#klBSubs') || sb.closest('#klRSubs') || sb.closest('#klNSubs') || $('#swatchbar'));   // the Gradient view: its named chip in the Bracelets row
     if (sc) {   // 390 px: the selected sub-chip is brought into view inside its own row (deep link #gradient-cobra)
       var r = sb.getBoundingClientRect(), cr = sc.getBoundingClientRect();
       if (r.right > cr.right || r.left < cr.left) sc.scrollLeft += (r.left - cr.left) - (cr.width - r.width) / 2;
@@ -561,6 +579,7 @@
     });
     var gsv = renderSubs('gradient', $('#klGSubs')); renderSubs('bracelets', $('#klBSubs'));
     var rsr = $('#klRSubs'); renderSubs('rings', rsr); if (rsr && tab !== 'rings') rsr.hidden = true;
+    var nsr = $('#klNSubs'); renderSubs('necklaces', nsr); if (nsr && tab !== 'necklaces') nsr.hidden = true;   // necklace groups: Necklaces only; < 2 groups on sale = no row (sfVisibleSubs)
     if (tab !== 'bracelets' && tab !== 'gradient') { var bsr = $('#klBSubs'), blr = $('#klBLines'); if (bsr) bsr.hidden = true; if (blr) blr.hidden = true; }   // bracelet style chips on Bracelets (+ its Beaded view) only (they also showed on Necklaces)
     syncRingInfo();
     if (FAM.length) try { localStorage.setItem('kl_sf_tabs', JSON.stringify({ v: vis, n: seen,   // next visit's pre-paint chip bar + Gradient sub-chips (index.html)
@@ -673,7 +692,7 @@
   function renderFam(has) {
     if (tab === 'gifts') return renderGifts(has);
     var sk = sub[tab] || 'all', sl = (SF_SUBS[tab] || []).filter(function (x) { return x.k === sk; })[0] || sfBlock(tab, sk);
-    $('#klFamTitle').textContent = SF_TITLE[tab] + (sl ? ' · ' + sl.label : '');
+    $('#klFamTitle').textContent = sl && SF_GROUPED[tab] ? sl.label : SF_TITLE[tab] + (sl ? ' · ' + sl.label : '');   // a group's name already says the category ("Drop Necklaces")
     $('#klErr').hidden = !stockErr;
     var g = $('#klFamGrid'), list = FAM.filter(function (c) { return c.tab === tab && (sk === 'all' || sfInSub(tab, { line: c.line }, sk)); }).map(function (c) { return { c: c, s: famState(c) }; })
       .filter(function (x) { return x.s !== 'hidden' && (x.s !== 'soldout' || CFG.sold_out !== 'hide') && !(x.c.tab === 'rings' && x.s === 'photo'); });   // rings: no 'Photo coming' tiles (K-069: photo + owner decision first)
@@ -683,7 +702,7 @@
     list.sort(function (a, b) { return SF_ORDER[a.s] - SF_ORDER[b.s] || (a.c.photo ? 0 : 1) - (b.c.photo ? 0 : 1) || a.i - b.i; });
     var avail = list.filter(function (x) { return x.s === 'sellable' || x.s === 'single'; }).length, gi = tab === 'bracelets' && sk === 'all' ? gradItems().filter(function (x) { return x.ok || CFG.sold_out !== 'hide'; }) : [];   // + the Gradient cards after the grid
     $('#klFamCount').textContent = (list.length + gi.length) + ' pieces · ' + (avail + gi.filter(function (x) { return x.ok; }).length) + ' available now';
-    // a block (Stretch / Bangle & Sparkle, 27 Nov): its lines grouped, a small heading per group, none above the first cards on phones
+    // a block (Stretch / Bangle & Sparkle, 27 Nov) or Necklaces > All (its groups): grouped, a small heading per group, none above the first cards on phones
     g.innerHTML = sfBlockRows(tab, sk, list).map(function (r) { return r.h ? '<h3 class="kl-gh' + (r.first ? ' kl-gh0' : '') + '">' + sfEsc(r.h) + '</h3>' : famCardHTML(r.x.c, r.x.s); }).join('');
     var fi = g.querySelector('img[loading="lazy"]'); if (fi) { fi.setAttribute('loading', 'eager'); fi.setAttribute('fetchpriority', 'high'); }   // 26 Nov: first card photo is not lazy (cold load LCP)
   }

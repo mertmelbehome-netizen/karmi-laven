@@ -17,14 +17,18 @@ const LADDER = JSON.parse(HTML.match(/const LADDER_TYPES=(\[[^\]]*\])/)[1].repla
 const BAD = /\blux\b|crystal|diamond|\bstone\b/i
 // K-069 ring style labels given by the lead (look words, no material claim); the only 'stone' exception (K&D to confirm)
 const RING_LOOK = new Set(['Stone Chip', 'Raw Stone Look'])
-const bad = (t, label) => !(t === 'rings' && RING_LOOK.has(label)) && BAD.test(label)
+// Komuta 27 Nov: 'Stone Necklaces' is the Necklaces group name (no material claim on a card); its phone chip 'Stone'
+const NECK_GROUP = new Set(['Stone Necklaces', 'Stone'])
+const bad = (t, label) => !(t === 'rings' && RING_LOOK.has(label)) && !(t === 'necklaces' && NECK_GROUP.has(label)) && BAD.test(label)
 
 test('sub-category from the product line: every bracelet card maps; 0624 (family Stretch Double) is a Stretch Bracelet', () => {
   const want = { 'Stretch Bracelet': 'stretch', 'Cube Bead Stretch Bracelet': 'stretch', 'Stretch Charm Bracelet': 'charm', Bangle: 'bangle', 'Stretch Double Bracelet': 'double', 'Sparkle Line': 'sparkle' }
   for (const c of CARDS.filter((x) => x.tab === 'bracelets')) assert.equal(core.sfSubOf('bracelets', c.line), want[c.line], c.barcode + ' ' + c.line)
   assert.equal(core.sfSubOf('bracelets', CARDS.find((c) => c.barcode === '0624').line), 'stretch')
   assert.equal(core.sfSubOf('bracelets', 'Charm Necklace'), null)
-  assert.equal(core.sfSubOf('necklaces', 'Bead Necklace'), null, 'no sub-row outside Bracelets / Gradient')
+  // Necklaces have their own groups since 27 Nov (tests/necklace-groups.test.mjs); tabs without SF_SUBS stay without a row
+  assert.equal(core.sfSubOf('necklaces', 'Bead Necklace'), 'drop')
+  assert.equal(core.sfSubOf('hair', 'Hair Clips'), null, 'no sub-row on a tab without SF_SUBS')
 })
 
 test('Gradient Edit: the two DB types split cleanly into Gradient / Gradient Cobra; every Gradient piece maps', () => {
@@ -84,7 +88,8 @@ test('sub-chips: only sub-categories with >= 1 sellable piece; fewer than 2 = no
 
 test('visible labels never say Lux / crystal / diamond / stone; the pre-paint Gradient row = SF_SUBS', () => {
   for (const t of Object.keys(core.SF_SUBS)) for (const s of core.SF_SUBS[t]) assert.ok(!bad(t, s.label), s.label)
-  for (const t of Object.keys(core.SF_SUBS)) assert.doesNotMatch(core.sfSubButtons(t, 'x').replace(/<[^>]*>/g, ' ').replace(/Raw Stone Look|Stone Chip/g, t === 'rings' ? '' : '$&'), BAD)
+  for (const t of Object.keys(core.SF_SUBS)) assert.doesNotMatch(core.sfSubButtons(t, 'x').replace(/<[^>]*>/g, ' ').replace(/Raw Stone Look|Stone Chip/g, t === 'rings' ? '' : '$&')
+    .replace(/Stone Necklaces|\bStone\b/g, t === 'necklaces' ? '' : '$&'), BAD)
   for (const s of core.SF_SUBS.rings) assert.doesNotMatch(s.label, /stainless|zircon|crystal|gemstone|natural|genuine|real/i, s.label)
   assert.deepEqual(lay.SFL_GSUBS.map((x) => x[1]), ['All'].concat(core.SF_SUBS.gradient.map((x) => x.label)))
   assert.deepEqual(lay.SFL_GSUBS.map((x) => x[0]), ['all'].concat(core.SF_SUBS.gradient.map((x) => x.k)))
