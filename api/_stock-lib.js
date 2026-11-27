@@ -5,9 +5,22 @@
 //   holds(bc)     = qty of bc on online_orders with status='paid' (not yet fulfilled), store WAT
 // display_count is excluded on purpose: online orders ship from the WAT stockroom only.
 
-export const STORE = 'WAT';
+export const STORE = 'WAT';   // owner 27 Nov 2026 (rule §19): the DISPLAY rule below is measured in this one store; change it here only
 // The last 1–2 units per barcode often can't be found when picking, so they are never offered online.
 export const ONLINE_STOCKROOM_BUFFER = 3;
+
+/** Owner rule 27 Nov 2026: only products with BOTH display stock and stockroom stock in STORE are shown / sold online.
+ *  Pure. dispMap {pid: display_count}, slMap {pid: stockroom_count}. Hidden (false) only on affirmative evidence: a WAT stock row with display <= 0 or stockroom <= 0. */
+export function shownMap(barcodes, bcToPid, dispMap, slMap) {
+  const shown = {};
+  for (const bc of barcodes) {
+    const pid = bcToPid[bc];
+    if (pid == null || slMap[pid] === undefined) { shown[bc] = true; continue; }   // no evidence either way (unmapped barcode / no WAT stock row): never hide on a guess; available / the caps check already give 0
+    const d = dispMap[pid];   // a stock row without a display_count field at all (older fixtures) = unknown, not 0
+    shown[bc] = (d === undefined ? true : d > 0) && slMap[pid] > 0;
+  }
+  return shown;
+}
 
 /** Pure: the available map from raw rows. bcToPid {bc: pid}, slMap {pid: stockroom}, orders [{items:[{bc,qty}]}]. */
 export function computeAvailable(barcodes, bcToPid, slMap, orders) {
@@ -46,16 +59,16 @@ export async function fetchAvailable(barcodes, { base, key, fetchImpl = fetch } 
     const bcToPid = {};
     const pids = new Set();
     for (const r of await pbRes.json()) { bcToPid[r.barcode] = r.product_id; pids.add(r.product_id); }
-    const slMap = {};
+    const slMap = {}, dispMap = {};
     if (pids.size) {
-      const slRes = await q(`stock_levels?product_id=in.(${[...pids].join(',')})&store_id=eq.${STORE}&select=product_id,stockroom_count`);
+      const slRes = await q(`stock_levels?product_id=in.(${[...pids].join(',')})&store_id=eq.${STORE}&select=product_id,stockroom_count,display_count`);
       if (!slRes.ok) throw new Error(`stock_levels ${slRes.status}`);
-      for (const r of await slRes.json()) slMap[r.product_id] = r.stockroom_count || 0;
+      for (const r of await slRes.json()) { slMap[r.product_id] = r.stockroom_count || 0; if (r.display_count !== undefined) dispMap[r.product_id] = r.display_count || 0; }
     }
     let orders = [];
     const ooRes = await q(`online_orders?status=eq.paid&store_id=eq.${STORE}&select=items&limit=5000`);
     if (ooRes.ok) orders = await ooRes.json();
-    return { ok: true, stock: computeAvailable(want, bcToPid, slMap, orders) };
+    return { ok: true, stock: computeAvailable(want, bcToPid, slMap, orders), shown: shownMap(want, bcToPid, dispMap, slMap) };
   } catch (e) {
     return { ok: false, error: String((e && e.message) || e) };
   }

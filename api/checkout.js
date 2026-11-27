@@ -102,6 +102,18 @@ export function createHandler({
         }
       }
 
+      // 1b) Display rule (owner 27 Nov 2026): every product in the bag must be shown (display > 0 AND stockroom > 0 in the
+      //     store). Same function as /api/stock. Fail OPEN when the data cannot be read (the caps check below stays the guard).
+      {
+        const sh = await fetchAvailable(Object.keys(cartQty), db);
+        if (sh.ok) {
+          const hidden = Object.keys(cartQty).filter((bc) => sh.shown && sh.shown[bc] === false);
+          if (hidden.length) return res.status(409).json({ error: 'not_available', message: MSG_UNAVAILABLE, items: hidden.map((bc) => ({ bc })) });
+        } else {
+          console.warn('checkout display rule skipped (fail open):', sh.error);
+        }
+      }
+
       // 2) Admission: Christmas cut-off + 13–15 Dec limit (all carts), caps/stock/WAT price (non-Gradient units).
       //    First settle holds whose Stripe session ended but whose outcome is not known yet (late / failed webhook):
       //    a paid one keeps counting, an expired one is freed (F1). Best effort; unknown ones keep counting.

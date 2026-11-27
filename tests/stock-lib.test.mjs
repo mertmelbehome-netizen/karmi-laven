@@ -52,7 +52,7 @@ test('fetchAvailable: env missing or DB error -> ok:false (callers fail open); h
   assert.equal((await fetchAvailable(['111'], {})).ok, false)
   assert.equal((await fetchAvailable(['111'], { base: 'https://db.test', key: 'k', fetchImpl: fakeFetch({ ...ROWS, fail: 'stock_levels' }) })).ok, false)
   const r = await fetchAvailable(['111'], { base: 'https://db.test', key: 'k', fetchImpl: fakeFetch({ ...ROWS, fail: 'online_orders' }) })
-  assert.deepEqual(r, { ok: true, stock: { 111: 10 - B } })
+  assert.deepEqual(r, { ok: true, stock: { 111: 10 - B }, shown: { 111: true } })
 })
 
 test('/api/stock output is unchanged for Gradient Edit barcodes (same maths through the shared module)', async () => {
@@ -75,4 +75,11 @@ test('/api/stock output is unchanged for Gradient Edit barcodes (same maths thro
   } finally {
     globalThis.fetch = real
   }
+})
+
+test('display rule (owner 27 Nov 2026): shown only with display > 0 AND stockroom > 0; no evidence = never hidden', async () => {
+  const { shownMap } = await import('../api/_stock-lib.js')
+  const m = { a: 'pa', b: 'pb', c: 'pc', d: 'pd' }
+  assert.deepEqual(shownMap(['a', 'b', 'c', 'd', 'zz'], m, { pa: 3, pb: 0, pc: 5 }, { pa: 9, pb: 9, pc: 0, pd: 4 }),
+    { a: true, b: false, c: false, d: true, zz: true })   // b display 0, c stockroom 0, d no display field (unknown), zz unmapped
 })
