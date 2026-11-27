@@ -12,5 +12,5 @@ test('10+ banner sits above the delivery bar: 70% off + its condition, From lowe
 })
 
 test('phone: the banner is one line (the no-code line is desktop-only) so the first card stays above the sticky bar (V-01)', () => {
-  assert.ok(HTML.includes('@media(max-width:620px){.m1bar{padding:4px 8px 3px}') && HTML.includes('.m1bar .bm-how{display:none}}'))
+  assert.ok(HTML.includes('@media(max-width:620px){.m1bar{padding:2px 8px 1px;') && HTML.includes('.m1bar .bm-how{display:none}}'))
 })
