@@ -189,3 +189,8 @@ test('auto-advance holds on hover / keyboard focus, stops for good on touch or a
   r = rig({ v2: false }); r.api.tick(); assert.equal(r.go.length, 0, 'old page: never moves')
   r = rig(); r.doc.hidden = true; r.api.tick(); assert.equal(r.go.length, 0, 'background tab: never moves')
 })
+
+test('slides 2-3 (K&D #134): no "From £x each" under a product name: the compact offer hides .bm-from (true for every group: only "70% off when you buy 10+ items")', () => {
+  assert.match(CSS, /\.kl-hs-mini \.bm-from, \.kl-hs-mini \.bm-how\{display:none\}/)
+  assert.doesNotMatch(CSS, /\.kl-hs-mini[^{]*\.bm-from\{[^}]*display:(block|inline)/)
+})
