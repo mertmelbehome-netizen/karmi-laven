@@ -13,12 +13,12 @@
 if(on){document.documentElement.classList.add('kl-v2');window.__klSfPre=true;}})();/*KL-SF-PRE-END*/</script>
 <style>
 :root{
-  --bg:#faf7f1; --paper:#fffefb; --ink:#34302a; --soft:#928979; --hair:rgba(52,48,42,.13);
-  --gold:#b08d4e; --accent:#c08a82;
+  --bg:#faf7f1; --paper:#fffefb; --ink:#34302a; --soft:#766d5e; --hair:rgba(52,48,42,.13);
+  --gold:#85672f; --accent:#c08a82;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth; overflow-x:hidden}
-body{background:var(--bg); color:var(--ink); font-family:'Jost',sans-serif; font-weight:300;
+body{background:var(--bg); color:var(--ink); font-family:'Jost',sans-serif; font-weight:400; font-variant-numeric:lining-nums;
   -webkit-font-smoothing:antialiased; overflow-x:hidden; line-height:1.6; letter-spacing:.01em}
 body::before{content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
   background:
@@ -45,7 +45,7 @@ body::before{content:""; position:fixed; inset:0; z-index:0; pointer-events:none
 nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
 .logo{font-family:'Herr Von Muellerhoff',cursive; font-weight:400; font-size:clamp(58px,9vw,96px); line-height:.8; color:var(--ink); letter-spacing:.005em}
 .logo .amp{color:var(--gold)}
-.submark{font-family:'Jost'; font-weight:300; font-size:12px; letter-spacing:.42em; text-transform:uppercase;
+.submark{font-family:'Jost'; font-weight:400; font-size:12px; letter-spacing:.42em; text-transform:uppercase;
   color:var(--soft); margin-top:4px}
 
 /* HERO */
@@ -67,7 +67,7 @@ nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
 .btn.ghost{background:transparent; color:var(--ink); border-color:var(--hair)}
 .btn.ghost:hover{border-color:var(--ink)}
 .hero .launch{margin-top:20px; font-size:12.5px; letter-spacing:.06em; color:var(--soft)}
-.hero .launch .instore{color:var(--soft)} .hero .launch .instore s{color:#bdb3a3}
+.hero .launch .instore{color:var(--soft)} 
 .hero .launch .p{font-family:'Cormorant Garamond'; font-size:21px; color:var(--ink); font-weight:500; margin-left:4px}
 .hero .launchfee{margin-top:6px; font-size:12.5px; letter-spacing:.03em; color:var(--ink); opacity:.8}
 .hero .launch .lbl{display:inline-block; font-size:12px; letter-spacing:.22em; text-transform:uppercase;
@@ -122,7 +122,7 @@ nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
 .sbi::-webkit-scrollbar{display:none}
 .sbl{font-size:12px; letter-spacing:.26em; text-transform:uppercase; color:var(--soft); white-space:nowrap}
 .sw{flex:0 0 auto; display:flex; align-items:center; gap:9px; cursor:pointer; background:none; border:none;
-  font-family:'Jost'; font-weight:300; font-size:12.5px; color:var(--soft); white-space:nowrap; padding:4px 0;
+  font-family:'Jost'; font-weight:400; font-size:12.5px; color:var(--soft); white-space:nowrap; padding:4px 0;
   border-bottom:1px solid transparent; transition:.25s}
 .sw .chip{width:15px; height:15px; border-radius:50%; box-shadow:0 0 0 1px rgba(0,0,0,.06)}
 .sw:hover{color:var(--ink)}
@@ -161,7 +161,6 @@ nav{position:relative; z-index:2; text-align:center; padding:26px 0 22px}
 .cbody .sub .d{width:8px; height:8px; border-radius:50%}
 .cbody .sub.kl-ged{display:none}   /* collection card line: families view only (css/storefront.css) */
 .cbody .pr{font-size:13px; letter-spacing:.04em; color:var(--ink)}
-.cbody .pr s{color:#bdb3a3; margin-left:4px; font-size:12px}
 .cbody .fee{font-size:12px; letter-spacing:.02em; color:var(--ink); opacity:.78; margin-top:3px; line-height:1.35}
 /* M1 (mode cart_qty_groups only; unused by the live default table) */
 .m1s{font-weight:500} .m1t{color:var(--ink); opacity:.85}
@@ -251,7 +250,7 @@ footer{border-top:1px solid var(--hair); margin-top:10px; padding:56px 0 120px; 
 footer .ai-note{font-size:12.5px; line-height:1.5; color:#6b6457; letter-spacing:.02em; margin:0 auto 14px; max-width:46ch}
 footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size:25px; letter-spacing:.36em;
   text-transform:uppercase; line-height:1; margin-bottom:16px; color:var(--ink)}
-.ftag{font-size:12.5px; letter-spacing:.05em; color:var(--soft); margin-bottom:22px; font-weight:300}
+.ftag{font-size:12.5px; letter-spacing:.05em; color:var(--soft); margin-bottom:22px; font-weight:400}
 .paybar{display:flex; gap:9px; justify-content:center; align-items:center; flex-wrap:wrap; margin-bottom:14px}
 .paybar .pi{font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink); border:1px solid var(--hair);
   border-radius:5px; padding:5px 9px; background:var(--paper); font-weight:500}
@@ -274,7 +273,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 .gtknow-grid{display:grid; grid-template-columns:1fr 1fr; gap:28px 40px}
 .faq{background:var(--paper); border:1px solid var(--hair); padding:26px 28px}
 .faq-q{font-family:'Cormorant Garamond',serif; font-size:19px; font-weight:500; line-height:1.2; margin-bottom:10px; color:var(--ink)}
-.faq-a{font-size:13.5px; line-height:1.72; color:var(--soft); font-weight:300}
+.faq-a{font-size:13.5px; line-height:1.72; color:var(--soft); font-weight:400}
 .faq-a b{color:var(--ink); font-weight:500}
 .gtknow-trust{margin-top:32px; text-align:center; padding:22px 28px; border:1px solid var(--hair); background:var(--paper); font-size:12px; letter-spacing:.04em; color:var(--soft); line-height:1.7}
 .gtknow-trust b{color:var(--ink); font-weight:500}
@@ -304,12 +303,12 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 .modal .meyebrow .d{width:9px; height:9px; border-radius:50%}
 .modal .mname{font-family:'Cormorant Garamond'; font-weight:500; font-size:38px; line-height:1; margin-bottom:10px}
 .modal .mprice{font-size:14px; color:var(--ink); margin-bottom:8px}
-.modal .mprice .instore{color:var(--soft)} .modal .mprice .instore s{color:#bdb3a3}
+.modal .mprice .instore{color:var(--soft)} 
 .modal .mprice .p{font-family:'Cormorant Garamond'; font-size:20px; font-weight:500; margin-left:4px}
 .modal .mprice .fee{font-size:13px; color:var(--ink); opacity:.8; margin-top:2px}
 .modal .mbag{font-size:12.5px; color:var(--accent); margin:0 0 10px}
 .modal .mstock{font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--soft); margin-bottom:20px}
-.modal .mdesc{font-size:14px; color:var(--soft); line-height:1.7; margin-bottom:22px; font-weight:300}
+.modal .mdesc{font-size:14px; color:var(--soft); line-height:1.7; margin-bottom:22px; font-weight:400}
 .modal .madd{font-family:'Jost'; font-weight:400; font-size:13px; letter-spacing:.18em; text-transform:uppercase; color:var(--bg);
   background:var(--ink); border:1px solid var(--ink); padding:15px 0; cursor:pointer; transition:.3s}
 .modal .madd:hover{opacity:.88}
@@ -380,7 +379,7 @@ footer .logo2{font-family:'Cormorant Garamond',serif; font-weight:500; font-size
 .slot{display:flex; align-items:center; gap:12px}
 .slot .sn{font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--soft); width:54px}
 .slot .swd{width:20px; height:20px; border-radius:50%; box-shadow:0 0 0 1px rgba(0,0,0,.08); flex:0 0 auto}
-.slot select{flex:1; font-family:'Jost'; font-weight:300; font-size:14px; color:var(--ink); background:var(--paper);
+.slot select{flex:1; font-family:'Jost'; font-weight:400; font-size:14px; color:var(--ink); background:var(--paper);
   border:1px solid var(--hair); padding:11px 12px; border-radius:0; appearance:none; cursor:pointer}
 .bundle-foot{position:sticky; bottom:0; background:var(--paper); border-top:1px solid var(--hair); padding:16px 26px 22px; margin-top:8px}
 .bundle-foot .tot{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px}
@@ -531,7 +530,7 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
   transform:translateY(100%); transition:transform .4s cubic-bezier(.2,.8,.2,1);
 }
 #cookie-banner.visible{ transform:translateY(0); }
-#cookie-banner a{ color:#b08d4e; text-decoration:underline; }
+#cookie-banner a{ color:#d4b676; text-decoration:underline; }
 #cookie-banner .cb-btns{ display:flex; gap:10px; flex-shrink:0; }
 .cb-btn{
   font-family:'Jost'; font-weight:400; font-size:12px; letter-spacing:.18em;
