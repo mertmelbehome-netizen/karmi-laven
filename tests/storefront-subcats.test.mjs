@@ -17,14 +17,16 @@ const LADDER = JSON.parse(HTML.match(/const LADDER_TYPES=(\[[^\]]*\])/)[1].repla
 const BAD = /\blux\b|crystal|diamond|\bstone\b/i
 // K-069 ring style labels given by the lead (look words, no material claim); the only 'stone' exception (K&D to confirm)
 const RING_LOOK = new Set(['Stone Chip', 'Raw Stone Look'])
-const bad = (t, label) => !(t === 'rings' && RING_LOOK.has(label)) && BAD.test(label)
+const bad = (t, label) => !(t === 'rings' && RING_LOOK.has(label)) && BAD.test(label)   // necklace groups: no 'stone' exception (K&D 27 Nov)
 
 test('sub-category from the product line: every bracelet card maps; 0624 (family Stretch Double) is a Stretch Bracelet', () => {
   const want = { 'Stretch Bracelet': 'stretch', 'Cube Bead Stretch Bracelet': 'stretch', 'Stretch Charm Bracelet': 'charm', Bangle: 'bangle', 'Stretch Double Bracelet': 'double', 'Sparkle Line': 'sparkle' }
   for (const c of CARDS.filter((x) => x.tab === 'bracelets')) assert.equal(core.sfSubOf('bracelets', c.line), want[c.line], c.barcode + ' ' + c.line)
   assert.equal(core.sfSubOf('bracelets', CARDS.find((c) => c.barcode === '0624').line), 'stretch')
   assert.equal(core.sfSubOf('bracelets', 'Charm Necklace'), null)
-  assert.equal(core.sfSubOf('necklaces', 'Bead Necklace'), null, 'no sub-row outside Bracelets / Gradient')
+  // Necklaces have their own groups since 27 Nov (tests/necklace-groups.test.mjs); tabs without SF_SUBS stay without a row
+  assert.equal(core.sfSubOf('necklaces', 'Bead Necklace'), 'drop')
+  assert.equal(core.sfSubOf('hair', 'Hair Clips'), null, 'no sub-row on a tab without SF_SUBS')
 })
 
 test('Gradient Edit: the two DB types split cleanly into Gradient / Gradient Cobra; every Gradient piece maps', () => {

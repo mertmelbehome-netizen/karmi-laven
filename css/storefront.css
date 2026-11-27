@@ -332,6 +332,20 @@ html.kl-v2[data-kl-tab="gradient"] #klFam #klBLines{margin-top:8px}   /* Colour 
   .kl-fam .grid > .kl-gh.kl-gh0{display:none}
 }
 .kl-fam .grid > .kl-gh.kl-gh0{margin-top:0}
+/* Necklace groups (Komuta 27 Nov, storefront.js SF_SUBS.necklaces): All + Drop / Chokers / Stone (an empty group is
+   hidden). Desktop: the full group names, the row wraps, never scrolls. Phone (<= 620 px): ONE row, equal buttons, the
+   short name (the Bracelet block row's rules: at most 4 buttons, same width sum, tests/necklace-groups.test.mjs). */
+html.kl-v2 #klNSubs{flex-wrap:wrap; overflow:visible; margin:0 0 14px; padding:0 0 2px}
+@media(max-width:620px){
+  html.kl-v2 #klNSubs{flex-wrap:nowrap; gap:4px}
+  html.kl-v2 #klNSubs .kl-sub{flex:1 1 0; min-width:0; justify-content:center; padding:0 4px; font-size:12px; letter-spacing:.01em;
+    white-space:normal; text-align:center; line-height:1.15}
+}
+@media(max-width:560px){
+  html.kl-v2 #klNSubs{margin:0 -16px 8px; padding:0 16px}
+  html.kl-v2 #klFam:has(#klNSubs:not([hidden])) .col-head .c, html.kl-v2 #klFam:has(#klNSubs:not([hidden])) .kl-dlv{position:absolute; width:1px; height:1px; margin:-1px; padding:0;
+    overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
+}
 /* a short sub-category (Bangle: 2 pieces) never pulls the info block / footer up into the first screen: the open
    panel is at least one screen tall under the chip bar (cold deep link #bracelets-bangle CLS 0.156 -> measured in
    morning_review/26_bracelet_subcats) */
