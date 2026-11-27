@@ -48,7 +48,9 @@ test('slide 1 = the 10+ offer from the table (m1Texts().bar) + singles + deliver
 test('slides 2-3: line / category name + a category deep link only (no price, no %, no was, no "Gradient")', () => {
   const hashes = []
   for (const s of SLIDES.slice(1)) {
-    const t = text(s.body)
+    // 27 Nov (design review g): the engine-driven 10+ offer (data-kl-m1="bar", checked in m1-banner.test.mjs) is allowed; the rest stays price-free
+    assert.match(s.body, /<p class="kl-hs-offer kl-hs-mini" data-kl-m1="bar">/, 'slides 2-3 show the 10+ offer')
+    const t = text(s.body.replace(/<p class="kl-hs-offer kl-hs-mini" data-kl-m1="bar">[\s\S]*?<\/p>/, ''))
     assert.doesNotMatch(t, /£|%|\boff\b|\bwas\b|\bsave\b|gradient/i, t)
     const a = s.body.match(/<a class="kl-hs-a" href="#([a-z-]+)">Shop [^<]+<\/a>/); assert.ok(a, t)
     hashes.push(a[1])
@@ -121,7 +123,7 @@ test('text over the photo: AA on the panel even over a black pixel (96% paper), 
   assert.ok(hs[0] <= 420 && hs[2] <= 0.37 * 812 && hs[2] >= 240)
   // Komuta 27 Nov (a): 'No code needed. Applied instantly.' shows on phones too (only the old strip hid it)
   assert.doesNotMatch(ph,/bm-how\{[^}]*display:none/)
-  assert.doesNotMatch(CSS, /\.kl-hs[^{]*\.bm-how\{[^}]*display:none/)
+  assert.doesNotMatch(CSS, /\.kl-hs(?!-mini)[^{]*\.bm-how\{[^}]*display:none/)
 })
 
 test('families view only: the slider is hidden on the old page; in the families view the old top strip and hero photo are off, the H1 stays (sr-only)', () => {
