@@ -106,18 +106,21 @@ test('text over the photo: AA on the panel even over a black pixel (96% paper), 
   assert.ok(ratio('#faf7f1', '#34302a') >= 4.5, 'link button')
   // the text stays on the solid part: right padding (% of the slide) >= the fading end of the panel
   // (desktop 54% panel solid to 80%, tablet 62% / 80%, phone 68% / 86%)
-  assert.match(CSS, /\.kl-hs-panel\{width:68%;[^}]*background:linear-gradient\(90deg, rgba\(255,254,251,\.96\) 0, rgba\(255,254,251,\.96\) 86%, rgba\(255,254,251,0\) 100%\)\}/)
-  for (const [w, pad, solid] of [[54, 13, 0.8], [62, 12, 0.8], [68, 10, 0.86]]) {
+  // phone (27 Nov redo): SOLID paper panel 56% + photo 44%, no text ever over the photo, so no fade to compute
+  const ph = CSS.match(/@media\(max-width:560px\)\{\n  \/\* phone \(27 Nov redo[\s\S]*?\n\}/)[0]
+  assert.match(ph, /\.kl-hs-panel\{width:56%;[^}]*background:var\(--paper\)/)
+  assert.match(ph, /.kl-hs .kl-slide img{left:56%; right:auto; width:44%/)
+  assert.ok(ratio('#34302a', '#f6eee3') >= 7 && ratio('#6b6457', '#f6eee3') >= 4.5, 'slide 1 warm panel AA')
+  for (const [w, pad, solid] of [[54, 13, 0.8], [62, 12, 0.8]]) {
     assert.match(CSS, new RegExp(`\\.kl-hs-panel\\{[^}]*width:${w}%;[^}]*padding:\\d+px ${pad}% `))
     assert.ok(pad >= w * (1 - solid) - 0.5, `${w}% panel, ${pad}% padding`)
   }
   assert.match(CSS, /\.kl-hs-offer \.bm-how\{display:block; font-size:15px; color:#6b6457/)
   const hs = [...CSS.matchAll(/\.kl-hs \.kl-track\{height:(\d+)px/g)].map((x) => +x[1])
-  assert.deepEqual(hs, [380, 300, 232])   // desktop, tablet, phone
-  assert.ok(hs[0] <= 420 && hs[2] <= 0.45 * 812 && hs[2] >= 200 && hs[2] <= 240)
+  assert.deepEqual(hs, [380, 300, 296])   // desktop, tablet, phone
+  assert.ok(hs[0] <= 420 && hs[2] <= 0.37 * 812 && hs[2] >= 240)
   // Komuta 27 Nov (a): 'No code needed. Applied instantly.' shows on phones too (only the old strip hid it)
-  const phone = CSS.match(/@media\(max-width:560px\)\{\r?\n  \/\* phone: edge to edge[\s\S]*?\r?\n\}/)[0]
-  assert.doesNotMatch(phone, /bm-how\{[^}]*display:none/)
+  assert.doesNotMatch(ph,/bm-how\{[^}]*display:none/)
   assert.doesNotMatch(CSS, /\.kl-hs[^{]*\.bm-how\{[^}]*display:none/)
 })
 

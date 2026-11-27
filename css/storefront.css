@@ -119,21 +119,32 @@ html.kl-v2 .kl-hp[hidden]{display:none}
   .kl-hs-t{font-size:38px}
 }
 @media(max-width:560px){
-  /* phone: edge to edge, 232 px (375x812: announce + logo + slider + chips end near 400 px) */
-  html.kl-v2 .kl-hs{padding:0 0 8px}
-  .kl-hs .kl-track{height:232px}
-  .kl-hs .kl-slide img{width:50%}
-  .kl-hs-panel{width:68%; padding:12px 10% 12px 16px; line-height:1.25;
-    background:linear-gradient(90deg, rgba(255,254,251,.96) 0, rgba(255,254,251,.96) 86%, rgba(255,254,251,0) 100%)}
-  .kl-hs-offer .bm-pct{font-size:38px}
+  /* phone (27 Nov redo, Mert: 'yazilarin oturmasi'): photo on the right (portrait picks), SOLID text panel on the left (no
+     fade, nothing over the photo), slide 1 on a warmer paper so the 70% offer stands out; dots + Pause sit in their own
+     row UNDER the slide (no chip over the photo). Delivery is NOT repeated here: it lives in the dark strip at the very top. */
+  html.kl-v2 .kl-hs{padding:0 0 6px}
+  .kl-hs .kl-track{height:296px}
+  .kl-hs-panel{width:56%; padding:18px 8px 18px 16px; line-height:1.25; background:var(--paper); justify-content:flex-start}
+  .kl-hs .kl-hs-s1, .kl-hs .kl-hs-s1 .kl-hs-panel{background:#f6eee3}
+  /* one grid for all 3 slides: text from the top, the CTA on the same baseline at the bottom */
+  .kl-hs-panel .kl-hs-a{margin-top:auto}
+  .kl-hs .kl-slide img{left:56%; right:auto; width:44%; -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 16%); mask-image:linear-gradient(90deg, transparent 0, #000 16%)}   /* the photo fades into the panel: no hard vertical cut */
+  .kl-hs-offer .bm-pct{font-size:50px; line-height:.95}
   .kl-hs-offer .bm-when, .kl-hs-offer .bm-from{font-size:15px}
-  .kl-hs-offer .bm-how{font-size:13px; margin-top:3px}
-  html.kl-v2 .kl-hp{margin-top:6px}
-  .kl-hp-single{font-size:14px} .kl-hp-dlv{font-size:13px}   /* deal-first (24 Nov): single price >= 14 px */
+  .kl-hs-offer .bm-when{display:block; margin-top:4px}
+  .kl-hs-offer .bm-from{font-weight:600}
+  .kl-hs-offer .bm-how{font-size:13px; margin-top:6px; line-height:1.3}
+  html.kl-v2 .kl-hp{margin-top:10px; padding-top:8px; border-top:1px solid var(--hair)}
+  .kl-hp-single{font-size:14px}   /* deal-first (24 Nov): single price >= 14 px */
+  .kl-hp-dlv{display:none}
   .kl-hs-k{font-size:12px; letter-spacing:.16em}
-  .kl-hs-t{font-size:30px; margin:4px 0 12px}
+  .kl-hs-t{font-size:32px; margin:4px 0 14px}
   .kl-hs-a{padding:0 16px; font-size:12px; letter-spacing:.1em}
-  .kl-hs-ctl{right:8px; bottom:8px}
+  .kl-hs-ctl{position:static; justify-content:center; gap:4px; padding:0; background:none; height:44px}
+  .kl-hs .kl-dots{height:44px; gap:0}
+  .kl-hs .kl-dot{width:44px; height:44px}   /* touch target >= 44 px (dots + Pause) */
+  .kl-hs-play{width:44px; height:44px}
+  .kl-hs-a{min-height:44px}
 }
 @media(max-width:560px){
   /* family tabs (Bracelets / Necklaces / Hair) with their sub-chip row: every card shows its single price + the 10+
@@ -374,4 +385,20 @@ html.kl-v2[data-kl-tab="gradient"] #klFam .col-head, html.kl-v2[data-kl-tab="gra
 html.kl-v2[data-kl-tab="gradient"] #klFam [role=tablist]{margin-bottom:0}
 @media(max-width:560px){
   html.kl-v2[data-kl-tab="gradient"] #klFam{padding-top:4px}
+}
+
+/* top delivery strip (27 Nov, Mert could not see it: 12 px grey on cream read as absent): dark band, light 13 px text, every width */
+html.kl-v2 .announce{background:var(--ink); color:#faf7f1; border-bottom:0; font-size:13px; font-weight:400; padding:7px 12px; line-height:1.35}
+@media(max-width:380px){
+  /* 360 px phones: the singles line must not break inside '£5 / £8 / £13' */
+  .kl-hs-panel{width:58%} .kl-hs .kl-slide img{left:58%; width:42%}
+  .kl-hp-single{letter-spacing:0; white-space:nowrap}
+}
+.kl-hs-a-s1{display:none}
+@media(max-width:560px){
+  .kl-hs-a-s1{display:inline-flex}
+  /* header (Komuta 27 Nov): the hand-written logo never touches the Bag pill; the Bag sits on the logo row, the tagline below it */
+  html.kl-v2 .logo{font-size:clamp(42px,12vw,56px); margin-bottom:6px}
+  html.kl-v2 body > nav:not(.kl-tabbar) .bagbtn{top:3px; transform:none; right:10px; padding:7px 11px}
+  html.kl-v2 body > nav:not(.kl-tabbar){padding-top:10px; padding-bottom:10px}
 }
