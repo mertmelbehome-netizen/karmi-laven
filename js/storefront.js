@@ -82,9 +82,10 @@
    *  'gradient' entry has no chip, it keeps the view reachable); any other tab only with >= 1 sellable card (K-01); Gifts
    *  only with >= SF_GIFTS_MIN sellable picks (giftN = sfGiftCount(sfGiftRows(...)); absent = hidden). */
   var SF_GIFTS_MIN = 4;
+  var SF_GIFTS_OPEN = false;   // owner 27 Nov 2026: the Gifts section is closed (no chip, no tab, no gifts.json fetch); true + the picks file = reopen
   function sfVisibleTabs(cards, stateOf, giftN) {
     return SF_TABS.filter(function (t) {
-      if (t === 'gifts') return giftN >= SF_GIFTS_MIN;
+      if (t === 'gifts') return SF_GIFTS_OPEN && giftN >= SF_GIFTS_MIN;
       return t === 'gradient' || t === 'bracelets' || cards.some(function (c) { var s = stateOf(c); return c.tab === t && (s === 'sellable' || s === 'single'); });
     });
   }
@@ -755,6 +756,7 @@
     });
   }
   function loadGifts() {   // no gifts file / a bad file = no Gifts chip; never blocks the other tabs
+    if (!SF_GIFTS_OPEN) { GIFTDOC = null; return Promise.resolve(); }   // closed 27 Nov 2026: no request
     return fetch('/data/gifts.json', { cache: 'no-cache' }).then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) { GIFTDOC = d && Array.isArray(d.sections) ? d : null; }, function () { GIFTDOC = null; });
   }

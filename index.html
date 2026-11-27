@@ -790,7 +790,7 @@ function sfMetaCats(doc, hair) {
   // the chips last shown (storefront.js renderTabs remembers them): the pre-paint bar matches what the visitor will see
   var m = {}; try { m = JSON.parse(localStorage.getItem('kl_sf_tabs') || '{}') || {}; } catch (e) {}
   // Hair / Rings never from memory: their chips show only once the live answer has a sellable card (no empty chip while loading)
-  var vis = (Array.isArray(m.v) ? m.v.filter(function (t) { return SFL_TABS.indexOf(t) >= 0; }) : ['bracelets', 'necklaces', 'gifts', 'gradient']).filter(function (t) { return t !== 'hair' && t !== 'rings'; });   // first visit: the chips production shows today (Gifts W49-A2 included; a chip that turns out hidden only disappears, nothing after it moves)
+  var vis = (Array.isArray(m.v) ? m.v.filter(function (t) { return SFL_TABS.indexOf(t) >= 0; }) : ['bracelets', 'necklaces', 'gradient']).filter(function (t) { return t !== 'hair' && t !== 'rings' && t !== 'gifts'; });   // first visit: the chips production shows today (Gifts W49-A2 included; a chip that turns out hidden only disappears, nothing after it moves)
   window.klSfL = { sfBar: sfBar, sfLayout: sfLayout, sfUnlayout: sfUnlayout, sfBundleChip: sfBundleChip, sfGradSubs: function (d) { sfGradSubs(d, m.gs); }, sfHeroLine: sfHeroLine, sfDefTab: sfDefTab, sfPreTab: sfPreTab, sfHeroPrice: sfHeroPrice, sfHeroPriceApply: sfHeroPriceApply, sfMetaCats: sfMetaCats, vis: vis };
   if (window.__klSfPre) { try { sfLayout(document, sfBar(document, vis, m.n, location.hash.slice(1)), vis); } catch (e) {} }
 })();
