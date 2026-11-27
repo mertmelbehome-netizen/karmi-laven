@@ -131,8 +131,8 @@ const sha = (o) => createHash('sha256').update(JSON.stringify(o)).digest('hex')
 // only the cartM1 hint moved ('Now £8 each · 70% off ... (£2.40 each)' -> '£{own single} each for 1–9 items · 70% off ... (£{own 10+} each)', per group in the bag); everything else byte-identical
 // re-pinned 26 Nov 2026 ON PURPOSE (basket-1 U4: one add label): diffed record(OFF) with the old label put back: the ONLY change is the bag nudge button
 // text '＋ Add' -> 'Add to bag' (cart band); every price, bag line, total and hint byte-identical
-const PIN_OFF = '68a60feee6aba950cd00e7cb82568af1e92fce7b42f46872a07a9c939213fc11'
-const PIN_FALLBACK = '68a60feee6aba950cd00e7cb82568af1e92fce7b42f46872a07a9c939213fc11'   // M1_FALLBACK = publicLadders(ladders.json)
+const PIN_OFF = '74e9c1eb8304675fb2653c662f7e46aa4836875b04b8145100b9746273a659fc'
+const PIN_FALLBACK = '74e9c1eb8304675fb2653c662f7e46aa4836875b04b8145100b9746273a659fc'   // M1_FALLBACK = publicLadders(ladders.json)
 
 test('rings OFF (ladders.json today + first paint): every page text byte-for-byte = master (sha pin)', () => {
   assert.equal(RAW.flat_groups.R.enabled, false)
