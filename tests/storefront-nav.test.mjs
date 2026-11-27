@@ -84,22 +84,27 @@ const tabbar = () => new El('nav', { class: 'kl-tabbar', 'aria-label': 'Shop by 
 const xmasApi = (doc) => { const W = { document: doc }; new Function('window', XMAS)(W); return W }
 const XC = { last_order_date: '2099-12-18' }
 
-test('F1: the chip bar comes right after the logo/Bag row and BEFORE the hero', () => {
+// re-pinned 27 Nov 2026 ON PURPOSE (Mert: the hero is a slider, the chips right under it): logo row, hero slider, chips,
+// then the (visually hidden) H1 header; without the slider markup the chips still go right under the logo row
+test('F1: the chip bar comes right after the hero slider (under the logo/Bag row) and BEFORE the H1 header', () => {
   const doc = pageDoc()
   const before = order(doc)
   assert.ok(before.indexOf('header.hero') < before.indexOf('div.swatchbar'))
   sfLayout(doc, tabbar())
   const o = order(doc)
-  assert.deepEqual(o.slice(0, 4), ['div.announce', 'nav', 'nav.kl-tabbar', 'header.hero'])
+  assert.deepEqual(o.slice(0, 5), ['div.announce', 'nav', '#klHero', 'nav.kl-tabbar', 'header.hero'])
+  const plain = pageDoc(); plain.querySelector('#klHero')._detach(); sfLayout(plain, tabbar())
+  assert.deepEqual(order(plain).slice(0, 4), ['div.announce', 'nav', 'nav.kl-tabbar', 'header.hero'])
 })
 
 test('F3: hero keeps H1 + one short line (<= 15 words); eyebrow and buttons hidden; nothing is deleted', () => {
   const doc = pageDoc(); sfLayout(doc, tabbar())
   const hc = doc.querySelector('.hero-copy')
   const all = hc.children.filter((e) => e.tagName !== '#TEXT' && !e.hidden && !e.classes.includes('spectrum'))
-  // + the hero price block right under the line (25_hero_price; its own rules: tests/hero-price.test.mjs)
-  assert.deepEqual(all.map((e) => e.tagName + (e.classes.includes('kl-hp') ? '.kl-hp' : '')), ['H1', 'P', 'DIV.kl-hp'])
-  const shown = all.filter((e) => !e.classes.includes('kl-hp'))
+  // the hero price block moved into hero slide 1 on 27 Nov 2026 (tests/hero-slider.test.mjs, tests/hero-price.test.mjs)
+  assert.deepEqual(all.map((e) => e.tagName), ['H1', 'P'])
+  assert.ok(doc.querySelector('#klHero #klHeroPrice') && !doc.querySelector('.hero-copy #klHeroPrice'))
+  const shown = all
   const words = shown.map((e) => e.textContent).join(' ').split(/\s+/).filter(Boolean)
   assert.ok(words.length <= 15, words.join(' '))
   assert.ok(doc.querySelector('.hero-copy .k').hidden, 'dead eyebrow hidden (F7)')
@@ -198,9 +203,12 @@ test('hero line names only the categories on sale (no "hair pieces" while the Ha
   assert.equal(sfHeroLine(['gradient']), 'Bracelets. Build your own stack.')
   assert.match(SF, /hp\.textContent = sfHeroLine\(vis\)/)
 })
-test('desktop: hero photo capped well under 60vh (first product cards on the first screen)', () => {
+// re-pinned 27 Nov 2026 ON PURPOSE: the hero slider replaced the hero photo in the families view (one hero, no 2 columns);
+// its height stays capped so the first product cards keep their place on the first screen
+test('desktop: the hero photo is off in the families view; the slider is capped at <= 420 px', () => {
   const css = readFileSync(new URL('../css/storefront.css', import.meta.url), 'utf8')
-  assert.match(css, /@media\(min-width:841px\)\{[\s\S]*?html\.kl-v2 \.hero-img img\{aspect-ratio:auto; height:min\(28vh,240px\)\}/)
+  assert.match(css, /\nhtml\.kl-v2 \.hero-img, html\.kl-v2 \.hero-copy \.spectrum\{display:none\}/)
+  const h = Number(css.match(/\n\.kl-hs \.kl-track\{height:(\d+)px/)[1]); assert.ok(h <= 420, String(h))
 })
 
 test('bundle builder static fallback: no pools-era ladder price left in the source (M1)', () => {
@@ -210,13 +218,15 @@ test('bundle builder static fallback: no pools-era ladder price left in the sour
   assert.doesNotMatch(html, /£7\.50<\/span>|≈ £2\.50 each|3 bracelets<\/div>/)
 })
 
-test('phone: first screen shows the chips + at least one full card (hero photo off, H1/panel titles visually hidden, not removed)', () => {
+// re-pinned 27 Nov 2026 ON PURPOSE (Mert relaxed V-01: the hero slider leads the phone first screen, chips under it)
+test('hero photo off, H1 (every viewport) and panel titles (phone) visually hidden, not removed', () => {
   const css = readFileSync(new URL('../css/storefront.css', import.meta.url), 'utf8')
   const m = css.match(/@media\(max-width:560px\)\{([\s\S]*?)\r?\n\}/)
   assert.ok(m)
-  assert.match(m[1], /html\.kl-v2 \.hero-img\{display:none\}/)
-  assert.match(m[1], /html\.kl-v2 \.hero h1, html\.kl-v2 #palette \.col-head h2, html\.kl-v2 #klFam \.col-head h2\{position:absolute; width:1px; height:1px;/)
-  assert.doesNotMatch(m[1], /\.hero h1\{display:none|col-head h2\{display:none/, 'titles stay for screen readers')
+  assert.match(css, /\nhtml\.kl-v2 \.hero-img, html\.kl-v2 \.hero-copy \.spectrum\{display:none\}/)
+  assert.match(css, /\nhtml\.kl-v2 \.hero h1, html\.kl-v2 \.hero-copy p\{position:absolute; width:1px; height:1px;/)
+  assert.match(m[1], /html\.kl-v2 #palette \.col-head h2, html\.kl-v2 #klFam \.col-head h2\{position:absolute; width:1px; height:1px;/)
+  assert.doesNotMatch(css, /\.hero h1\{display:none|col-head h2\{display:none/, 'titles stay for screen readers')
 })
 
 test('phone: card ship label is one short line (no 3-line block over the photo)', () => {
@@ -344,7 +354,7 @@ test('pre-paint: the layout runs right after the hero and is finished right afte
   later.forEach((e) => doc.body.appendChild(e))                                          // parsed
   sfLayout(doc, null, ['gradient', 'bracelets', 'necklaces'])
   const o = order(doc)
-  assert.deepEqual(o.slice(0, 4), ['div.announce', 'nav', 'nav.kl-tabbar', 'header.hero'])
+  assert.deepEqual(o.slice(0, 5), ['div.announce', 'nav', '#klHero', 'nav.kl-tabbar', 'header.hero'])
   assert.ok(o.indexOf('#klInfo') > o.indexOf('#klFam') && o.indexOf('#klInfo') > o.indexOf('#palette'), o.join(' > '))
   for (const s of ['.launch', '.launchfee', '.stars', '.trustband', '.tb-legal']) assert.ok(doc.querySelector('#klInfo').querySelector(s), s)
   assert.equal(doc.querySelector('.hero-copy p').textContent, 'Bracelets and necklaces. Build your own stack.')

@@ -107,7 +107,7 @@ function record(view) {
   out.meta = doc.metas.map((m) => m.attrs.content).concat(doc.lds.map((s) => s.textContent))
   p.klHeroPriceApply()
   const hp = doc.getElementById('klHeroPrice')
-  out.hero = [hp.hidden, hp.querySelector('.kl-hp-l1').innerHTML, hp.querySelector('.kl-hp-single').textContent]
+  out.hero = [hp.hidden, hp.querySelector('.kl-hp-single').textContent]   // 27 Nov 2026: the block keeps singles + delivery (hero slide 1)
   return out
 }
 const flat = (o) => (typeof o === 'string' ? [o] : Array.isArray(o) ? o.flatMap(flat) : o && typeof o === 'object' ? Object.values(o).flatMap(flat) : [])
@@ -131,8 +131,12 @@ const sha = (o) => createHash('sha256').update(JSON.stringify(o)).digest('hex')
 // only the cartM1 hint moved ('Now £8 each · 70% off ... (£2.40 each)' -> '£{own single} each for 1–9 items · 70% off ... (£{own 10+} each)', per group in the bag); everything else byte-identical
 // re-pinned 26 Nov 2026 ON PURPOSE (basket-1 U4: one add label): diffed record(OFF) with the old label put back: the ONLY change is the bag nudge button
 // text '＋ Add' -> 'Add to bag' (cart band); every price, bag line, total and hint byte-identical
-const PIN_OFF = '74e9c1eb8304675fb2653c662f7e46aa4836875b04b8145100b9746273a659fc'
-const PIN_FALLBACK = '74e9c1eb8304675fb2653c662f7e46aa4836875b04b8145100b9746273a659fc'   // M1_FALLBACK = publicLadders(ladders.json)
+// re-pinned 27 Nov 2026 ON PURPOSE (feat/hero-slider, Mert: the hero is a slider, slide 1 = the 10+ offer): diffed record(OFF)
+// and record(null) against origin/master 3e2a6fa: the ONLY change is out.hero (the price block left the H1 header for
+// slide 1: no own 'from' line any more, singles of every group 'Single pieces £5 / £8 / £13' instead of the landing
+// group's 'Single piece £8'); every text, price, bag line, total and hint byte-identical
+const PIN_OFF = '50cc22d054cf5ff76ef34abc52368fdfc19d157635a954d827aeb394bd653804'
+const PIN_FALLBACK = '50cc22d054cf5ff76ef34abc52368fdfc19d157635a954d827aeb394bd653804'   // M1_FALLBACK = publicLadders(ladders.json)
 
 test('rings OFF (ladders.json today + first paint): every page text byte-for-byte = master (sha pin)', () => {
   assert.equal(RAW.flat_groups.R.enabled, false)
@@ -179,7 +183,9 @@ test('rings ON: every 10+ / 10 or more / any mix claim says "non-ring items" (pr
   assert.equal(r.price[0][0], '£1.50 each when you buy any 10+ non-ring items (70% off) · £5 each for 1–9 non-ring items')
   assert.equal(r.ship[0], '£1.49 UK delivery · free with any 10+ items (rings included)')   // announce bar, hero, FAQ, footer (data-kl="ship")
   assert.equal(r.ship[1], '+ £1.49 UK delivery · free with any 10+ items (rings included)')
-  assert.match(r.hero[1], /<span class="kl-hp-cond">for any 10\+ non-ring items<\/span>/)
+  // hero slide 1 (27 Nov 2026): the 10+ condition is the bar line (m1Texts().bar); the price block carries the singles only
+  assert.match(T.bar, /<span class="bm-when">when you buy 10\+ non-ring items<\/span>/)
+  assert.equal(r.hero[1], 'Single pieces £5 / £8 / £13')
   const nine = r.bags[3].foot   // 9 B, no ring in the bag: the bag still says rings don't count
   assert.equal(nine[1][1], '<span class="note">£1.49 UK delivery · free with any 10+ items (rings included)</span>')
   assert.equal(nine[4][0], '£8 each for 1–9 items · 70% off every non-ring item when your bag has 10+ non-ring items (£2.40 each)')

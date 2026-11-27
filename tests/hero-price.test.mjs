@@ -54,18 +54,23 @@ test('the headline price is genuinely available: 10 of the cheapest group cost e
 test('static first-paint block = sfHeroPrice(ladders.json, every group = Bracelets All) + the delivery sentence (no text change, no layout jump)', () => {
   const h = sfHeroPrice(RAW, Object.keys(RAW.groups))
   assert.deepEqual(h, { from: true, big: '£1.50', cond: 'when you buy any 10+ items', singles: 'Single pieces £5 / £8 / £13' })
-  const l1 = (h.from ? '<span class="kl-hp-from">from</span> ' : '') + `<b class="kl-hp-big">${h.big}<small> each</small></b> <span class="kl-hp-cond">${h.cond}</span>`
-  assert.ok(BLOCK.includes(`<div class="kl-hp-l1">${l1}</div>`), BLOCK)
+  // re-pinned 27 Nov 2026 ON PURPOSE (hero slider, Mert): the big 'from £x ... 10+' line left this block; slide 1 leads
+  // with the bar line (m1Texts().bar: '70% off when you buy 10+ items · From £1.50 each', tests/hero-slider.test.mjs),
+  // so the block keeps the singles + delivery only (no second 'from' line on the same slide)
+  assert.doesNotMatch(BLOCK, /kl-hp-l1|kl-hp-big|kl-hp-cond/)
   assert.ok(BLOCK.includes(`<div class="kl-hp-single">${h.singles}</div>`), BLOCK)
   const s = RAW.shipping
   const dl = money(s.below_threshold_fee_pence) + ' UK delivery' + (s.free_at_qty && s.free_at_qty.enabled ? ` · free with any ${s.free_at_qty.qty}+ items` : s.free_threshold_pence ? `, free on orders of £${s.free_threshold_pence % 100 ? (s.free_threshold_pence / 100).toFixed(2) : s.free_threshold_pence / 100} or more` : '')
   assert.ok(BLOCK.includes(`<div class="kl-hp-dlv" data-kl="ship">${dl}</div>`), 'delivery line in the block, kept live by applyShipTexts')
-  // the block sits in the hero, right after the hero line
-  assert.match(HTML, /data-kl-m1="herop">[^\n]*<\/p>\r?\n(?:\s*<!--[\s\S]*?-->\r?\n)?\s*<div class="kl-hp" id="klHeroPrice">/)
+  // the block sits in hero slide 1, right after the 10+ offer line (27 Nov 2026)
+  assert.match(HTML, /<p class="kl-hs-offer" data-kl-m1="bar">[^\n]*<\/p>\r?\n\s*<div class="kl-hp" id="klHeroPrice">/)
+  assert.doesNotMatch(HTML, /data-kl-m1="herop">[^\n]*<\/p>\r?\n\s*<div class="kl-hp"/, 'no second price block under the H1')
 })
 
-test('condition, singles and delivery are in the SAME block as the big price; no save / strike-through / was / %', () => {
-  for (const c of ['kl-hp-big', 'kl-hp-cond', 'kl-hp-single', 'kl-hp-dlv']) assert.ok(BLOCK.includes(`class="${c}"`), c)
+test('offer line, singles and delivery are on the SAME slide; no save / strike-through / was / % in the block', () => {
+  for (const c of ['kl-hp-single', 'kl-hp-dlv']) assert.ok(BLOCK.includes(`class="${c}"`), c)
+  const s1 = HTML.match(/<div class="kl-slide kl-hs-s1"[\s\S]*?<\/div>\r?\n    <\/div>/)[0]
+  assert.ok(s1.includes('data-kl-m1="bar"') && s1.includes('id="klHeroPrice"'), 'condition + price + singles + delivery: one slide')
   const txt = BLOCK.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
   for (const bad of [/save/i, /\bwas\b/i, /%/, /off\b/i, /instead of/i]) assert.doesNotMatch(txt, bad)
   assert.doesNotMatch(BLOCK, /<(s|del|strike)\b/i)
@@ -88,22 +93,22 @@ test('sfHeroPriceApply writes the same nodes; hidden for a non-M1 table', () => 
   sfHeroPriceApply(doc, { mode: 'pools' }, null); assert.equal(b.hidden, true)
 })
 
-test('wiring: M1 page update + storefront renderTabs refresh the block; groups on sale only after the family stock', () => {
+// re-pinned 27 Nov 2026 ON PURPOSE (hero slider): slide 1 sits above the chips and says the same on every tab, like the
+// bar line whose 'From' is the lowest 10+ price of the whole table: every group (keys null), never per tab
+test('wiring: M1 page update + storefront renderTabs refresh the block; every group in the served table (site-wide slide)', () => {
   assert.match(HTML, /function m1ApplyPage\(\)\{\r?\n  klHeroPriceApply\(\);/)
-  // per tab (24 Nov): the groups of the active tab's cards; unknown yet on a non-Gradient landing (26 Nov: Bracelets) =
-  // keep the first-paint text; unknown on the Gradient tab = its group; [] = no block
-  assert.match(HTML, /let keys=typeof window\.klTabGroups==='function'\?window\.klTabGroups\(\):null; if\(!keys&&window\.__klSfPre&&document\.documentElement\.getAttribute\('data-kl-tab'\)!=='gradient'\) return; if\(!keys&&t\) keys=\[t\.gradient_group\];/)
-  assert.match(SFJS, /window\.klTabGroups = function \(\) \{/)
-  assert.equal(sfHeroPrice(SERVED, []), null, 'a tab with no 10+ piece (Rings) shows no 10+ block')
-  assert.match(SFJS, /if \(ok && FAM\.length\) window\.__klGroupsKnown = true;/)
+  assert.match(HTML, /function klHeroPriceApply\(\)\{ try\{ const t=m1T\(\), K=window\.klSfL; if\(!K\|\|!K\.sfHeroPriceApply\) return;\r?\n  K\.sfHeroPriceApply\(document, t, null, klRingsNote\(\)\); \}catch\(e\)\{\} \}/)
+  assert.equal(sfHeroPrice(SERVED, null).singles, 'Single pieces £5 / £8 / £13')
+  assert.equal(sfHeroPrice(SERVED, []), null)
   assert.match(SFJS, /window\.klHeroPriceApply\(\)/)
 })
 
-test('layout rules (BENCHMARK HP-1/HP-3): big >= 2x condition, condition >= 14 px, singles smaller than the condition', () => {
+test('layout rules (BENCHMARK HP-1/HP-3) on slide 1: 70% >= 2x its condition, condition >= 14 px, singles >= 14 px and not above the condition', () => {
   const px = (re) => [...CSS.matchAll(re)].map((m) => Number(m[1]))
-  const big = px(/\.kl-hp-big\{font-size:(\d+)px/g), cond = px(/\.kl-hp-cond\{font-size:(\d+)px/g), single = px(/\.kl-hp-single\{font-size:(\d+)px/g)
-  assert.equal(big.length, 2); assert.equal(cond.length, 2)   // desktop + phone
-  big.forEach((b, i) => { assert.ok(b >= 2 * cond[i], `big ${b} vs condition ${cond[i]}`); assert.ok(cond[i] >= 14); assert.ok(single[i] < cond[i] && single[i] >= 13) })
+  const big = px(/\.kl-hs-offer \.bm-pct\{(?:display:block; font-family:'Cormorant Garamond',serif; font-weight:600; )?font-size:(\d+)px/g)
+  const cond = px(/\.kl-hs-offer \.bm-when, \.kl-hs-offer \.bm-from\{font-size:(\d+)px/g), single = px(/\.kl-hp-single\{font-size:(\d+)px/g)
+  assert.equal(big.length, 3); assert.equal(cond.length, 3); assert.equal(single.length, 3)   // desktop, tablet, phone
+  big.forEach((b, i) => { assert.ok(b >= 2 * cond[i], `big ${b} vs condition ${cond[i]}`); assert.ok(cond[i] >= 14); assert.ok(single[i] <= cond[i] && single[i] >= 14) })
   assert.match(CSS, /\.kl-hp\{display:none\}\r?\nhtml\.kl-v2 \.kl-hp\{display:block/, 'families view only; the old page keeps its own hero price line')
 })
 

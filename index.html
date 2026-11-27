@@ -597,15 +597,43 @@ body.has-bar{padding-bottom:var(--bar-h,84px)} html.has-bar{scroll-padding-botto
   <button class="bagbtn" onclick="openCart()">Bag · <span id="bagN">0</span></button>
 </nav>
 
+<!-- families view hero slider (27 Nov 2026, Mert: 'kayar galeri tarzı sistemde sayfada hero olmalı'; '70% ... bizim en güçlü
+     reklamımız'). Hidden on the old page (css/storefront.css .kl-hs). Native scroll-snap + the klCar* binding (dots, arrow
+     keys, swipe); auto-advance + Pause/Play: KL-HS block. Slide 1 = the 10+ offer: the bar line is m1Texts().bar (the
+     old thin top strip .m1bar, now old page only) + #klHeroPrice (singles + delivery, sfHeroPriceApply, every group).
+     Slides 2-3: live, referee-passed card photos (data/cards.json qc), name + a category link only (no price, no %).
+     PHOTOS: one img line per slide below is the ONLY place a slide photo is named (src + width/height + alt): to swap a
+     photo (e.g. the WAT shoot, Komuta 27 Nov) change that one line; tests/hero-slider.test.mjs checks the file exists and
+     width/height = the file's real size (CLS 0). -->
+<section class="kl-hs" id="klHero" role="region" aria-roledescription="carousel" aria-label="Offer and collections" data-kl-car>
+  <div class="kl-track" aria-live="polite">
+    <div class="kl-slide kl-hs-s1" role="group" aria-roledescription="slide" aria-label="1 of 3">
+      <img src="/img/gradient/1268.jpg" width="900" height="794" loading="eager" fetchpriority="high" decoding="async" alt="Karmi Laven bracelet, worn">
+      <div class="kl-hs-panel">
+        <p class="kl-hs-offer" data-kl-m1="bar"><b class="bm-pct">70% off</b> <span class="bm-when">when you buy 10+ items</span> <span class="bm-from">· From £1.50 each</span> <span class="bm-how">No code needed. Applied instantly.</span></p>
+        <div class="kl-hp" id="klHeroPrice"><div class="kl-hp-single">Single pieces £5 / £8 / £13</div><div class="kl-hp-dlv" data-kl="ship">£3.99 UK delivery, free on orders of £30 or more</div></div>
+      </div>
+    </div>
+    <div class="kl-slide kl-hs-s2" role="group" aria-roledescription="slide" aria-label="2 of 3">
+      <img src="/img/fam/81004.jpg" width="806" height="1000" loading="lazy" decoding="async" alt="Gold-tone Swan, Sparkle Line bracelet, worn">
+      <div class="kl-hs-panel"><p class="kl-hs-k">Bracelets</p><p class="kl-hs-t">Sparkle Line</p><a class="kl-hs-a" href="#bracelets-sparkle">Shop Sparkle Line</a></div>
+    </div>
+    <div class="kl-slide kl-hs-s3" role="group" aria-roledescription="slide" aria-label="3 of 3">
+      <img src="/img/fam/6180.jpg" width="806" height="1000" loading="lazy" decoding="async" alt="Rose, starfish charm, Charm Necklace, worn">
+      <div class="kl-hs-panel"><p class="kl-hs-k">Necklaces</p><p class="kl-hs-t">Charm Necklace</p><a class="kl-hs-a" href="#necklaces">Shop necklaces</a></div>
+    </div>
+  </div>
+  <div class="kl-hs-ctl">
+    <div class="kl-dots"><button type="button" class="kl-dot" data-kl-dot="0" aria-label="Slide 1 of 3: 70% off" aria-current="true"></button><button type="button" class="kl-dot" data-kl-dot="1" aria-label="Slide 2 of 3: Sparkle Line"></button><button type="button" class="kl-dot" data-kl-dot="2" aria-label="Slide 3 of 3: Necklaces"></button></div>
+    <button type="button" class="kl-hs-play" data-kl-hs-play data-state="paused" aria-label="Play slides"><svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg><svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg></button>
+  </div>
+</section>
+
 <header class="hero wrap">
   <div class="hero-copy">
     <div class="k fadein d1">Colour, worn softly</div>
     <h1 class="fadein d1">Colour,<br> worn <em>softly</em>.</h1>
     <p class="fadein d2" data-kl-m1="herop">Faceted beads on a gold-tone chain with a single charm. Wear one, or stack a few.</p>
-    <!-- families view hero price (25_hero_price): headline 10+ price + its condition + the single prices + delivery in ONE
-         block (CMA/DMCC, ASA). Text = sfHeroPrice(ladders.json, every group); runtime: the served table + the groups on sale
-         (sfHeroPriceApply). tests/hero-price.test.mjs keeps this static text = the table. Hidden on the old page (css). -->
-    <div class="kl-hp" id="klHeroPrice"><div class="kl-hp-l1"><span class="kl-hp-from">from</span> <b class="kl-hp-big">£1.50<small> each</small></b> <span class="kl-hp-cond">when you buy any 10+ items</span></div><div class="kl-hp-single">Single pieces £5 / £8 / £13</div><div class="kl-hp-dlv" data-kl="ship">£3.99 UK delivery, free on orders of £30 or more</div></div>
     <div class="stars fadein d2"><span class="num">Part of Melbe Home · with shops in Watford &amp; Guildford</span></div>
     <div class="cta fadein d3">
       <button class="btn" onclick="openBundle()">Build your bundle</button>
@@ -652,14 +680,15 @@ function sfBar(doc, vis, n, sel) {
   }).join('') + '</div>';
   return nav;
 }
-/** Moves, never deletes: chip bar directly under the logo/Bag row (before the hero); hero keeps H1 + one short line;
+/** Moves, never deletes: chip bar directly under the hero slider #klHero (else the logo/Bag row), before the H1 header
+ *  (visually hidden in the families view: the slider is the one visible hero); hero keeps H1 + one short line;
  *  the price + delivery line ("+ £3.99 UK delivery, free on orders of £30 or more"), the Christmas notice, the Melbe Home
  *  line, the trust strip and the company/VAT line go into one block right after the product grids. Idempotent and
  *  resumable: called while the page is still being parsed, it does what the parsed part allows (a detached #klInfo
  *  collects the moved nodes until #palette exists). Every move is recorded so sfUnlayout can put it back. */
 function sfLayout(doc, bar, vis) {
   var q = function (s) { return doc.querySelector(s); };
-  var top = q('nav'), hero = q('header.hero');
+  var top = q('#klHero') || q('nav'), hero = q('header.hero');   // 27 Nov 2026: the hero slider sits right under the logo row, the chips right under it
   var mv = doc.__klMoved || (doc.__klMoved = []);
   if (bar && !bar.parentNode && !q('nav.kl-tabbar') && top && top.parentNode) top.parentNode.insertBefore(bar, top.nextSibling);
   var k = q('.hero-copy .k'); if (k) k.hidden = true;        // the dead "Bracelets · Necklaces · Hair" eyebrow: the chips above replace it
@@ -1256,6 +1285,38 @@ function klModalGallery(d){
   },true);
   window.klCarGo=go;
 })();
+/*KL-HS-START*/
+// Hero slider (#klHero, families view; 27 Nov 2026): swipe / dots / arrow keys = the klCar* binding above. Auto-advance
+// every 6 s (WCAG 2.2.2): a visible Pause/Play button; held while the pointer is over the slider or keyboard focus is
+// inside it; stopped for good by a touch on the photos or a dot press; never with prefers-reduced-motion; only while the
+// families view is on, the browser tab is visible and the slider is on screen. While it rotates the slides are not
+// announced (aria-live off); stopped = polite.
+function klHeroSlider(win, doc){
+  const car=doc.getElementById('klHero'); if(!car) return null;
+  const tr=car.querySelector('.kl-track'), btn=car.querySelector('[data-kl-hs-play]'), DELAY=6000;
+  let stop=false, held=false, seen=true, tm=0;
+  const still=()=>{ try{ return !!(win.matchMedia&&win.matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; } };
+  const live=()=>!stop&&!held&&seen&&!doc.hidden&&doc.documentElement.classList.contains('kl-v2');
+  const paint=()=>{ if(btn){ btn.setAttribute('aria-label',stop?'Play slides':'Pause slides'); btn.setAttribute('data-state',stop?'paused':'playing'); } if(tr) tr.setAttribute('aria-live',stop?'polite':'off'); };
+  const plan=()=>{ win.clearTimeout(tm); tm=stop?0:win.setTimeout(tick,DELAY); };
+  function tick(){
+    if(live()&&tr&&tr.clientWidth&&typeof win.klCarGo==='function'){ const n=tr.children.length; win.klCarGo(car,(Math.round(tr.scrollLeft/tr.clientWidth)+1)%n); }
+    plan();
+  }
+  const halt=()=>{ stop=true; paint(); plan(); };
+  if(btn) btn.addEventListener('click',()=>{ stop=!stop; held=false; paint(); plan(); });
+  car.addEventListener('mouseenter',()=>{ held=true; });
+  car.addEventListener('mouseleave',()=>{ held=false; plan(); });
+  car.addEventListener('focusin',e=>{ if(e.target!==btn) held=true; });
+  car.addEventListener('focusout',e=>{ if(!e.relatedTarget||!car.contains(e.relatedTarget)){ held=false; plan(); } });
+  if(tr) tr.addEventListener('touchstart',halt,{passive:true});
+  car.addEventListener('click',e=>{ if(e.target&&e.target.closest&&e.target.closest('[data-kl-dot]')) halt(); });
+  if(typeof win.IntersectionObserver==='function') new win.IntersectionObserver(es=>{ seen=!!es[es.length-1].isIntersecting; }).observe(car);
+  stop=still(); paint(); plan();
+  return { state:()=>({ stop, held, seen }), tick };
+}
+try{ window.klHero=klHeroSlider(window,document); }catch(e){}
+/*KL-HS-END*/
 // §5.18 (dynamic add): what the bag will total, delivery included, if this item is added.
 function updateModalBag(){ const bc=window._mbc, el=document.getElementById('mBag'); if(!el) return; if(!bc||!unitPrice(bc)){ el.textContent=''; return; }
   const after=addedLines(bc,1); el.textContent='Bag after adding: '+linesRolling(after).replace(/^Bag /,''); }
@@ -1595,14 +1656,12 @@ function m1LineText(bc){ const s=m1Summary(cart), g=m1Group(bc), b=g&&s.groups.f
   if(m1Flat(g)) return (BY[bc].type||'')+' · '+gbpP(b.each_charged)+' each';
   return (isLadder(bc)?'Bead bracelet':(BY[bc].type||''))+' · '+gbpP(b.each_charged)+' each'+(s.tier_unlocked?' ('+s.tier_from+'+ price)':''); }
 function countText(n){ if(m1On()){ const T=m1Texts(); if(T) return T.count(n); } return n+' shades · online price £'+PRICE.toFixed(2)+' + '+gbpP(SHIP.feeP)+' UK delivery'; }
-// Hero price block (families view): the served table + the groups on sale. Until storefront.js has the family stock
-// (window.__klGroupsKnown) every group in the table is used (= the static text), so the first paint never flips.
-// Per tab (Komuta 24 Nov, CMA: a 'from' price must be available on what is shown): the groups of the cards on the
-// active tab (js/storefront.js window.klTabGroups); unknown yet / families off = the landing tab (Gradient) group.
-// [] = nothing on the tab takes part in the 10+ price (e.g. Rings) = no block.
+// Hero slide 1 (families view, 27 Nov 2026): the single prices + the delivery line under the 10+ offer line (m1Texts().bar).
+// The slide sits above the chips and says the same on every tab, like the bar line ('From' = the lowest 10+ price of the
+// whole table): every group in the served table (keys null), so the static first paint (= ladders.json) never flips.
+// (Until 27 Nov this block was per tab under the H1 with its own 'from £x' line; the 'from' figure now lives in the bar line.)
 function klHeroPriceApply(){ try{ const t=m1T(), K=window.klSfL; if(!K||!K.sfHeroPriceApply) return;
-  let keys=typeof window.klTabGroups==='function'?window.klTabGroups():null; if(!keys&&window.__klSfPre&&document.documentElement.getAttribute('data-kl-tab')!=='gradient') return; if(!keys&&t) keys=[t.gradient_group];
-  K.sfHeroPriceApply(document, t, keys, klRingsNote()); }catch(e){} }
+  K.sfHeroPriceApply(document, t, null, klRingsNote()); }catch(e){} }
 window.klHeroPriceApply=klHeroPriceApply;
 function m1ApplyPage(){
   klHeroPriceApply();
