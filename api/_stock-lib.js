@@ -1,13 +1,14 @@
 // api/_stock-lib.js — shared "how many can we sell online" maths for /api/stock and /api/checkout.
 // (Files starting with "_" in api/ are not deployed as routes by Vercel.)
 //
-//   available(bc) = WAT stockroom_count − ONLINE_STOCKROOM_BUFFER − holds(bc), floored at 0
+//   available(bc) = WAT display_count + WAT stockroom_count − ONLINE_STOCKROOM_BUFFER − holds(bc), floored at 0   (owner 27 Nov 2026: display + hub)
 //   holds(bc)     = qty of bc on online_orders with status='paid' (not yet fulfilled), store WAT
-// display_count is excluded on purpose: online orders ship from the WAT stockroom only.
+// display_count counts since 27 Nov 2026 (ONLINE_COUNTS_DISPLAY). The buffer stays until the owner decides.
 
 export const STORE = 'WAT';   // owner 27 Nov 2026 (rule §19): the DISPLAY rule below is measured in this one store; change it here only
 // The last 1–2 units per barcode often can't be found when picking, so they are never offered online.
 export const ONLINE_STOCKROOM_BUFFER = 3;
+export const ONLINE_COUNTS_DISPLAY = true;   // owner 27 Nov 2026: sellable = display + stockroom (− buffer − holds); false = the old stockroom-only maths
 
 /** Owner rule 27 Nov 2026: only products with BOTH display stock and stockroom stock in STORE are shown / sold online.
  *  Pure. dispMap {pid: display_count}, slMap {pid: stockroom_count}. Hidden (false) only on affirmative evidence: a WAT stock row with display <= 0 or stockroom <= 0. */
@@ -23,7 +24,7 @@ export function shownMap(barcodes, bcToPid, dispMap, slMap) {
 }
 
 /** Pure: the available map from raw rows. bcToPid {bc: pid}, slMap {pid: stockroom}, orders [{items:[{bc,qty}]}]. */
-export function computeAvailable(barcodes, bcToPid, slMap, orders) {
+export function computeAvailable(barcodes, bcToPid, slMap, orders, dispMap) {
   const holds = {};
   for (const o of orders || []) {
     const items = Array.isArray(o && o.items) ? o.items : [];
@@ -36,7 +37,7 @@ export function computeAvailable(barcodes, bcToPid, slMap, orders) {
   const stock = {};
   for (const bc of barcodes) {
     const pid = bcToPid[bc];
-    const onHand = pid != null ? (slMap[pid] || 0) : 0;
+    const onHand = pid != null ? (slMap[pid] || 0) + (ONLINE_COUNTS_DISPLAY && dispMap ? Math.max(0, dispMap[pid] || 0) : 0) : 0;
     stock[bc] = Math.max(0, onHand - ONLINE_STOCKROOM_BUFFER - (holds[bc] || 0));
   }
   return stock;
@@ -68,7 +69,7 @@ export async function fetchAvailable(barcodes, { base, key, fetchImpl = fetch } 
     let orders = [];
     const ooRes = await q(`online_orders?status=eq.paid&store_id=eq.${STORE}&select=items&limit=5000`);
     if (ooRes.ok) orders = await ooRes.json();
-    return { ok: true, stock: computeAvailable(want, bcToPid, slMap, orders), shown: shownMap(want, bcToPid, dispMap, slMap) };
+    return { ok: true, stock: computeAvailable(want, bcToPid, slMap, orders, dispMap), shown: shownMap(want, bcToPid, dispMap, slMap) };
   } catch (e) {
     return { ok: false, error: String((e && e.message) || e) };
   }

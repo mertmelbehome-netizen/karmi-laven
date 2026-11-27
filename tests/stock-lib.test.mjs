@@ -83,3 +83,11 @@ test('display rule (owner 27 Nov 2026): shown only with display > 0 AND stockroo
   assert.deepEqual(shownMap(['a', 'b', 'c', 'd', 'zz'], m, { pa: 3, pb: 0, pc: 5 }, { pa: 9, pb: 9, pc: 0, pd: 4 }),
     { a: true, b: false, c: false, d: true, zz: true })   // b display 0, c stockroom 0, d no display field (unknown), zz unmapped
 })
+
+test('sellable = display + stockroom − buffer − holds (owner 27 Nov 2026); without a display map the old stockroom-only maths', () => {
+  const bcToPid = { a: 1, b: 2 }
+  const orders = [{ items: [{ bc: 'a', qty: 2 }] }]
+  assert.deepEqual(computeAvailable(['a', 'b'], bcToPid, { 1: 10, 2: 1 }, orders, { 1: 4, 2: 5 }), { a: 10 + 4 - 3 - 2, b: 1 + 5 - 3 })
+  assert.deepEqual(computeAvailable(['a'], bcToPid, { 1: 10 }, orders), { a: 10 - 3 - 2 })
+  assert.deepEqual(computeAvailable(['a'], bcToPid, { 1: 2 }, [], { 1: 0 }), { a: 0 }, 'floored at 0')
+})
