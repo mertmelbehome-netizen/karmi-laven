@@ -209,12 +209,12 @@ for (const [name, [lines, pad]] of Object.entries(BARS)) {
     assert.equal(Number(info.dataset.klTotalP), s.charged_pence + s.shipping_pence, 'the measured bag total is unchanged')
   })
 }
-test('K&D 8: outside 7-9 items the bar keeps "Bag £total" (6 items, 10 items)', () => {
-  for (const q of [6, 10]) {
-    const { p, doc } = page()
-    p.setCart([{ bc: A, qty: q }]); p.updateBag()
-    assert.match(doc.getElementById('stickyInfo').innerHTML, /^Bag <b>£\d+\.\d\d<\/b>/, q + ' items')
-  }
+test('K&D 8 (27 Nov update): at 10 items the bar keeps "Bag £total"; below 7 it is the live counter (design review e)', () => {
+  const { p, doc } = page()
+  p.setCart([{ bc: A, qty: 10 }]); p.updateBag()
+  assert.match(doc.getElementById('stickyInfo').innerHTML, /^Bag <b>£\d+\.\d\d<\/b>/, '10 items')
+  p.setCart([{ bc: A, qty: 6 }]); p.updateBag()
+  assert.match(doc.getElementById('stickyInfo').innerHTML, /^<b>6 \/ 10<\/b> · 4 more/, '6 items')
 })
 test('K&D 8: 9 x £5 = £45 ships free now but the 10-item bag (£15) pays £3.99: the line says so, with no "free"', async () => {
   const { p, doc } = page()
@@ -261,4 +261,15 @@ test('sold-out cards are display:none (no 0x0 placeholder holding a grid cell); 
   assert.doesNotMatch(HTML, /\.card\.sold-out\{[^}]*(visibility:hidden|width:0|height:0|opacity:0)/)
   assert.match(HTML, /ch\.hidden=Array\.prototype\.every\.call\(gc,function\(c\)\{ return c\.classList\.contains\('sold-out'\); \}\)/)
   assert.match(HTML, /\.col-head\[hidden\]\{display:none\}/)
+})
+
+test('27 Nov design review (e): below the 10+ price the sticky bar is a live counter "N / 10 · M more" (engine numbers) with the bag total underneath; 7-9 keep "Add N more → total"; 10 = the bag total', () => {
+  const { p, doc } = page()
+  p.setCart([{ bc: A, qty: 3 }]); p.updateBag()
+  const info = doc.getElementById('stickyInfo').innerHTML
+  assert.match(info, /^<b>3 \/ 10<\/b> · 7 more( for \d+% off)?<span class="dl">Bag £/, info)
+  p.setCart([{ bc: A, qty: 8 }]); p.updateBag()
+  assert.match(doc.getElementById('stickyInfo').innerHTML, /^<b>Add 2 more →/)
+  p.setCart([{ bc: A, qty: 10 }]); p.updateBag()
+  assert.match(doc.getElementById('stickyInfo').innerHTML, /^Bag <b>£/)
 })

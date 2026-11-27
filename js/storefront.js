@@ -354,8 +354,8 @@
     // deal-first (owner 24 Nov): the lowest 10+ price of the tab + its condition lead (the hero block's short form 'for any
     // 10+ items', one bar line at 375 px). The single prices are on every card right above the bar (14 px, same view); a
     // longer bar would push the first full card under it (V-01, 375x812)
-    if (deal && minP > 0) return { info: (deal.from ? 'From ' : '') + '<b>' + sfEsc(deal.big) + '</b> each ' + sfEsc(deal.short || deal.cond0 || deal.cond) + fee, btn: 'Shop ' + SF_TITLE[tab] };
-    return { info: (minP > 0 ? 'From <b>' + sfMoney(minP) + '</b> each' : '') + fee, btn: 'Shop ' + SF_TITLE[tab] };
+    if (deal && minP > 0) return { info: (deal.from ? 'From ' : '') + '<b>' + sfEsc(deal.big) + '</b> each ' + sfEsc(deal.short || deal.cond0 || deal.cond) + fee, btn: 'Start picking' };   // 27 Nov (design review e): the shopper is ALREADY on the tab, 'Shop Bracelets' said nothing; the button scrolls to the pieces
+    return { info: (minP > 0 ? 'From <b>' + sfMoney(minP) + '</b> each' : '') + fee, btn: 'Start picking' };
   }
   /** Deal parts for a set of sellable barcodes (sticky bar / info line): the group with the lowest 10+ price gives the
    *  bold figure + its condition (index.html m1Deal, so a percentage only where the table makes it exact); 'from' when
